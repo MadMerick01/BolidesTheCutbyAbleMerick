@@ -3,6 +3,51 @@
 
 local M = {}
 
+local function isValidVeh(v)
+  if not v then return false end
+  local ok, id = pcall(function() return v:getId() end)
+  return ok and id ~= nil
+end
+
+local function igniteVehicle(mobVeh)
+  if not isValidVeh(mobVeh) then return end
+  mobVeh:queueLuaCommand([[
+    if fire and fire.setIgnition then
+      pcall(function() fire.setIgnition(true) end)
+    end
+    if fire and fire.setOnFire then
+      pcall(function() fire.setOnFire(true) end)
+    end
+    if fire and fire.ignite then
+      pcall(function() fire.ignite() end)
+    end
+  ]])
+end
+
+local function detonateBomb(mobVeh)
+  if not isValidVeh(mobVeh) then return end
+  mobVeh:queueLuaCommand([[
+    local didExplode = false
+    if fire and fire.explodeVehicle then
+      pcall(function() fire.explodeVehicle() end)
+      didExplode = true
+    end
+    if fire and fire.setIgnition then
+      pcall(function() fire.setIgnition(true) end)
+    end
+    if fire and fire.setOnFire then
+      pcall(function() fire.setOnFire(true) end)
+    end
+    if fire and fire.ignite then
+      pcall(function() fire.ignite() end)
+    end
+    if (not didExplode) and obj and obj.queueGameEngineLua and obj.getId then
+      local id = obj:getId()
+      obj:queueGameEngineLua("core_vehicles.explode(" .. id .. ")")
+    end
+  ]])
+end
+
 local CFG = nil
 local Host = nil
 
@@ -16,8 +61,8 @@ local R = {
 
   phase = "idle", -- "follow" | "chase" | "disabled"
   distToPlayer = nil,
-  igniteTriggered = false,
-  detonated = false,
+  didIgnite = false,
+  didDetonate = false,
   detonateAt = nil,
   disableApplied = false,
   guiMessage = nil,
@@ -161,8 +206,8 @@ local function resolveVehicleId(result)
 end
 
 local function spawnVehicleAt(transform)
-  local model = "pigeon"
-  local config = "race"
+  local model = "burnside"
+  local config = "OldBombCarFire"
 
   if core_vehicles and core_vehicles.spawnNewVehicle then
     local ok, res = pcall(function()
@@ -235,7 +280,7 @@ local function spawnVehicleAt(transform)
 end
 
 local AUDIO = {
-  eventStartFile = "/art/sound/bolides/EventStart.wav",
+  eventStartFile = "/art/sound/bolides/tensionlong.wav",
   eventStartName = "fireAttackEventStart",
   eventStartVol = 1.0,
   eventStartPitch = 1.0,
@@ -455,8 +500,8 @@ local function resetState(keepGui)
   R.spawnMethod = nil
   R.phase = "idle"
   R.distToPlayer = nil
-  R.igniteTriggered = false
-  R.detonated = false
+  R.didIgnite = false
+  R.didDetonate = false
   R.detonateAt = nil
   R.disableApplied = false
   R.guiMessage = nil
@@ -475,38 +520,6 @@ local function resetState(keepGui)
       end
       pcall(function() v:delete() end)
     end
-  end
-end
-
-local function tryIgnite(veh)
-  local Mobs = nil
-  if extensions and extensions.mobs then
-    Mobs = extensions.mobs
-  elseif package and package.searchpath then
-    local path = package.searchpath("mobs", package.path)
-    if path then
-      Mobs = require("mobs")
-    end
-  end
-
-  if Mobs and Mobs.igniteVehicle then
-    pcall(function() Mobs.igniteVehicle(veh) end)
-  end
-end
-
-local function tryDetonate(veh)
-  local Mobs = nil
-  if extensions and extensions.mobs then
-    Mobs = extensions.mobs
-  elseif package and package.searchpath then
-    local path = package.searchpath("mobs", package.path)
-    if path then
-      Mobs = require("mobs")
-    end
-  end
-
-  if Mobs and Mobs.detonateBomb then
-    pcall(function() Mobs.detonateBomb(veh) end)
   end
 end
 
@@ -583,8 +596,8 @@ function M.triggerManual()
   R.spawnedId = id
   R.phase = "follow"
   R.distToPlayer = nil
-  R.igniteTriggered = false
-  R.detonated = false
+  R.didIgnite = false
+  R.didDetonate = false
   R.detonateAt = nil
   R.disableApplied = false
   R.guiMessage = "??????"
@@ -619,8 +632,13 @@ end
 function M.update(dtSim)
   if not R.active then return end
 
-  local attacker = getObjById(R.spawnedId)
-  if not attacker then
+  local fireVeh = nil
+  if be and be.getObjectByID then
+    fireVeh = be:getObjectByID(R.spawnedId)
+  else
+    fireVeh = getObjById(R.spawnedId)
+  end
+  if not fireVeh then
     resetState(false)
     log("Ended (pigeon missing).")
     return
@@ -629,7 +647,7 @@ function M.update(dtSim)
   local pv = getPlayerVeh()
   if not pv then return end
 
-  local rp = attacker:getPosition()
+  local rp = fireVeh:getPosition()
   local pp = pv:getPosition()
   if not (rp and pp) then return end
 
@@ -643,10 +661,10 @@ function M.update(dtSim)
     local spawnDist = (rp - R.spawnPos):length()
     if spawnDist >= 50.0 then
       local ok = pcall(function()
-        if attacker.setPositionRotation then
-          attacker:setPositionRotation(R.spawnPos, quat(0, 0, 0, 1))
-        elseif attacker.setPosition then
-          attacker:setPosition(R.spawnPos)
+        if fireVeh.setPositionRotation then
+          fireVeh:setPositionRotation(R.spawnPos, quat(0, 0, 0, 1))
+        elseif fireVeh.setPosition then
+          fireVeh:setPosition(R.spawnPos)
         end
       end)
       R.spawnSnapped = true
@@ -659,23 +677,27 @@ function M.update(dtSim)
     end
   end
 
-  if (not R.igniteTriggered) and d <= 100.0 then
-    R.igniteTriggered = true
-    R.detonateAt = now + 1.0
-    R.guiMessage = "You smell something cooking"
-    setGuiStatusMessage(R.guiMessage)
-    tryIgnite(attacker)
-    switchToChaseAI(R.spawnedId)
+  if (not R.didIgnite) and d <= 100.0 then
+    if fireVeh then
+      R.didIgnite = true
+      R.detonateAt = now + 1.0
+      R.guiMessage = "You smell something cooking"
+      setGuiStatusMessage(R.guiMessage)
+      igniteVehicle(fireVeh)
+      switchToChaseAI(R.spawnedId)
+    end
   end
 
-  if R.igniteTriggered and (not R.detonated) and R.detonateAt and now >= R.detonateAt then
-    R.detonated = true
-    tryDetonate(attacker)
+  if R.didIgnite and (not R.didDetonate) and R.detonateAt and now >= R.detonateAt then
+    if fireVeh then
+      R.didDetonate = true
+      detonateBomb(fireVeh)
+    end
   end
 
   if (not R.disableApplied) and d <= 30.0 then
     R.disableApplied = true
-    queueAI_Disable(attacker)
+    queueAI_Disable(fireVeh)
     R.phase = "disabled"
   end
 end
