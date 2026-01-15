@@ -1,0 +1,10 @@
+{
+  "bindings": [
+    {
+      "action": "rlsGangsterChase.toggle",
+      "control": "KEYBOARD",
+      "device": "keyboard0",
+      "key": "["
+    }
+  ]
+}
