@@ -8,6 +8,7 @@ local M = {}
 
 local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
 local RobberFKB200mEMP = require("lua/ge/extensions/events/RobberFkb200mEMP")
+local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
 local CareerMoney = require("CareerMoney")
 
@@ -499,6 +500,19 @@ local function drawGui()
       imgui.TextWrapped("RobberFKB200mEMP spawn method: " .. spawnMethod)
     end
 
+    if imgui.Button("Fire Attack (Pigeon)", imgui.ImVec2(-1, 0)) then
+      if FireAttack and FireAttack.isActive and FireAttack.isActive() then
+        FireAttack.endEvent()
+      else
+        FireAttack.triggerManual()
+      end
+    end
+
+    local fireStatus = FireAttack.status and FireAttack.status() or ""
+    if fireStatus and fireStatus ~= "" then
+      imgui.TextWrapped("FireAttack: " .. fireStatus)
+    end
+
     -- =========================
     -- About / Hide Info
     -- =========================
@@ -602,6 +616,9 @@ function M.onExtensionLoaded()
   if RobberFKB200mEMP and RobberFKB200mEMP.init then
     RobberFKB200mEMP.init(CFG, EVENT_HOST)
   end
+  if FireAttack and FireAttack.init then
+    FireAttack.init(CFG, EVENT_HOST)
+  end
 end
 
 -- Update-only: NO drawing here (prevents loading hang)
@@ -614,6 +631,9 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
 
   if RobberFKB200mEMP and RobberFKB200mEMP.update then
     RobberFKB200mEMP.update(dtSim)
+  end
+  if FireAttack and FireAttack.update then
+    FireAttack.update(dtSim)
   end
 end
 
