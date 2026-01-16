@@ -16,7 +16,7 @@ local CareerMoney = require("CareerMoney")
 -- Config
 -- =========================
 local CFG = {
-  windowTitle = "Bolides: Risk - Pressure - Pursuit",
+  windowTitle = "Bolides: Risk • Pressure • Pursuit",
   windowVisible = false,
 
   -- Debug marker gate (Codex-safe pattern)
@@ -425,8 +425,24 @@ local function drawGui()
   if imgui.Begin(CFG.windowTitle, openPtr) then
     CFG.windowVisible = openPtr[0]
 
-    imgui.TextWrapped("You transport value, watch the road")
-    imgui.Separator()
+    -- Header: Title + tagline (subtle, professional)
+imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(235, 235, 235, 255).Value)
+imgui.SetWindowFontScale(1.15)
+imgui.Text(CFG.windowTitle)
+imgui.SetWindowFontScale(1.0)
+imgui.PopStyleColor()
+
+-- Tagline (muted, slightly spaced)
+imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(200, 200, 200, 180).Value)
+imgui.SetWindowFontScale(0.95)
+imgui.TextWrapped("You transport value, watch the road")
+imgui.SetWindowFontScale(1.0)
+imgui.PopStyleColor()
+
+-- Breathing room + subtle divider
+imgui.Spacing()
+imgui.Separator()
+
 
     local TR, crumbs, totalFwd = Breadcrumbs.getTravel()
     local fwdCache, fwdMeta, spacings = Breadcrumbs.getForwardKnown()
