@@ -1,5 +1,5 @@
 -- lua/ge/extensions/events/fireAttack.lua
--- Fire Attack: spawn pigeon vehicle near player and ignite on approach.
+-- Fire Attack: spawn burnside (OldBombCarFire) near player and ignite on approach.
 
 local M = {}
 
@@ -458,7 +458,7 @@ end
 local function startFollowAI(id)
   local veh = getObjById(id)
   if not veh then
-    log("ERROR: pigeon vehicle missing after spawn (id=" .. tostring(id) .. ")")
+    log("ERROR: burnside vehicle missing after spawn (id=" .. tostring(id) .. ")")
     return
   end
 
@@ -475,7 +475,7 @@ end
 local function switchToChaseAI(id)
   local veh = getObjById(id)
   if not veh then
-    log("ERROR: pigeon missing when switching to chase.")
+    log("ERROR: burnside missing when switching to chase.")
     return
   end
 
@@ -640,7 +640,7 @@ function M.update(dtSim)
   end
   if not fireVeh then
     resetState(false)
-    log("Ended (pigeon missing).")
+    log("Ended (burnside missing).")
     return
   end
 
@@ -669,10 +669,10 @@ function M.update(dtSim)
       end)
       R.spawnSnapped = true
       if ok then
-        log("Fire attack: snapped back to spawn (anti-teleport).")
+        log("Fire attack: burnside snapped back to spawn (anti-teleport).")
         startFollowAI(R.spawnedId)
       else
-        log("ERROR: failed to snap pigeon back to spawn.")
+        log("ERROR: failed to snap burnside back to spawn.")
       end
     end
   end
@@ -695,7 +695,7 @@ function M.update(dtSim)
     end
   end
 
-  if (not R.disableApplied) and d <= 30.0 then
+  if (not R.disableApplied) and d <= 20.0 then
     R.disableApplied = true
     queueAI_Disable(fireVeh)
     R.phase = "disabled"
