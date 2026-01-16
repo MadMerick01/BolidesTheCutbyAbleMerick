@@ -9,6 +9,7 @@ local M = {}
 local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
 local RobberFKB200mEMP = require("lua/ge/extensions/events/RobberFkb200mEMP")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
+local WarningShots = require("lua/ge/extensions/events/WarningShots")
 local EMP = require("lua/ge/extensions/events/emp")
 local CareerMoney = require("CareerMoney")
 
@@ -532,6 +533,19 @@ imgui.Separator()
       imgui.TextWrapped("FireAttack: " .. fireStatus)
     end
 
+    if imgui.Button("Start Warning Shots", imgui.ImVec2(-1, 0)) then
+      M.startEvent("WarningShots")
+    end
+
+    if imgui.Button("Stop Warning Shots", imgui.ImVec2(-1, 0)) then
+      M.stopEvent("WarningShots")
+    end
+
+    local warningStatus = WarningShots and WarningShots.status and WarningShots.status() or ""
+    if warningStatus and warningStatus ~= "" then
+      imgui.TextWrapped("WarningShots: " .. warningStatus)
+    end
+
     -- =========================
     -- About / Hide Info
     -- =========================
@@ -638,6 +652,9 @@ function M.onExtensionLoaded()
   if FireAttack and FireAttack.init then
     FireAttack.init(CFG, EVENT_HOST)
   end
+  if WarningShots and WarningShots.init then
+    WarningShots.init(CFG, EVENT_HOST)
+  end
 end
 
 -- Update-only: NO drawing here (prevents loading hang)
@@ -654,6 +671,38 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if FireAttack and FireAttack.update then
     FireAttack.update(dtSim)
   end
+  if WarningShots and WarningShots.update then
+    WarningShots.update(dtSim)
+  end
+end
+
+function M.startEvent(name, cfg)
+  if name == "WarningShots" then
+    return WarningShots.start(EVENT_HOST, cfg or CFG)
+  end
+  if name == "RobberFKB200mEMP" then
+    return RobberFKB200mEMP.triggerManual()
+  end
+  if name == "FireAttack" then
+    return FireAttack.triggerManual()
+  end
+  return false
+end
+
+function M.stopEvent(name)
+  if name == "WarningShots" then
+    WarningShots.stop("user")
+    return true
+  end
+  if name == "RobberFKB200mEMP" then
+    RobberFKB200mEMP.endEvent()
+    return true
+  end
+  if name == "FireAttack" then
+    FireAttack.endEvent()
+    return true
+  end
+  return false
 end
 
 -- Draw-only: safe gating + pcall (Codex working pattern)
