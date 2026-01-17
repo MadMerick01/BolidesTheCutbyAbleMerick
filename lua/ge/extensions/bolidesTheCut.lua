@@ -9,11 +9,8 @@ local M = {}
 local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
 local RobberFKB200mEMP = require("lua/ge/extensions/events/RobberFkb200mEMP")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
-local WarningShots = require("lua/ge/extensions/events/WarningShots")
 local EMP = require("lua/ge/extensions/events/emp")
-local Bullets = require("lua/ge/extensions/events/bullets")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
-local SmashRandomWindow = require("lua/ge/extensions/events/smashRandomWindow")
 local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
 
@@ -59,7 +56,6 @@ local S = {
   testDumpTruckVehId = nil,
   testDumpTruckStatus = "",
   empTestStatus = "",
-  bulletImpactStatus = "",
   bulletDamageStatus = "",
 
   guiStatusMessage = "Nothing unusual",
@@ -550,26 +546,6 @@ imgui.Separator()
       imgui.TextWrapped(S.empTestStatus)
     end
 
-    if imgui.Button("Bullet impact player", imgui.ImVec2(-1, 0)) then
-      local playerVeh = getPlayerVeh()
-      if playerVeh then
-        local ok, reason = Bullets.trigger({
-          playerId = playerVeh:getID(),
-        })
-        if ok then
-          S.bulletImpactStatus = "Bullet impact triggered on player."
-        else
-          S.bulletImpactStatus = "Bullet impact failed: " .. tostring(reason)
-        end
-      else
-        S.bulletImpactStatus = "Bullet impact skipped: no player vehicle."
-      end
-    end
-
-    if S.bulletImpactStatus and S.bulletImpactStatus ~= "" then
-      imgui.TextWrapped(S.bulletImpactStatus)
-    end
-
     if imgui.Button("Bullet Damage", imgui.ImVec2(-1, 0)) then
       local playerVeh = getPlayerVeh()
       if playerVeh then
@@ -620,12 +596,6 @@ imgui.Separator()
       imgui.TextWrapped(S.bulletDamageStatus)
     end
 
-    if CFG.debugButtons then
-      if imgui.Button("Smash random window (player)", imgui.ImVec2(-1, 0)) then
-        SmashRandomWindow.trigger(Host, CFG)
-      end
-    end
-
     if imgui.Button("RobberFKB200mEMP event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
       RobberFKB200mEMP.triggerManual()
     end
@@ -654,19 +624,6 @@ imgui.Separator()
     local fireStatus = FireAttack.status and FireAttack.status() or ""
     if fireStatus and fireStatus ~= "" then
       imgui.TextWrapped("FireAttack: " .. fireStatus)
-    end
-
-    if imgui.Button("Start Warning Shots", imgui.ImVec2(-1, 0)) then
-      M.startEvent("WarningShots")
-    end
-
-    if imgui.Button("Stop Warning Shots", imgui.ImVec2(-1, 0)) then
-      M.stopEvent("WarningShots")
-    end
-
-    local warningStatus = WarningShots and WarningShots.status and WarningShots.status() or ""
-    if warningStatus and warningStatus ~= "" then
-      imgui.TextWrapped("WarningShots: " .. warningStatus)
     end
 
     if CFG.debugButtons then
@@ -781,9 +738,6 @@ function M.onExtensionLoaded()
   if FireAttack and FireAttack.init then
     FireAttack.init(CFG, EVENT_HOST)
   end
-  if WarningShots and WarningShots.init then
-    WarningShots.init(CFG, EVENT_HOST)
-  end
 end
 
 -- Update-only: NO drawing here (prevents loading hang)
@@ -800,15 +754,9 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if FireAttack and FireAttack.update then
     FireAttack.update(dtSim)
   end
-  if WarningShots and WarningShots.update then
-    WarningShots.update(dtSim)
-  end
 end
 
 function M.startEvent(name, cfg)
-  if name == "WarningShots" then
-    return WarningShots.start(EVENT_HOST, cfg or CFG)
-  end
   if name == "RobberFKB200mEMP" then
     return RobberFKB200mEMP.triggerManual()
   end
@@ -819,10 +767,6 @@ function M.startEvent(name, cfg)
 end
 
 function M.stopEvent(name)
-  if name == "WarningShots" then
-    WarningShots.stop("user")
-    return true
-  end
   if name == "RobberFKB200mEMP" then
     RobberFKB200mEMP.endEvent()
     return true
