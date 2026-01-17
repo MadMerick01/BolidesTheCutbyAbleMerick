@@ -13,6 +13,7 @@ local WarningShots = require("lua/ge/extensions/events/WarningShots")
 local EMP = require("lua/ge/extensions/events/emp")
 local Bullets = require("lua/ge/extensions/events/bullets")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
+local SmashRandomWindow = require("lua/ge/extensions/events/smashRandomWindow")
 local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
 
@@ -588,6 +589,12 @@ imgui.Separator()
 
     if S.bulletDamageStatus and S.bulletDamageStatus ~= "" then
       imgui.TextWrapped(S.bulletDamageStatus)
+    end
+
+    if CFG.debugButtons then
+      if imgui.Button("Smash random window (player)", imgui.ImVec2(-1, 0)) then
+        SmashRandomWindow.trigger(Host, CFG)
+      end
     end
 
     if imgui.Button("RobberFKB200mEMP event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
