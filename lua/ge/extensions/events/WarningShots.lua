@@ -1,10 +1,11 @@
 -- lua/ge/extensions/events/WarningShots.lua
--- WarningShots: spawn roamer at FKB 300m, tail player, fire warning shots, then flee.
+-- WarningShots: spawn roamer at FKB 200m, tail player, fire warning shots, then flee.
 
 local M = {}
 
 local CFG = nil
 local Host = nil
+local Bullets = require("lua/ge/extensions/events/bullets")
 
 local R = {
   active = false,
@@ -30,86 +31,6 @@ local R = {
 }
 
 local randomSeeded = false
-
-local AUDIO = {
-  gunshotFile = "/art/sound/bolides/distantgunshot.wav",
-  gunshotName = "warningShotsGunshot",
-  gunshotVol = 1.0,
-  gunshotPitch = 1.0,
-}
-
-local Audio = {}
-
-function Audio.ensureSources(v, sources)
-  if not v or not v.queueLuaCommand then return end
-  sources = sources or {}
-
-  local lines = {
-    "_G.__warningShotsAudio = _G.__warningShotsAudio or { ids = {} }",
-    "local A = _G.__warningShotsAudio.ids",
-    "local function mk(path, name)",
-    "  if A[name] then return end",
-    "  local id = obj:createSFXSource(path, \"Audio2D\", name, -1)",
-    "  A[name] = id",
-    "end"
-  }
-
-  for _, source in ipairs(sources) do
-    if source and source.file and source.name then
-      lines[#lines + 1] = string.format("mk(%q, %q)", source.file, source.name)
-    end
-  end
-
-  v:queueLuaCommand(table.concat(lines, "\n"))
-end
-
-function Audio.ensureGunshot(v)
-  Audio.ensureSources(v, {
-    { file = AUDIO.gunshotFile, name = AUDIO.gunshotName },
-  })
-end
-
-function Audio.playId(v, name, vol, pitch, fileFallback)
-  if not v or not v.queueLuaCommand then return end
-  vol = tonumber(vol) or 1.0
-  pitch = tonumber(pitch) or 1.0
-  name = tostring(name)
-  fileFallback = tostring(fileFallback or "")
-
-  local cmd = string.format([[
-    if not (_G.__warningShotsAudio and _G.__warningShotsAudio.ids) then return end
-    local id = _G.__warningShotsAudio.ids[%q]
-    if not id then return end
-    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 1.0) end) end
-    if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end
-    if obj.setVolume then         pcall(function() obj:setVolume(id, 1.0) end) end
-
-    local played = false
-    if obj.playSFX then
-      played = played or pcall(function() obj:playSFX(id) end)
-      played = played or pcall(function() obj:playSFX(id, 0) end)
-      played = played or pcall(function() obj:playSFX(id, false) end)
-      played = played or pcall(function() obj:playSFX(id, 0, false) end)
-      played = played or pcall(function() obj:playSFX(id, 0, %0.3f, %0.3f, false) end)
-      played = played or pcall(function() obj:playSFX(id, %0.3f, %0.3f, false) end)
-      played = played or pcall(function() obj:playSFX(id, 0, false, %0.3f, %0.3f) end)
-    end
-
-    if (not played) and obj.playSFXOnce and %q ~= "" then
-      pcall(function() obj:playSFXOnce(%q, 0, %0.3f, %0.3f) end)
-    end
-
-    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, %0.3f) end) end
-    if obj.setSFXSourcePitch  then pcall(function() obj:setSFXSourcePitch(id, %0.3f) end) end
-  ]], name, vol, pitch, vol, pitch, vol, pitch, fileFallback, fileFallback, vol, pitch, vol, pitch)
-
-  v:queueLuaCommand(cmd)
-end
-
-function Audio.playGunshot(v)
-  if not AUDIO.gunshotFile or AUDIO.gunshotFile == "" then return end
-  Audio.playId(v, AUDIO.gunshotName, AUDIO.gunshotVol, AUDIO.gunshotPitch, AUDIO.gunshotFile)
-end
 
 local function seedRandom()
   if randomSeeded then return end
@@ -376,36 +297,6 @@ local function queueAI_Flee(veh, targetId)
   ]]):format(targetId))
 end
 
-local function queueSmallImpulse(veh, strength)
-  if not veh or not veh.queueLuaCommand then return end
-  local cmd = string.format([[
-    local mag = %0.3f
-    local dir = vec3((math.random() - 0.5) * 0.4, (math.random() - 0.5) * 0.4, math.random() * 0.1)
-    local impulse = dir * mag
-
-    local function try(desc, fn)
-      local ok, err = pcall(fn)
-      if not ok then print("[WarningShots] impulse "..desc.." failed: "..tostring(err)) end
-      return ok
-    end
-
-    if obj then
-      if obj.applyImpulse then
-        try("applyImpulse(pos, vec)", function() obj:applyImpulse(vec3(0, 0, 0), impulse) end)
-        try("applyImpulse(vec)", function() obj:applyImpulse(impulse) end)
-      end
-      if obj.applyForce then
-        try("applyForce(vec)", function() obj:applyForce(impulse) end)
-      end
-      if obj.applyTorque then
-        try("applyTorque(vec)", function() obj:applyTorque(impulse * 0.1) end)
-      end
-    end
-  ]], strength)
-
-  veh:queueLuaCommand(cmd)
-end
-
 local function queueBreakRandomWindow(veh)
   if not veh or not veh.queueLuaCommand then return end
   veh:queueLuaCommand([[
@@ -517,9 +408,9 @@ function M.start(host, cfg)
     return false
   end
 
-  local fkbPos, mode, entry = chooseFkbPos(300, 10.0)
+  local fkbPos, mode, entry = chooseFkbPos(200, 10.0)
   if not fkbPos then
-    log("BLOCKED: FKB 300m not available (" .. tostring(mode) .. ").")
+    log("BLOCKED: FKB 200m not available (" .. tostring(mode) .. ").")
     setGuiStatusMessage("No valid spawn point.")
     return false
   end
@@ -554,7 +445,7 @@ function M.start(host, cfg)
   local attackerVeh = getObjById(attackerId)
   if attackerVeh then
     local dist = (attackerVeh:getPosition() - playerVeh:getPosition()):length()
-    if dist < 220 then
+    if dist < 150 then
       if Host and Host.postLine then
         Host.postLine("No valid spawn point (too close).", "warn")
       end
@@ -564,7 +455,7 @@ function M.start(host, cfg)
     queueAI_Follow(attackerVeh, playerVeh:getID())
   end
 
-  log("Spawned warning shots attacker at FKB 300m (" .. tostring(mode) .. ").")
+  log("Spawned warning shots attacker at FKB 200m (" .. tostring(mode) .. ").")
   return true
 end
 
@@ -586,30 +477,27 @@ function M.stop(reason)
   log("Stopped (" .. tostring(why) .. ").")
 end
 
-local function transitionToShoot()
+local function transitionToShoot(attackerVeh, playerVeh)
   R.phase = "shoot"
-  R.shotsTotal = math.random(3, 5)
+  R.shotsTotal = 3
   R.shotsFired = 0
   R.nextShotTime = R.elapsed
   R.didShatter = false
+  R.fleeStartTime = R.elapsed
   setGuiStatusMessage("Warning shots!")
   log("Warning shots triggered: total=" .. tostring(R.shotsTotal))
-end
-
-local function transitionToFlee(attackerVeh, playerVeh)
-  R.phase = "flee"
-  R.fleeStartTime = R.elapsed
-  setGuiStatusMessage("Bolide fleeing…")
-  log("Attacker fleeing.")
   if attackerVeh and playerVeh then
     queueAI_Flee(attackerVeh, playerVeh:getID())
   end
 end
 
-local function fireShot(playerVeh)
-  queueSmallImpulse(playerVeh, 120)
-  Audio.ensureGunshot(playerVeh)
-  Audio.playGunshot(playerVeh)
+local function fireShot(playerVeh, attackerId)
+  if Bullets and Bullets.trigger then
+    Bullets.trigger({
+      playerId = playerVeh:getID(),
+      sourceId = attackerId,
+    })
+  end
   log("Shot fired (" .. tostring(R.shotsFired + 1) .. "/" .. tostring(R.shotsTotal) .. ").")
 
   if (not R.didShatter) and (math.random() < 0.45) then
@@ -622,6 +510,10 @@ end
 
 function M.update(dtSim)
   if not R.active then return end
+
+  if Bullets and Bullets.onUpdate then
+    Bullets.onUpdate(nil, dtSim, nil)
+  end
 
   R.elapsed = R.elapsed + (dtSim or 0)
   if R.elapsed >= (R.maxDuration or 90) then
@@ -684,21 +576,23 @@ function M.update(dtSim)
       setGuiStatusMessage("Bolide is closing in…")
       log("Approaching player.")
     end
-    if dist <= 150 and now >= (R.shootArmedAt or 0) then
-      transitionToShoot()
+    if dist <= 50 and now >= (R.shootArmedAt or 0) then
+      transitionToShoot(attackerVeh, playerVeh)
     end
     return
   end
 
   if R.phase == "shoot" then
     if R.shotsFired < R.shotsTotal and R.elapsed >= R.nextShotTime then
-      fireShot(playerVeh)
+      fireShot(playerVeh, R.attackerId)
       R.shotsFired = R.shotsFired + 1
-      R.nextShotTime = R.elapsed + (0.25 + math.random() * 0.30)
+      R.nextShotTime = R.elapsed + 0.2
     end
 
     if R.shotsFired >= R.shotsTotal then
-      transitionToFlee(attackerVeh, playerVeh)
+      R.phase = "flee"
+      setGuiStatusMessage("Bolide fleeing…")
+      log("Attacker fleeing.")
     end
     return
   end
