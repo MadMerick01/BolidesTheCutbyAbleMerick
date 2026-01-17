@@ -6,7 +6,7 @@ local M = {}
 local BulletHit = require("lua/ge/extensions/events/BulletHit")
 
 local DEFAULT = {
-  accuracyRadius = 1.0,
+  accuracyRadius = 2.0,
   approachDistance = 50.0,
   impactForce = 6000.0,
   impactForceMultiplier = 1.0,
