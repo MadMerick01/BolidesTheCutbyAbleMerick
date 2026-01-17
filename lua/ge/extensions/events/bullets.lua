@@ -17,7 +17,7 @@ local DEFAULT = {
 local AUDIO = {
   file = "/art/sound/bolides/distantgunshot.wav",
   name = "bulletHit",
-  volume = 1.0,
+  volume = 2.0,
   pitch = 1.0,
 }
 

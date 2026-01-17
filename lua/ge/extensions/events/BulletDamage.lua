@@ -15,7 +15,7 @@ local DEFAULT = {
   explosionDirectionInversionCoef = 0.3,
   shotSoundFile = "/art/sound/bolides/distantgunshot.wav",
   shotSoundName = "bulletDamageShot",
-  shotSoundVolume = 1.0,
+  shotSoundVolume = 2.0,
   shotSoundPitch = 1.0,
   applyDamage = true,
 }
