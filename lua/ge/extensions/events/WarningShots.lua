@@ -11,6 +11,12 @@ local R = {
   phase = "idle", -- spawn | follow | shoot | flee | done
   status = "",
   attackerId = nil,
+  spawnPos = nil,
+  spawnRot = nil,
+  spawnClock = 0,
+  spawnSnapWindow = 2.0,
+  spawnSnapDist = 50.0,
+  spawnSnapped = false,
   shotsTotal = 0,
   shotsFired = 0,
   nextShotTime = 0,
@@ -20,6 +26,7 @@ local R = {
   maxDuration = 90,
   guiBaseMessage = nil,
   approachMessageShown = false,
+  shootArmedAt = 0,
 }
 
 local randomSeeded = false
@@ -153,6 +160,16 @@ local function getPlayerVeh()
   return nil
 end
 
+local function getNow()
+  if Host and Host.getTime then
+    return Host.getTime()
+  end
+  if os and os.clock then
+    return os.clock()
+  end
+  return 0
+end
+
 local function chooseFkbPos(spacing, maxAgeSec)
   maxAgeSec = maxAgeSec or 10.0
   if not Host or not Host.Breadcrumbs or not Host.Breadcrumbs.getForwardKnown then
@@ -163,19 +180,11 @@ local function chooseFkbPos(spacing, maxAgeSec)
   local e = cache and cache[spacing]
   if not e then return nil, "no entry", nil end
 
-  if e.available and e.pos then
-    return e.pos, "live", e
-  end
+  if not e.available then return nil, "not available", e end
+  if e.eligible == false then return nil, "ineligible", e end
+  if not e.pos then return nil, "no position", e end
 
-  if e.lastGoodPos and e.lastGoodT then
-    local age = (os.clock() - e.lastGoodT)
-    if age <= maxAgeSec then
-      return e.lastGoodPos, "cached", e
-    end
-    return nil, "cached too old", e
-  end
-
-  return nil, "not ready", e
+  return e.pos, "live", e
 end
 
 local function makeSpawnTransform(playerVeh, spawnPos)
@@ -225,7 +234,7 @@ local function spawnVehicleAt(transform)
         pos = transform.pos,
         rot = transform.rot,
         config = config,
-        cling = true,
+        cling = false,
         autoEnterVehicle = false,
       })
     end)
@@ -245,7 +254,7 @@ local function spawnVehicleAt(transform)
         pos = transform.pos,
         rot = transform.rot,
         config = config,
-        cling = true,
+        cling = false,
         autoEnterVehicle = false,
       })
     end)
@@ -456,6 +465,12 @@ local function resetState()
   R.phase = "idle"
   R.status = ""
   R.attackerId = nil
+  R.spawnPos = nil
+  R.spawnRot = nil
+  R.spawnClock = 0
+  R.spawnSnapWindow = 2.0
+  R.spawnSnapDist = 50.0
+  R.spawnSnapped = false
   R.shotsTotal = 0
   R.shotsFired = 0
   R.nextShotTime = 0
@@ -464,6 +479,7 @@ local function resetState()
   R.elapsed = 0
   R.guiBaseMessage = nil
   R.approachMessageShown = false
+  R.shootArmedAt = 0
 end
 
 local function despawnAttacker()
@@ -492,6 +508,7 @@ function M.start(host, cfg)
   CFG = cfg or CFG
 
   seedRandom()
+  resetState()
 
   local playerVeh = getPlayerVeh()
   if not playerVeh then
@@ -516,22 +533,34 @@ function M.start(host, cfg)
 
   local spawnPos = fkbPos + vec3(0, 0, 0.8)
   local tf = makeSpawnTransform(playerVeh, spawnPos)
+  R.spawnPos = vec3(spawnPos.x, spawnPos.y, spawnPos.z)
+  R.spawnRot = tf.rot
   local attackerId = spawnVehicleAt(tf)
   if not attackerId then
     setGuiStatusMessage("No valid spawn point.")
     return false
   end
+  local now = getNow()
 
-  resetState()
   R.active = true
   R.attackerId = attackerId
   R.phase = "spawn"
   R.elapsed = 0
-  R.guiBaseMessage = "Bolide spotted ahead…"
+  R.spawnClock = now
+  R.shootArmedAt = now + 2.0
+  R.guiBaseMessage = "Warning shots event armed…"
   setGuiStatusMessage(R.guiBaseMessage)
 
   local attackerVeh = getObjById(attackerId)
   if attackerVeh then
+    local dist = (attackerVeh:getPosition() - playerVeh:getPosition()):length()
+    if dist < 220 then
+      if Host and Host.postLine then
+        Host.postLine("No valid spawn point (too close).", "warn")
+      end
+      M.stop("spawnTooClose")
+      return false
+    end
     queueAI_Follow(attackerVeh, playerVeh:getID())
   end
 
@@ -549,8 +578,10 @@ function M.stop(reason)
     setGuiStatusMessage("Attacker disabled.")
   elseif why == "player_missing" then
     setGuiStatusMessage("Player vehicle missing.")
+  elseif why == "spawnTooClose" then
+    setGuiStatusMessage("No valid spawn point (too close).")
   else
-    setGuiStatusMessage("Warning shots event ended.")
+    setGuiStatusMessage("Event ended.")
   end
   log("Stopped (" .. tostring(why) .. ").")
 end
@@ -613,11 +644,36 @@ function M.update(dtSim)
     return
   end
 
-  local dist = (attackerVeh:getPosition() - playerVeh:getPosition()):length()
+  local attackerPos = attackerVeh:getPosition()
+  local playerPos = playerVeh:getPosition()
+  local dist = (attackerPos - playerPos):length()
+  local now = getNow()
+
+  if R.spawnPos and R.spawnClock and (now - R.spawnClock) < (R.spawnSnapWindow or 2.0) and not R.spawnSnapped then
+    local spawnDist = (attackerPos - R.spawnPos):length()
+    if spawnDist >= (R.spawnSnapDist or 50.0) then
+      local ok = pcall(function()
+        if Host and Host.safeTeleport then
+          Host.safeTeleport(attackerVeh, R.spawnPos, R.spawnRot)
+        elseif attackerVeh.setPositionRotation then
+          attackerVeh:setPositionRotation(R.spawnPos, R.spawnRot or quat(0, 0, 0, 1))
+        elseif attackerVeh.setPosition then
+          attackerVeh:setPosition(R.spawnPos)
+        end
+      end)
+      R.spawnSnapped = true
+      if ok then
+        queueAI_Follow(attackerVeh, playerVeh:getID())
+        if CFG and CFG.debug and Host and Host.postLine then
+          Host.postLine("Spawn corrected.", "debug")
+        end
+      end
+    end
+  end
 
   if R.phase == "spawn" then
     R.phase = "follow"
-    R.guiBaseMessage = "Bolide is tailing you…"
+    R.guiBaseMessage = "Bolide tailing you…"
     setGuiStatusMessage(R.guiBaseMessage)
     log("Follow phase started.")
   end
@@ -628,7 +684,7 @@ function M.update(dtSim)
       setGuiStatusMessage("Bolide is closing in…")
       log("Approaching player.")
     end
-    if dist <= 150 then
+    if dist <= 150 and now >= (R.shootArmedAt or 0) then
       transitionToShoot()
     end
     return
