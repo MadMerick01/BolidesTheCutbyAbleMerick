@@ -11,6 +11,7 @@ local RobberFKB200mEMP = require("lua/ge/extensions/events/RobberFkb200mEMP")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local WarningShots = require("lua/ge/extensions/events/WarningShots")
 local EMP = require("lua/ge/extensions/events/emp")
+local BulletHit = require("lua/ge/extensions/events/bulletHit")
 local CareerMoney = require("CareerMoney")
 
 -- =========================
@@ -54,6 +55,7 @@ local S = {
   testDumpTruckVehId = nil,
   testDumpTruckStatus = "",
   empTestStatus = "",
+  bulletHitStatus = "",
 
   guiStatusMessage = "Nothing unusual",
 }
@@ -501,6 +503,32 @@ imgui.Separator()
 
     if S.empTestStatus and S.empTestStatus ~= "" then
       imgui.TextWrapped(S.empTestStatus)
+    end
+
+    if imgui.Button("Bullet hit player (low damage)", imgui.ImVec2(-1, 0)) then
+      local playerVeh = getPlayerVeh()
+      if playerVeh then
+        local ok, reason = BulletHit.trigger({
+          playerId = playerVeh:getID(),
+          p_breakRandomPart = 0,
+          p_deformRandomPart = 0,
+          p_deflateTire = 0,
+          p_ignitePart = 0,
+          p_breakRandomBeam = 1,
+          allowFallback = false,
+        })
+        if ok then
+          S.bulletHitStatus = "Bullet hit triggered on player."
+        else
+          S.bulletHitStatus = "Bullet hit failed: " .. tostring(reason)
+        end
+      else
+        S.bulletHitStatus = "Bullet hit skipped: no player vehicle."
+      end
+    end
+
+    if S.bulletHitStatus and S.bulletHitStatus ~= "" then
+      imgui.TextWrapped(S.bulletHitStatus)
     end
 
     if imgui.Button("RobberFKB200mEMP event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
