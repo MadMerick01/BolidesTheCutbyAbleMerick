@@ -13,6 +13,7 @@ local WarningShots = require("lua/ge/extensions/events/WarningShots")
 local EMP = require("lua/ge/extensions/events/emp")
 local Bullets = require("lua/ge/extensions/events/bullets")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
+local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
 
 -- =========================
@@ -24,6 +25,7 @@ local CFG = {
 
   -- Debug marker gate (Codex-safe pattern)
   debugBreadcrumbMarkers = false,
+  debugButtons = true,
 
   -- Make FKB show A LOT for now (you can tighten later)
   forwardKnownCheckIntervalSec = 0.10,
@@ -629,6 +631,12 @@ imgui.Separator()
     local warningStatus = WarningShots and WarningShots.status and WarningShots.status() or ""
     if warningStatus and warningStatus ~= "" then
       imgui.TextWrapped("WarningShots: " .. warningStatus)
+    end
+
+    if CFG.debugButtons then
+      if imgui.Button("Deflate random tyre (player)", imgui.ImVec2(-1, 0)) then
+        DeflateRandomTyre.trigger(Host, CFG)
+      end
     end
 
     -- =========================
