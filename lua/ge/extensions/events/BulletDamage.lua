@@ -15,7 +15,7 @@ local DEFAULT = {
   explosionDirectionInversionCoef = 0.3,
   shotSoundFile = "/art/sound/bolides/distantgunshot.wav",
   shotSoundName = "bulletDamageShot",
-  shotSoundVolume = 2.0,
+  shotSoundVolume = 4.0,
   shotSoundPitch = 1.0,
   applyDamage = true,
 }
@@ -58,7 +58,7 @@ end
 
 local function _queue(veh, cmd)
   if not veh or not veh.queueLuaCommand then return end
-  pcall(function() veh:queueLuaCommand(cmd) end)
+  return pcall(function() veh:queueLuaCommand(cmd) end)
 end
 
 local function _buildImpactCmd(impactPos, approachDir, impactForce, impactForceMultiplier, explosionRadius, explosionForce, explosionDirectionInversionCoef)
@@ -178,8 +178,18 @@ function M.trigger(args)
     approachDir = _randomUnitVector()
   end
 
+  local info = {
+    targetId = targetVeh:getID(),
+    impactPos = impactPos,
+    approachDir = approachDir,
+    impactQueued = false,
+    audioAttempted = false,
+    audioPlayed = false,
+  }
+
   local audio = _getAudioHelper()
   if audio and audio.ensureSources then
+    info.audioAttempted = true
     audio.ensureSources(targetVeh, {
       { file = cfg.shotSoundFile, name = cfg.shotSoundName }
     })
@@ -188,6 +198,7 @@ function M.trigger(args)
     end
     if audio.playFile then
       audio.playFile(targetVeh, cfg.shotSoundName, cfg.shotSoundVolume, cfg.shotSoundPitch, cfg.shotSoundFile)
+      info.audioPlayed = true
     end
   end
 
@@ -200,7 +211,7 @@ function M.trigger(args)
     cfg.explosionForce,
     cfg.explosionDirectionInversionCoef
   )
-  _queue(targetVeh, cmd)
+  info.impactQueued = _queue(targetVeh, cmd) and true or false
 
   if cfg.applyDamage and BulletHit and BulletHit.trigger then
     local damageArgs = { playerId = targetVeh:getID() }
@@ -209,17 +220,14 @@ function M.trigger(args)
         damageArgs[k] = v
       end
     end
-    local ok, reason = BulletHit.trigger(damageArgs)
+    local ok, damageInfo = BulletHit.trigger(damageArgs)
     if not ok then
-      return false, "damage failed: " .. tostring(reason)
+      return false, "damage failed: " .. tostring(damageInfo)
     end
+    info.damage = damageInfo
   end
 
-  return true, {
-    targetId = targetVeh:getID(),
-    impactPos = impactPos,
-    approachDir = approachDir,
-  }
+  return true, info
 end
 
 return M

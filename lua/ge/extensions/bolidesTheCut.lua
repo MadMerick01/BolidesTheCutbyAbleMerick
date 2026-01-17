@@ -575,19 +575,48 @@ imgui.Separator()
       if playerVeh then
         local ok, info = BulletDamage.trigger({
           targetId = playerVeh:getID(),
-          accuracyRadius = 1.0,
+          accuracyRadius = 2.0,
         })
         if ok then
-          S.bulletDamageStatus = "Bullet damage triggered on player."
+          local lines = { "Bullet damage triggered on player." }
+          if info then
+            lines[#lines + 1] = string.format("Impact force queued: %s", info.impactQueued and "yes" or "no")
+            lines[#lines + 1] = string.format("Gunshot audio: %s", info.audioPlayed and "played" or (info.audioAttempted and "attempted" or "not available"))
+            if info.damage then
+              lines[#lines + 1] = string.format("Damage queued: %s", info.damage.queued and "yes" or "no")
+              local effects = info.damage.effects or {}
+              lines[#lines + 1] = string.format("Break random part chance: %.0f%%", (effects.breakRandomPart or 0) * 100)
+              lines[#lines + 1] = string.format("Deform random part chance: %.0f%%", (effects.deformRandomPart or 0) * 100)
+              lines[#lines + 1] = string.format("Deflate tire chance: %.0f%%", (effects.deflateTire or 0) * 100)
+              lines[#lines + 1] = string.format("Ignite part chance: %.0f%%", (effects.ignitePart or 0) * 100)
+              lines[#lines + 1] = string.format("Break random beam chance: %.0f%%", (effects.breakRandomBeam or 0) * 100)
+              local safety = info.damage.safety or {}
+              lines[#lines + 1] = string.format(
+                "Safety filters: wheels=%s, powertrain=%s, brittle=%s, fallback=%s",
+                safety.ignoreWheels and "on" or "off",
+                safety.ignorePowertrain and "on" or "off",
+                safety.ignoreBrittleDeform and "on" or "off",
+                safety.allowFallback and "on" or "off"
+              )
+            end
+          end
+          S.bulletDamageStatus = table.concat(lines, "\n")
+          S.bulletDamageStatusLines = lines
         else
           S.bulletDamageStatus = "Bullet damage failed: " .. tostring(info)
+          S.bulletDamageStatusLines = nil
         end
       else
         S.bulletDamageStatus = "Bullet damage skipped: no player vehicle."
+        S.bulletDamageStatusLines = nil
       end
     end
 
-    if S.bulletDamageStatus and S.bulletDamageStatus ~= "" then
+    if S.bulletDamageStatusLines and #S.bulletDamageStatusLines > 0 then
+      for _, line in ipairs(S.bulletDamageStatusLines) do
+        imgui.TextWrapped(line)
+      end
+    elseif S.bulletDamageStatus and S.bulletDamageStatus ~= "" then
       imgui.TextWrapped(S.bulletDamageStatus)
     end
 

@@ -345,7 +345,22 @@ function M.trigger(args)
     return false, "queueLuaCommand failed"
   end
 
-  return true
+  return true, {
+    queued = true,
+    effects = {
+      breakRandomPart = cfg.p_breakRandomPart,
+      deformRandomPart = cfg.p_deformRandomPart,
+      deflateTire = cfg.p_deflateTire,
+      ignitePart = cfg.p_ignitePart,
+      breakRandomBeam = cfg.p_breakRandomBeam,
+    },
+    safety = {
+      ignoreWheels = cfg.ignoreWheels,
+      ignorePowertrain = cfg.ignorePowertrain,
+      ignoreBrittleDeform = cfg.ignoreBrittleDeform,
+      allowFallback = cfg.allowFallback,
+    },
+  }
 end
 
 return M
