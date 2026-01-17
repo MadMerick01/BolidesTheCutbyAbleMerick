@@ -10,6 +10,9 @@ local DEFAULT = {
   approachDistance = 50.0,
   impactForce = 6000.0,
   impactForceMultiplier = 1.0,
+  explosionRadius = 1.0,
+  explosionForce = 50.0,
+  explosionDirectionInversionCoef = 0.3,
   shotSoundFile = "/art/sound/bolides/distantgunshot.wav",
   shotSoundName = "bulletDamageShot",
   shotSoundVolume = 1.0,
@@ -58,8 +61,11 @@ local function _queue(veh, cmd)
   pcall(function() veh:queueLuaCommand(cmd) end)
 end
 
-local function _buildImpactCmd(impactPos, approachDir, impactForce, impactForceMultiplier)
+local function _buildImpactCmd(impactPos, approachDir, impactForce, impactForceMultiplier, explosionRadius, explosionForce, explosionDirectionInversionCoef)
   local force = (impactForce or DEFAULT.impactForce) * (impactForceMultiplier or 1.0)
+  local radius = explosionRadius or DEFAULT.explosionRadius
+  local blastForce = explosionForce or DEFAULT.explosionForce
+  local inversion = explosionDirectionInversionCoef or DEFAULT.explosionDirectionInversionCoef
 
   return string.format([[
     local impactPos = vec3(%0.6f, %0.6f, %0.6f)
@@ -89,7 +95,48 @@ local function _buildImpactCmd(impactPos, approachDir, impactForce, impactForceM
         pcall(function() obj:applyImpulse(localImpact, forceVec) end)
       end
     end
-  ]], impactPos.x, impactPos.y, impactPos.z, approachDir.x, approachDir.y, approachDir.z, force)
+
+    if %0.6f > 0 then
+      local radius1 = %0.6f * 0.5
+      local radius2 = %0.6f
+      local forceBase = %0.6f * 2000
+      local inversionCoef = %0.6f
+      local function clamp(x, a, b)
+        if x < a then return a end
+        if x > b then return b end
+        return x
+      end
+
+      local boundLen = vec3(obj:getInitialWidth() + radius2, obj:getInitialLength() + radius2, obj:getInitialHeight() + radius2):squaredLength()
+      if localImpact:squaredLength() <= boundLen then
+        local nodeCount = #v.data.nodes
+        for i = 0, nodeCount do
+          local node = v.data.nodes[i]
+          local nodePos = obj:getNodePosition(node.cid)
+          local distanceVec = nodePos - localImpact
+          local distance = math.abs(distanceVec:length())
+          if distance <= radius2 then
+            local dirInversion = fsign(math.random() - inversionCoef)
+            local forceAdjusted = forceBase * clamp(-1 * (distance - radius1) / (radius2 - radius1) + 1, 0, 1)
+            obj:applyForceVector(node.cid, distanceVec:normalized() * dirInversion * forceAdjusted)
+          end
+        end
+      end
+    end
+  ]],
+    impactPos.x,
+    impactPos.y,
+    impactPos.z,
+    approachDir.x,
+    approachDir.y,
+    approachDir.z,
+    force,
+    radius,
+    radius,
+    radius,
+    blastForce,
+    inversion
+  )
 end
 
 function M.trigger(args)
@@ -144,7 +191,15 @@ function M.trigger(args)
     end
   end
 
-  local cmd = _buildImpactCmd(impactPos, approachDir, cfg.impactForce, cfg.impactForceMultiplier)
+  local cmd = _buildImpactCmd(
+    impactPos,
+    approachDir,
+    cfg.impactForce,
+    cfg.impactForceMultiplier,
+    cfg.explosionRadius,
+    cfg.explosionForce,
+    cfg.explosionDirectionInversionCoef
+  )
   _queue(targetVeh, cmd)
 
   if cfg.applyDamage and BulletHit and BulletHit.trigger then
