@@ -14,6 +14,7 @@ local EMP = require("lua/ge/extensions/events/emp")
 local Bullets = require("lua/ge/extensions/events/bullets")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
 local SmashRandomWindow = require("lua/ge/extensions/events/smashRandomWindow")
+local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
 
 -- =========================
@@ -637,6 +638,12 @@ imgui.Separator()
     local warningStatus = WarningShots and WarningShots.status and WarningShots.status() or ""
     if warningStatus and warningStatus ~= "" then
       imgui.TextWrapped("WarningShots: " .. warningStatus)
+    end
+
+    if CFG.debugButtons then
+      if imgui.Button("Deflate random tyre (player)", imgui.ImVec2(-1, 0)) then
+        DeflateRandomTyre.trigger(Host, CFG)
+      end
     end
 
     -- =========================
