@@ -575,7 +575,7 @@ imgui.Separator()
       if playerVeh then
         local ok, info = BulletDamage.trigger({
           targetId = playerVeh:getID(),
-          accuracyRadius = 2.0,
+          accuracyRadius = 3.0,
         })
         if ok then
           local lines = { "Bullet damage triggered on player." }
