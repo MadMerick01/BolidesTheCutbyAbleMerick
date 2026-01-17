@@ -3,6 +3,8 @@
 
 local M = {}
 
+local BulletHit = require("lua/ge/extensions/events/BulletHit")
+
 local DEFAULT = {
   accuracyRadius = 1.0,
   approachDistance = 50.0,
@@ -12,6 +14,7 @@ local DEFAULT = {
   shotSoundName = "bulletDamageShot",
   shotSoundVolume = 1.0,
   shotSoundPitch = 1.0,
+  applyDamage = true,
 }
 
 local random = math.random
@@ -143,6 +146,19 @@ function M.trigger(args)
 
   local cmd = _buildImpactCmd(impactPos, approachDir, cfg.impactForce, cfg.impactForceMultiplier)
   _queue(targetVeh, cmd)
+
+  if cfg.applyDamage and BulletHit and BulletHit.trigger then
+    local damageArgs = { playerId = targetVeh:getID() }
+    if type(args.damageArgs) == "table" then
+      for k, v in pairs(args.damageArgs) do
+        damageArgs[k] = v
+      end
+    end
+    local ok, reason = BulletHit.trigger(damageArgs)
+    if not ok then
+      return false, "damage failed: " .. tostring(reason)
+    end
+  end
 
   return true, {
     targetId = targetVeh:getID(),
