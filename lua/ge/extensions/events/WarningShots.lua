@@ -103,11 +103,19 @@ local function chooseFkbPos(spacing, maxAgeSec)
   local e = cache and cache[spacing]
   if not e then return nil, "no entry", nil end
 
-  if not e.available then return nil, "not available", e end
-  if e.eligible == false then return nil, "ineligible", e end
-  if not e.pos then return nil, "no position", e end
+  if e.available and e.pos then
+    return e.pos, "live", e
+  end
 
-  return e.pos, "live", e
+  if e.lastGoodPos and e.lastGoodT then
+    local age = (os.clock() - e.lastGoodT)
+    if age <= maxAgeSec then
+      return e.lastGoodPos, "cached", e
+    end
+    return nil, "cached too old", e
+  end
+
+  return nil, "not ready", e
 end
 
 local function makeSpawnTransform(playerVeh, spawnPos)
@@ -157,7 +165,7 @@ local function spawnVehicleAt(transform)
         pos = transform.pos,
         rot = transform.rot,
         config = config,
-        cling = false,
+        cling = true,
         autoEnterVehicle = false,
       })
     end)
@@ -177,7 +185,7 @@ local function spawnVehicleAt(transform)
         pos = transform.pos,
         rot = transform.rot,
         config = config,
-        cling = false,
+        cling = true,
         autoEnterVehicle = false,
       })
     end)
@@ -337,22 +345,6 @@ local function queueBreakRandomWindow(veh)
   ]])
 end
 
-local function isSpawnAllowed(pos, entry, playerVeh)
-  if not pos then return false, "no position" end
-  if entry and entry.eligible == false then
-    return false, "ineligible breadcrumb"
-  end
-
-  if playerVeh and playerVeh.getPosition then
-    local playerPos = playerVeh:getPosition()
-    if (pos - playerPos):length() < 50 then
-      return false, "too close to player"
-    end
-  end
-
-  return true, nil
-end
-
 local function resetState()
   R.active = false
   R.phase = "idle"
@@ -412,16 +404,9 @@ function M.start(host, cfg)
     return false
   end
 
-  local fkbPos, mode, entry = chooseFkbPos(200, 10.0)
+  local fkbPos, mode = chooseFkbPos(200, 10.0)
   if not fkbPos then
     log("BLOCKED: FKB 200m not available (" .. tostring(mode) .. ").")
-    setGuiStatusMessage("No valid spawn point.")
-    return false
-  end
-
-  local ok, reason = isSpawnAllowed(fkbPos, entry, playerVeh)
-  if not ok then
-    log("BLOCKED: spawn not safe (" .. tostring(reason) .. ").")
     setGuiStatusMessage("No valid spawn point.")
     return false
   end
