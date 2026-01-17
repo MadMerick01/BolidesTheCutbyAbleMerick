@@ -416,24 +416,19 @@ function Audio.playFile(v, name, vol, pitch, file)
     if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end
     if obj.setVolume then         pcall(function() obj:setVolume(id, 1.0) end) end
 
-    local played = false
-    if obj.playSFXOnce and %q ~= "" then
-      played = played or pcall(function() obj:playSFXOnce(%q, 0, %0.3f, %0.3f) end)
-    end
-
-    if (not played) and obj.playSFX then
-      played = played or pcall(function() obj:playSFX(id) end)
-      played = played or pcall(function() obj:playSFX(id, 0) end)
-      played = played or pcall(function() obj:playSFX(id, false) end)
-      played = played or pcall(function() obj:playSFX(id, 0, false) end)
-      played = played or pcall(function() obj:playSFX(id, 0, %0.3f, %0.3f, false) end)
-      played = played or pcall(function() obj:playSFX(id, %0.3f, %0.3f, false) end)
-      played = played or pcall(function() obj:playSFX(id, 0, false, %0.3f, %0.3f) end)
+    if obj.playSFX then
+      pcall(function() obj:playSFX(id) end)
+      pcall(function() obj:playSFX(id, 0) end)
+      pcall(function() obj:playSFX(id, false) end)
+      pcall(function() obj:playSFX(id, 0, false) end)
+      pcall(function() obj:playSFX(id, 0, %0.3f, %0.3f, false) end)
+      pcall(function() obj:playSFX(id, %0.3f, %0.3f, false) end)
+      pcall(function() obj:playSFX(id, 0, false, %0.3f, %0.3f) end)
     end
 
     if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, %0.3f) end) end
     if obj.setSFXSourcePitch  then pcall(function() obj:setSFXSourcePitch(id, %0.3f) end) end
-  ]], name, file, file, vol, pitch, vol, pitch, vol, pitch, vol, pitch, vol, pitch)
+  ]], name, vol, pitch, vol, pitch, vol, pitch, vol, pitch, vol, pitch)
 
   v:queueLuaCommand(cmd)
 end
@@ -572,7 +567,7 @@ imgui.Separator()
       imgui.TextWrapped(S.bulletImpactStatus)
     end
 
-    if imgui.Button("Bullet Damge", imgui.ImVec2(-1, 0)) then
+    if imgui.Button("Bullet Damage", imgui.ImVec2(-1, 0)) then
       local playerVeh = getPlayerVeh()
       if playerVeh then
         local ok, info = BulletDamage.trigger({
