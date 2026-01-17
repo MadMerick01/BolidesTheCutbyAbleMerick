@@ -3,11 +3,13 @@
 -- Requires:
 --   lua/ge/extensions/breadcrumbs.lua
 --   lua/ge/extensions/events/RobberFkb200mEMP.lua
+--   lua/ge/extensions/events/RobberShotgun.lua
 
 local M = {}
 
 local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
 local RobberFKB200mEMP = require("lua/ge/extensions/events/RobberFkb200mEMP")
+local RobberShotgun = require("lua/ge/extensions/events/RobberShotgun")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
@@ -613,6 +615,23 @@ imgui.Separator()
       imgui.TextWrapped("RobberFKB200mEMP spawn method: " .. spawnMethod)
     end
 
+    if imgui.Button("RobberShotgun event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
+      RobberShotgun.triggerManual()
+    end
+
+    if imgui.Button("End RobberShotgun", imgui.ImVec2(-1, 0)) then
+      RobberShotgun.endEvent()
+    end
+
+    local sg = RobberShotgun.status and RobberShotgun.status() or ""
+    if sg and sg ~= "" then
+      imgui.TextWrapped("RobberShotgun: " .. sg)
+    end
+    local sgSpawn = RobberShotgun.getSpawnMethod and RobberShotgun.getSpawnMethod() or ""
+    if sgSpawn and sgSpawn ~= "" then
+      imgui.TextWrapped("RobberShotgun spawn method: " .. sgSpawn)
+    end
+
     if imgui.Button("Fire Attack (Pigeon)", imgui.ImVec2(-1, 0)) then
       if FireAttack and FireAttack.isActive and FireAttack.isActive() then
         FireAttack.endEvent()
@@ -735,6 +754,9 @@ function M.onExtensionLoaded()
   if RobberFKB200mEMP and RobberFKB200mEMP.init then
     RobberFKB200mEMP.init(CFG, EVENT_HOST)
   end
+  if RobberShotgun and RobberShotgun.init then
+    RobberShotgun.init(CFG, EVENT_HOST)
+  end
   if FireAttack and FireAttack.init then
     FireAttack.init(CFG, EVENT_HOST)
   end
@@ -751,6 +773,9 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if RobberFKB200mEMP and RobberFKB200mEMP.update then
     RobberFKB200mEMP.update(dtSim)
   end
+  if RobberShotgun and RobberShotgun.update then
+    RobberShotgun.update(dtSim)
+  end
   if FireAttack and FireAttack.update then
     FireAttack.update(dtSim)
   end
@@ -759,6 +784,9 @@ end
 function M.startEvent(name, cfg)
   if name == "RobberFKB200mEMP" then
     return RobberFKB200mEMP.triggerManual()
+  end
+  if name == "RobberShotgun" then
+    return RobberShotgun.triggerManual()
   end
   if name == "FireAttack" then
     return FireAttack.triggerManual()
@@ -769,6 +797,10 @@ end
 function M.stopEvent(name)
   if name == "RobberFKB200mEMP" then
     RobberFKB200mEMP.endEvent()
+    return true
+  end
+  if name == "RobberShotgun" then
+    RobberShotgun.endEvent()
     return true
   end
   if name == "FireAttack" then
