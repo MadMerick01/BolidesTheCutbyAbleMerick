@@ -5,6 +5,7 @@ local M = {}
 
 local CFG = nil
 local Host = nil
+local BulletHit = require("lua/ge/extensions/events/bulletHit")
 local Bullets = require("lua/ge/extensions/events/bullets")
 
 local R = {
@@ -494,6 +495,12 @@ end
 local function fireShot(playerVeh, attackerId)
   if Bullets and Bullets.trigger then
     Bullets.trigger({
+      playerId = playerVeh:getID(),
+      sourceId = attackerId,
+    })
+  end
+  if BulletHit and BulletHit.trigger then
+    BulletHit.trigger({
       playerId = playerVeh:getID(),
       sourceId = attackerId,
     })
