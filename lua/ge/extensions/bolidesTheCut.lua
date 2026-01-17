@@ -409,6 +409,8 @@ function Audio.playFile(v, name, vol, pitch, file)
     if obj.setSFXSourceLooping then pcall(function() obj:setSFXSourceLooping(id, false) end) end
     if obj.setSFXSourceLoop then pcall(function() obj:setSFXSourceLoop(id, false) end) end
     if obj.stopSFX then pcall(function() obj:stopSFX(id) end) end
+    if obj.stopSFXSource then pcall(function() obj:stopSFXSource(id) end) end
+    if obj.stop then pcall(function() obj:stop(id) end) end
 
     if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 1.0) end) end
     if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end

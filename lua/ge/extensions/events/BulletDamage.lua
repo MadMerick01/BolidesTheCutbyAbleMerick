@@ -6,7 +6,7 @@ local M = {}
 local DEFAULT = {
   accuracyRadius = 1.0,
   approachDistance = 50.0,
-  impactForce = 800.0,
+  impactForce = 6000.0,
   impactForceMultiplier = 1.0,
   shotSoundFile = "/art/sound/bolides/distantgunshot.wav",
   shotSoundName = "bulletDamageShot",
@@ -80,7 +80,11 @@ local function _buildImpactCmd(impactPos, approachDir, impactForce, impactForceM
         local m = obj:getNodeMass(closestId)
         if m then mass = m end
       end
-      obj:applyForceVector(closestId, approachDir * %0.3f * mass)
+      local forceVec = approachDir * %0.3f * mass
+      obj:applyForceVector(closestId, forceVec)
+      if obj.applyImpulse then
+        pcall(function() obj:applyImpulse(localImpact, forceVec) end)
+      end
     end
   ]], impactPos.x, impactPos.y, impactPos.z, approachDir.x, approachDir.y, approachDir.z, force)
 end
