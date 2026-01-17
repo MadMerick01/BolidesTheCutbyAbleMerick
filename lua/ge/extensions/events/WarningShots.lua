@@ -24,8 +24,9 @@ local R = {
   nextShotTime = 0,
   didShatter = false,
   fleeStartTime = 0,
+  fleeShotsArmedAt = 0,
+  nextFleeShotTime = 0,
   elapsed = 0,
-  maxDuration = 90,
   guiBaseMessage = nil,
   approachMessageShown = false,
   shootArmedAt = 0,
@@ -368,6 +369,8 @@ local function resetState()
   R.nextShotTime = 0
   R.didShatter = false
   R.fleeStartTime = 0
+  R.fleeShotsArmedAt = 0
+  R.nextFleeShotTime = 0
   R.elapsed = 0
   R.guiBaseMessage = nil
   R.approachMessageShown = false
@@ -484,7 +487,9 @@ local function transitionToShoot(attackerVeh, playerVeh)
   R.shotsFired = 0
   R.nextShotTime = R.elapsed
   R.didShatter = false
-  R.fleeStartTime = R.elapsed
+  R.fleeStartTime = 0
+  R.fleeShotsArmedAt = 0
+  R.nextFleeShotTime = 0
   setGuiStatusMessage("Warning shots!")
   log("Warning shots triggered: total=" .. tostring(R.shotsTotal))
   if attackerVeh and playerVeh then
@@ -492,7 +497,7 @@ local function transitionToShoot(attackerVeh, playerVeh)
   end
 end
 
-local function fireShot(playerVeh, attackerId)
+local function fireShot(playerVeh, attackerId, shotLabel)
   if Bullets and Bullets.trigger then
     Bullets.trigger({
       playerId = playerVeh:getID(),
@@ -505,7 +510,11 @@ local function fireShot(playerVeh, attackerId)
       sourceId = attackerId,
     })
   end
-  log("Shot fired (" .. tostring(R.shotsFired + 1) .. "/" .. tostring(R.shotsTotal) .. ").")
+  if shotLabel then
+    log(shotLabel)
+  else
+    log("Shot fired (" .. tostring(R.shotsFired + 1) .. "/" .. tostring(R.shotsTotal) .. ").")
+  end
 
   if (not R.didShatter) and (math.random() < 0.45) then
     queueBreakRandomWindow(playerVeh)
@@ -523,11 +532,6 @@ function M.update(dtSim)
   end
 
   R.elapsed = R.elapsed + (dtSim or 0)
-  if R.elapsed >= (R.maxDuration or 90) then
-    log("Fail-safe timeout hit.")
-    M.stop("timeout")
-    return
-  end
 
   local playerVeh = getPlayerVeh()
   if not playerVeh then
@@ -593,11 +597,16 @@ function M.update(dtSim)
     if R.shotsFired < R.shotsTotal and R.elapsed >= R.nextShotTime then
       fireShot(playerVeh, R.attackerId)
       R.shotsFired = R.shotsFired + 1
-      R.nextShotTime = R.elapsed + 0.2
+      if R.shotsFired < R.shotsTotal then
+        R.nextShotTime = R.elapsed + (0.3 + math.random() * 0.7)
+      end
     end
 
     if R.shotsFired >= R.shotsTotal then
       R.phase = "flee"
+      R.fleeStartTime = R.elapsed
+      R.fleeShotsArmedAt = R.elapsed + 10
+      R.nextFleeShotTime = R.fleeShotsArmedAt
       setGuiStatusMessage("Bolide fleeing…")
       log("Attacker fleeing.")
     end
@@ -610,11 +619,11 @@ function M.update(dtSim)
       M.stop("flee_complete")
       return
     end
-
-    if (R.elapsed - R.fleeStartTime) >= 45 then
-      log("Flee timeout reached.")
-      M.stop("flee_timeout")
-      return
+    if R.fleeShotsArmedAt > 0 and R.elapsed >= R.fleeShotsArmedAt then
+      if dist <= 50 and R.elapsed >= (R.nextFleeShotTime or 0) then
+        fireShot(playerVeh, R.attackerId, "Flee shot fired.")
+        R.nextFleeShotTime = R.elapsed + (0.5 + math.random() * 1.5)
+      end
     end
   end
 end
