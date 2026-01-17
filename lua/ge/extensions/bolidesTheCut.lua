@@ -12,6 +12,7 @@ local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local WarningShots = require("lua/ge/extensions/events/WarningShots")
 local EMP = require("lua/ge/extensions/events/emp")
 local Bullets = require("lua/ge/extensions/events/bullets")
+local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
 local CareerMoney = require("CareerMoney")
 
 -- =========================
@@ -56,6 +57,7 @@ local S = {
   testDumpTruckStatus = "",
   empTestStatus = "",
   bulletImpactStatus = "",
+  bulletDamageStatus = "",
 
   guiStatusMessage = "Nothing unusual",
 }
@@ -391,6 +393,49 @@ function Audio.playId(v, name, vol, pitch)
   v:queueLuaCommand(cmd)
 end
 
+function Audio.playFile(v, name, vol, pitch, file)
+  if not CFG.audioEnabled then return end
+  if not v or not v.queueLuaCommand then return end
+  vol = tonumber(vol) or 1.0
+  pitch = tonumber(pitch) or 1.0
+  name = tostring(name)
+  file = tostring(file or "")
+
+  local cmd = string.format([[
+    if not (_G.__bolidesAudio and _G.__bolidesAudio.ids) then return end
+    local id = _G.__bolidesAudio.ids[%q]
+    if not id then return end
+
+    if obj.setSFXSourceLooping then pcall(function() obj:setSFXSourceLooping(id, false) end) end
+    if obj.setSFXSourceLoop then pcall(function() obj:setSFXSourceLoop(id, false) end) end
+    if obj.stopSFX then pcall(function() obj:stopSFX(id) end) end
+
+    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 1.0) end) end
+    if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end
+    if obj.setVolume then         pcall(function() obj:setVolume(id, 1.0) end) end
+
+    local played = false
+    if obj.playSFXOnce and %q ~= "" then
+      played = played or pcall(function() obj:playSFXOnce(%q, 0, %0.3f, %0.3f) end)
+    end
+
+    if (not played) and obj.playSFX then
+      played = played or pcall(function() obj:playSFX(id) end)
+      played = played or pcall(function() obj:playSFX(id, 0) end)
+      played = played or pcall(function() obj:playSFX(id, false) end)
+      played = played or pcall(function() obj:playSFX(id, 0, false) end)
+      played = played or pcall(function() obj:playSFX(id, 0, %0.3f, %0.3f, false) end)
+      played = played or pcall(function() obj:playSFX(id, %0.3f, %0.3f, false) end)
+      played = played or pcall(function() obj:playSFX(id, 0, false, %0.3f, %0.3f) end)
+    end
+
+    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, %0.3f) end) end
+    if obj.setSFXSourcePitch  then pcall(function() obj:setSFXSourcePitch(id, %0.3f) end) end
+  ]], name, file, file, vol, pitch, vol, pitch, vol, pitch, vol, pitch, vol, pitch)
+
+  v:queueLuaCommand(cmd)
+end
+
 function Audio.stopId(v, name)
   if not v or not v.queueLuaCommand then return end
   name = tostring(name)
@@ -523,6 +568,27 @@ imgui.Separator()
 
     if S.bulletImpactStatus and S.bulletImpactStatus ~= "" then
       imgui.TextWrapped(S.bulletImpactStatus)
+    end
+
+    if imgui.Button("Bullet Damge", imgui.ImVec2(-1, 0)) then
+      local playerVeh = getPlayerVeh()
+      if playerVeh then
+        local ok, info = BulletDamage.trigger({
+          targetId = playerVeh:getID(),
+          accuracyRadius = 1.0,
+        })
+        if ok then
+          S.bulletDamageStatus = "Bullet damage triggered on player."
+        else
+          S.bulletDamageStatus = "Bullet damage failed: " .. tostring(info)
+        end
+      else
+        S.bulletDamageStatus = "Bullet damage skipped: no player vehicle."
+      end
+    end
+
+    if S.bulletDamageStatus and S.bulletDamageStatus ~= "" then
+      imgui.TextWrapped(S.bulletDamageStatus)
     end
 
     if imgui.Button("RobberFKB200mEMP event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
@@ -737,5 +803,7 @@ function M.onDrawDebug()
     pcall(Breadcrumbs.onDrawDebug)
   end
 end
+
+M.Audio = Audio
 
 return M
