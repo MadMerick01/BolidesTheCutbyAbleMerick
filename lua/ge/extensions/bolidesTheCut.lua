@@ -46,6 +46,10 @@ local CFG = {
   sfxBolidesIntroName = "bolidesIntroHit",
   bolidesIntroVol = 4.0,
   bolidesIntroPitch = 1.0,
+
+  -- GUI threat coloring
+  threatDistanceRobber = 50.0,
+  threatDistanceFireAttack = 100.0,
 }
 
 -- =========================
@@ -160,6 +164,36 @@ local function formatCountdown(seconds)
   local minutes = math.floor(totalSeconds / 60)
   local rem = totalSeconds % 60
   return string.format("%02d:%02d", minutes, rem)
+end
+
+local function getThreatState()
+  local hasEvent = false
+  local imminent = false
+
+  local function checkEvent(eventModule, imminentDistance)
+    if not (eventModule and eventModule.isActive and eventModule.isActive()) then
+      return
+    end
+    hasEvent = true
+    if imminentDistance and eventModule.getDistanceToPlayer then
+      local dist = eventModule.getDistanceToPlayer()
+      if dist and dist <= imminentDistance then
+        imminent = true
+      end
+    end
+  end
+
+  checkEvent(RobberFKB200mEMP, CFG.threatDistanceRobber)
+  checkEvent(RobberShotgun, CFG.threatDistanceRobber)
+  checkEvent(FireAttack, CFG.threatDistanceFireAttack)
+
+  if imminent then
+    return "imminent"
+  end
+  if hasEvent then
+    return "event"
+  end
+  return "safe"
 end
 
 function M.showMissionMessage(args)
@@ -476,6 +510,17 @@ local function drawGui()
 
   imgui.SetNextWindowSize(imgui.ImVec2(460, 740), imgui.Cond_FirstUseEver)
 
+  local threatState = getThreatState()
+  local windowColor = nil
+  if threatState == "imminent" then
+    windowColor = imgui.ImColorByRGB(140, 30, 30, 220).Value
+  elseif threatState == "event" then
+    windowColor = imgui.ImColorByRGB(160, 140, 30, 220).Value
+  else
+    windowColor = imgui.ImColorByRGB(30, 120, 30, 220).Value
+  end
+
+  imgui.PushStyleColor2(imgui.Col_WindowBg, windowColor)
   local openPtr = imgui.BoolPtr(CFG.windowVisible)
   if imgui.Begin(CFG.windowTitle, openPtr) then
     CFG.windowVisible = openPtr[0]
@@ -755,6 +800,7 @@ imgui.Separator()
     end
   end
   imgui.End()
+  imgui.PopStyleColor()
 end
 
 -- =========================
