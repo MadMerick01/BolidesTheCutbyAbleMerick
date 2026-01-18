@@ -421,6 +421,7 @@ local function triggerShot(playerVeh, robberVeh)
     targetId = playerVeh:getID(),
     sourceId = robberVeh:getID(),
     accuracyRadius = 3.0,
+    applyDamage = false,
   })
 
   if not ok then
