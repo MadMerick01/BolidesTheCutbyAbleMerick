@@ -16,9 +16,22 @@ local function getMoneySafe()
   return value
 end
 
+local function setMoneySafe(amount)
+  if not career_modules_playerAttributes or not career_modules_playerAttributes.setAttributeValue then
+    return false
+  end
+
+  local ok = pcall(career_modules_playerAttributes.setAttributeValue, "money", amount)
+  return ok
+end
+
 function M.get()
   local value = getMoneySafe()
   return tonumber(value) or 0
+end
+
+function M.set(amount)
+  return setMoneySafe(tonumber(amount) or 0)
 end
 
 function M.isCareerActive()

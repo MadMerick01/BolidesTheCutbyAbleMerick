@@ -9,6 +9,7 @@
 local M = {}
 
 local EMP = require('lua/ge/extensions/events/emp')
+local CareerMoney = require("CareerMoney")
 
 local CFG = nil
 local Host = nil
@@ -52,6 +53,9 @@ local R = {
   downhillHold = 0,
   lastNotDownhillAt = 0,
   downhillActive = false,
+  robberyProcessed = false,
+  robbedAmount = 0,
+  cashFound = nil,
 }
 
 local function log(msg)
@@ -101,6 +105,23 @@ local function makeSpawnTransform(playerVeh, spawnPos)
   end
 
   return { pos = spawnPos, rot = rot }
+end
+
+local function adjustCareerMoney(amount)
+  if not CareerMoney or not CareerMoney.isCareerActive or not CareerMoney.isCareerActive() then
+    return false
+  end
+  if not CareerMoney.set then
+    return false
+  end
+  return CareerMoney.set(amount)
+end
+
+local function getCareerMoney()
+  if not CareerMoney or not CareerMoney.isCareerActive or not CareerMoney.isCareerActive() then
+    return nil
+  end
+  return CareerMoney.get and CareerMoney.get() or nil
 end
 
 local function resolveVehicleId(result)
@@ -749,6 +770,9 @@ function M.triggerManual()
   R.downhillHold = 0
   R.lastNotDownhillAt = 0
   R.downhillActive = false
+  R.robberyProcessed = false
+  R.robbedAmount = 0
+  R.cashFound = nil
 
   startFollowAI(id)
   return true
@@ -802,6 +826,9 @@ function M.endEvent(opts)
   R.downhillHold = 0
   R.lastNotDownhillAt = 0
   R.downhillActive = false
+  R.robberyProcessed = false
+  R.robbedAmount = 0
+  R.cashFound = nil
 
   if not opts.keepGuiMessage then
     setGuiStatusMessage(nil)
@@ -996,6 +1023,14 @@ function M.update(dtSim)
   -- 6 seconds after EMP firing, show message and switch to flee
   if R.empFired and (not R.empFleeTriggered) and R.empFleeAt and now >= R.empFleeAt then
     R.empFleeTriggered = true
+    if not R.robberyProcessed then
+      local money = getCareerMoney()
+      if money then
+        R.robbedAmount = money * 0.5
+        adjustCareerMoney(money - R.robbedAmount)
+      end
+      R.robberyProcessed = true
+    end
     local msgArgs = {
       title = "YOU'VE BEEN ROBBED",
       text = "Chase the robber!\n\nPress Continue to resume.",
@@ -1011,7 +1046,7 @@ function M.update(dtSim)
       log("WARN: Mission message system not available for robbery alert.")
     end
 
-    R.guiBaseMessage = "YOU'VE BEEN ROBBED, THEY TOOK HALF YOUR MONEY! Catch the robber to get it back!"
+    R.guiBaseMessage = "the robber took half your money"
     R.hideDistance = false
     updateGuiDistanceMessage(d)
     -- Keep audio behavior: chase2 at flee moment
@@ -1043,7 +1078,17 @@ function M.update(dtSim)
     if R.closeTimer >= 7.0 and R.robberSlowTimer >= 7.0 then
       R.successTriggered = true
       R.successDespawnAt = now + 15.0
-      R.guiBaseMessage = "you got your money back"
+      R.cashFound = math.random(50, 2500)
+      if R.robberyProcessed and R.robbedAmount > 0 then
+        local money = getCareerMoney()
+        if money then
+          adjustCareerMoney(money + R.robbedAmount + R.cashFound)
+        end
+      end
+      R.guiBaseMessage = string.format(
+        "you got your money back\nand you found $%d cash in the robbers glovebox",
+        R.cashFound
+      )
       R.hideDistance = true
       R.postSuccessMessageAt = now
       updateGuiDistanceMessage(d)
