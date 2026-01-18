@@ -2,7 +2,7 @@
 -- RobberShotgun: manual spawn at ForwardKnownBreadcrumb(200m)
 -- Behavior:
 --   1) Spawn and FOLLOW player (legal speed, lane changes, avoid cars/obstacles).
---   2) When within 50m, fire shotgun damage at random intervals (0.5-2.5s).
+--   2) When within 50m, fire shotgun damage at fixed 2.0s intervals.
 --   3) When within 20m, switch to FLEE until event end.
 --   4) End when robber escapes to 500m while fleeing (despawn).
 
@@ -407,7 +407,7 @@ local function switchToFleeAI(robberId)
 end
 
 local function randomShotDelay()
-  return 0.5 + (math.random() * 2.0)
+  return 2.0
 end
 
 local function triggerShot(playerVeh, robberVeh)
