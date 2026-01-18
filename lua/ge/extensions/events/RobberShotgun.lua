@@ -407,7 +407,7 @@ local function switchToFleeAI(robberId)
 end
 
 local function randomShotDelay()
-  return 2.0
+  return 0.7 + (math.random() * 1.8)
 end
 
 local function triggerShot(playerVeh, robberVeh)
