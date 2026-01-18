@@ -702,6 +702,19 @@ end
 
 function M.getDistanceToPlayer()
   return R.distToPlayer
+function M.getDebugState()
+  return {
+    careerActive = CareerMoney and CareerMoney.isCareerActive and CareerMoney.isCareerActive() or false,
+    money = getCareerMoney(),
+    robberyProcessed = R.robberyProcessed,
+    robbedAmount = R.robbedAmount,
+    empFired = R.empFired,
+    empFleeTriggered = R.empFleeTriggered,
+    empSlowChaseApplied = R.empSlowChaseApplied,
+    empPreStopTriggered = R.empPreStopTriggered,
+    successTriggered = R.successTriggered,
+    phase = R.phase,
+  }
 end
 
 function M.getSpawnMethod()
