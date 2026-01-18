@@ -54,6 +54,7 @@ local CFG = {
 local S = {
   uiShowInfo = false,
   uiShowDebug = false,
+  uiShowManualEvents = false,
 
   -- Kept because OldCode printed these lines; safe placeholders for now
   testDumpTruckVehId = nil,
@@ -527,139 +528,145 @@ imgui.Separator()
     -- Manual Events
     -- =========================
     imgui.Separator()
-    imgui.Text("Manual Events:")
-
-    if imgui.Button("TEST MISSION MESSAGE", imgui.ImVec2(-1, 0)) then
-      M.showMissionMessage({
-        title = "TEST",
-        text = "Scenario-style message.\n\nPress Continue.",
-        freeze = true,
-      })
+    local manualEventsLabel = S.uiShowManualEvents and "Hide Manual Events" or "Manual Events"
+    if imgui.Button(manualEventsLabel, imgui.ImVec2(-1, 0)) then
+      S.uiShowManualEvents = not S.uiShowManualEvents
     end
 
-    if imgui.Button("EMP test (nearest vehicle)", imgui.ImVec2(-1, 0)) then
-      local playerVeh = getPlayerVeh()
-      local targetVeh, dist, err = findNearestVehicleToPlayer()
-      if playerVeh and targetVeh then
-        local ok, reason = EMP.trigger({
-          playerId = targetVeh:getID(),
-          sourceId = playerVeh:getID(),
-          sourcePos = playerVeh:getPosition(),
+    if S.uiShowManualEvents then
+      imgui.Spacing()
+      if imgui.Button("TEST MISSION MESSAGE", imgui.ImVec2(-1, 0)) then
+        M.showMissionMessage({
+          title = "TEST",
+          text = "Scenario-style message.\n\nPress Continue.",
+          freeze = true,
         })
-        if ok then
-          S.empTestStatus = string.format("EMP test fired at %.1f m.", dist or 0)
-        else
-          S.empTestStatus = "EMP test failed: " .. tostring(reason)
-        end
-      else
-        S.empTestStatus = "EMP test skipped: " .. tostring(err)
       end
-    end
 
-    if S.empTestStatus and S.empTestStatus ~= "" then
-      imgui.TextWrapped(S.empTestStatus)
-    end
-
-    if imgui.Button("Bullet Damage", imgui.ImVec2(-1, 0)) then
-      local playerVeh = getPlayerVeh()
-      if playerVeh then
-        local ok, info = BulletDamage.trigger({
-          targetId = playerVeh:getID(),
-          accuracyRadius = 3.0,
-        })
-        if ok then
-          local lines = { "Bullet damage triggered on player." }
-          if info then
-            lines[#lines + 1] = string.format("Impact force queued: %s", info.impactQueued and "yes" or "no")
-            lines[#lines + 1] = string.format("Gunshot audio: %s", info.audioPlayed and "played" or (info.audioAttempted and "attempted" or "not available"))
-            if info.damage then
-              lines[#lines + 1] = string.format("Damage queued: %s", info.damage.queued and "yes" or "no")
-              local effects = info.damage.effects or {}
-              lines[#lines + 1] = string.format("Break random part chance: %.0f%%", (effects.breakRandomPart or 0) * 100)
-              lines[#lines + 1] = string.format("Deform random part chance: %.0f%%", (effects.deformRandomPart or 0) * 100)
-              lines[#lines + 1] = string.format("Deflate tire chance: %.0f%%", (effects.deflateTire or 0) * 100)
-              lines[#lines + 1] = string.format("Ignite part chance: %.0f%%", (effects.ignitePart or 0) * 100)
-              lines[#lines + 1] = string.format("Break random beam chance: %.0f%%", (effects.breakRandomBeam or 0) * 100)
-              local safety = info.damage.safety or {}
-              lines[#lines + 1] = string.format(
-                "Safety filters: wheels=%s, powertrain=%s, brittle=%s, fallback=%s",
-                safety.ignoreWheels and "on" or "off",
-                safety.ignorePowertrain and "on" or "off",
-                safety.ignoreBrittleDeform and "on" or "off",
-                safety.allowFallback and "on" or "off"
-              )
-            end
+      if imgui.Button("EMP test (nearest vehicle)", imgui.ImVec2(-1, 0)) then
+        local playerVeh = getPlayerVeh()
+        local targetVeh, dist, err = findNearestVehicleToPlayer()
+        if playerVeh and targetVeh then
+          local ok, reason = EMP.trigger({
+            playerId = targetVeh:getID(),
+            sourceId = playerVeh:getID(),
+            sourcePos = playerVeh:getPosition(),
+          })
+          if ok then
+            S.empTestStatus = string.format("EMP test fired at %.1f m.", dist or 0)
+          else
+            S.empTestStatus = "EMP test failed: " .. tostring(reason)
           end
-          S.bulletDamageStatus = table.concat(lines, "\n")
-          S.bulletDamageStatusLines = lines
         else
-          S.bulletDamageStatus = "Bullet damage failed: " .. tostring(info)
+          S.empTestStatus = "EMP test skipped: " .. tostring(err)
+        end
+      end
+
+      if S.empTestStatus and S.empTestStatus ~= "" then
+        imgui.TextWrapped(S.empTestStatus)
+      end
+
+      if imgui.Button("Bullet Damage", imgui.ImVec2(-1, 0)) then
+        local playerVeh = getPlayerVeh()
+        if playerVeh then
+          local ok, info = BulletDamage.trigger({
+            targetId = playerVeh:getID(),
+            accuracyRadius = 3.0,
+          })
+          if ok then
+            local lines = { "Bullet damage triggered on player." }
+            if info then
+              lines[#lines + 1] = string.format("Impact force queued: %s", info.impactQueued and "yes" or "no")
+              lines[#lines + 1] = string.format("Gunshot audio: %s", info.audioPlayed and "played" or (info.audioAttempted and "attempted" or "not available"))
+              if info.damage then
+                lines[#lines + 1] = string.format("Damage queued: %s", info.damage.queued and "yes" or "no")
+                local effects = info.damage.effects or {}
+                lines[#lines + 1] = string.format("Break random part chance: %.0f%%", (effects.breakRandomPart or 0) * 100)
+                lines[#lines + 1] = string.format("Deform random part chance: %.0f%%", (effects.deformRandomPart or 0) * 100)
+                lines[#lines + 1] = string.format("Deflate tire chance: %.0f%%", (effects.deflateTire or 0) * 100)
+                lines[#lines + 1] = string.format("Ignite part chance: %.0f%%", (effects.ignitePart or 0) * 100)
+                lines[#lines + 1] = string.format("Break random beam chance: %.0f%%", (effects.breakRandomBeam or 0) * 100)
+                local safety = info.damage.safety or {}
+                lines[#lines + 1] = string.format(
+                  "Safety filters: wheels=%s, powertrain=%s, brittle=%s, fallback=%s",
+                  safety.ignoreWheels and "on" or "off",
+                  safety.ignorePowertrain and "on" or "off",
+                  safety.ignoreBrittleDeform and "on" or "off",
+                  safety.allowFallback and "on" or "off"
+                )
+              end
+            end
+            S.bulletDamageStatus = table.concat(lines, "\n")
+            S.bulletDamageStatusLines = lines
+          else
+            S.bulletDamageStatus = "Bullet damage failed: " .. tostring(info)
+            S.bulletDamageStatusLines = nil
+          end
+        else
+          S.bulletDamageStatus = "Bullet damage skipped: no player vehicle."
           S.bulletDamageStatusLines = nil
         end
-      else
-        S.bulletDamageStatus = "Bullet damage skipped: no player vehicle."
-        S.bulletDamageStatusLines = nil
       end
-    end
 
-    if S.bulletDamageStatusLines and #S.bulletDamageStatusLines > 0 then
-      for _, line in ipairs(S.bulletDamageStatusLines) do
-        imgui.TextWrapped(line)
+      if S.bulletDamageStatusLines and #S.bulletDamageStatusLines > 0 then
+        for _, line in ipairs(S.bulletDamageStatusLines) do
+          imgui.TextWrapped(line)
+        end
+      elseif S.bulletDamageStatus and S.bulletDamageStatus ~= "" then
+        imgui.TextWrapped(S.bulletDamageStatus)
       end
-    elseif S.bulletDamageStatus and S.bulletDamageStatus ~= "" then
-      imgui.TextWrapped(S.bulletDamageStatus)
-    end
 
-    if imgui.Button("RobberFKB200mEMP event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
-      RobberFKB200mEMP.triggerManual()
-    end
-
-    if imgui.Button("End RobberFKB200mEMP", imgui.ImVec2(-1, 0)) then
-      RobberFKB200mEMP.endEvent()
-    end
-
-    local st = RobberFKB200mEMP.status and RobberFKB200mEMP.status() or ""
-    if st and st ~= "" then
-      imgui.TextWrapped("RobberFKB200mEMP: " .. st)
-    end
-    local spawnMethod = RobberFKB200mEMP.getSpawnMethod and RobberFKB200mEMP.getSpawnMethod() or ""
-    if spawnMethod and spawnMethod ~= "" then
-      imgui.TextWrapped("RobberFKB200mEMP spawn method: " .. spawnMethod)
-    end
-
-    if imgui.Button("RobberShotgun event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
-      RobberShotgun.triggerManual()
-    end
-
-    if imgui.Button("End RobberShotgun", imgui.ImVec2(-1, 0)) then
-      RobberShotgun.endEvent()
-    end
-
-    local sg = RobberShotgun.status and RobberShotgun.status() or ""
-    if sg and sg ~= "" then
-      imgui.TextWrapped("RobberShotgun: " .. sg)
-    end
-    local sgSpawn = RobberShotgun.getSpawnMethod and RobberShotgun.getSpawnMethod() or ""
-    if sgSpawn and sgSpawn ~= "" then
-      imgui.TextWrapped("RobberShotgun spawn method: " .. sgSpawn)
-    end
-
-    if imgui.Button("Fire Attack (Pigeon)", imgui.ImVec2(-1, 0)) then
-      if FireAttack and FireAttack.isActive and FireAttack.isActive() then
-        FireAttack.endEvent()
-      else
-        FireAttack.triggerManual()
+      if imgui.Button("RobberFKB200mEMP event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
+        RobberFKB200mEMP.triggerManual()
       end
-    end
 
-    local fireStatus = FireAttack.status and FireAttack.status() or ""
-    if fireStatus and fireStatus ~= "" then
-      imgui.TextWrapped("FireAttack: " .. fireStatus)
-    end
+      if imgui.Button("End RobberFKB200mEMP", imgui.ImVec2(-1, 0)) then
+        RobberFKB200mEMP.endEvent()
+      end
 
-    if CFG.debugButtons then
-      if imgui.Button("Deflate random tyre (player)", imgui.ImVec2(-1, 0)) then
-        DeflateRandomTyre.trigger(Host, CFG)
+      local st = RobberFKB200mEMP.status and RobberFKB200mEMP.status() or ""
+      if st and st ~= "" then
+        imgui.TextWrapped("RobberFKB200mEMP: " .. st)
+      end
+      local spawnMethod = RobberFKB200mEMP.getSpawnMethod and RobberFKB200mEMP.getSpawnMethod() or ""
+      if spawnMethod and spawnMethod ~= "" then
+        imgui.TextWrapped("RobberFKB200mEMP spawn method: " .. spawnMethod)
+      end
+
+      if imgui.Button("RobberShotgun event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
+        RobberShotgun.triggerManual()
+      end
+
+      if imgui.Button("End RobberShotgun", imgui.ImVec2(-1, 0)) then
+        RobberShotgun.endEvent()
+      end
+
+      local sg = RobberShotgun.status and RobberShotgun.status() or ""
+      if sg and sg ~= "" then
+        imgui.TextWrapped("RobberShotgun: " .. sg)
+      end
+      local sgSpawn = RobberShotgun.getSpawnMethod and RobberShotgun.getSpawnMethod() or ""
+      if sgSpawn and sgSpawn ~= "" then
+        imgui.TextWrapped("RobberShotgun spawn method: " .. sgSpawn)
+      end
+
+      if imgui.Button("Fire Attack (Pigeon)", imgui.ImVec2(-1, 0)) then
+        if FireAttack and FireAttack.isActive and FireAttack.isActive() then
+          FireAttack.endEvent()
+        else
+          FireAttack.triggerManual()
+        end
+      end
+
+      local fireStatus = FireAttack.status and FireAttack.status() or ""
+      if fireStatus and fireStatus ~= "" then
+        imgui.TextWrapped("FireAttack: " .. fireStatus)
+      end
+
+      if CFG.debugButtons then
+        if imgui.Button("Deflate random tyre (player)", imgui.ImVec2(-1, 0)) then
+          DeflateRandomTyre.trigger(Host, CFG)
+        end
       end
     end
 
