@@ -712,6 +712,27 @@ imgui.Separator()
       imgui.Text(string.format("Forward dist: %.0f m", totalFwd or 0))
 
       imgui.Spacing()
+      imgui.Text("RobberFKB200mEMP money/debug:")
+      local robberDebug = RobberFKB200mEMP.getDebugState and RobberFKB200mEMP.getDebugState() or nil
+      if robberDebug then
+        local activeText = robberDebug.careerActive and "yes" or "no"
+        imgui.Text(string.format("Career active: %s", activeText))
+        local moneyText = robberDebug.money and string.format("$%s", CareerMoney.fmt(robberDebug.money)) or "n/a"
+        imgui.Text(string.format("Wallet (CareerMoney.get): %s", moneyText))
+        local robbedText = robberDebug.robbedAmount and CareerMoney.fmt(robberDebug.robbedAmount) or "n/a"
+        imgui.Text(string.format("Robbery processed: %s", tostring(robberDebug.robberyProcessed)))
+        imgui.Text(string.format("Robbed amount: %s", robbedText))
+        imgui.Text(string.format("EMP fired: %s", tostring(robberDebug.empFired)))
+        imgui.Text(string.format("EMP pre-stop triggered: %s", tostring(robberDebug.empPreStopTriggered)))
+        imgui.Text(string.format("EMP slow chase applied: %s", tostring(robberDebug.empSlowChaseApplied)))
+        imgui.Text(string.format("EMP flee triggered: %s", tostring(robberDebug.empFleeTriggered)))
+        imgui.Text(string.format("Success triggered: %s", tostring(robberDebug.successTriggered)))
+        imgui.Text(string.format("Phase: %s", tostring(robberDebug.phase)))
+      else
+        imgui.Text("RobberFKB200mEMP debug unavailable.")
+      end
+
+      imgui.Spacing()
       imgui.Text("ForwardKnownBreadcrumbs:")
 
       local segText = fwdMeta.segStartIdx and tostring(fwdMeta.segStartIdx) or "n/a"
