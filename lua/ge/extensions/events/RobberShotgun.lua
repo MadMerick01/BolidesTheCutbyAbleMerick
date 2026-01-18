@@ -3,7 +3,7 @@
 -- Behavior:
 --   1) Spawn and FOLLOW player (legal speed, lane changes, avoid cars/obstacles).
 --   2) When within 50m, fire shotgun damage at fixed 2.0s intervals.
---   3) When within 20m, switch to FLEE until event end.
+--   3) When within 30m, switch to FLEE until event end.
 --   4) End when robber escapes to 500m while fleeing (despawn).
 
 local M = {}
@@ -308,8 +308,8 @@ local function queueAI_FollowLegal(veh, targetId)
       if ai.setRecoverOnCrash then ai.setRecoverOnCrash(false) end
     end)
 
-    try("ai.setStopDistance(11)", function()
-      if ai.setStopDistance then ai.setStopDistance(11) end
+    try("ai.setStopDistance(20)", function()
+      if ai.setStopDistance then ai.setStopDistance(20) end
     end)
 
     print("[RobberShotgun AI] FOLLOW armed (legal, lane changes, avoid cars/crash). targetId="..tostring(tid))
@@ -566,7 +566,7 @@ function M.update(dtSim)
     end
   end
 
-  if R.phase ~= "flee" and d <= 20.0 then
+  if R.phase ~= "flee" and d <= 30.0 then
     switchToFleeAI(R.spawnedId)
   end
 
