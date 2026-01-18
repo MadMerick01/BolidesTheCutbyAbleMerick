@@ -539,6 +539,10 @@ function M.status()
   return R.status
 end
 
+function M.getDistanceToPlayer()
+  return R.distToPlayer
+end
+
 function M.triggerManual()
   if R.active then
     log("Already active.")

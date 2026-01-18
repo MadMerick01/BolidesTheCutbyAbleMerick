@@ -441,6 +441,10 @@ function M.status()
   return R.status
 end
 
+function M.getDistanceToPlayer()
+  return R.distToPlayer
+end
+
 function M.getSpawnMethod()
   return R.spawnMethod
 end

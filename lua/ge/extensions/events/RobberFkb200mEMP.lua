@@ -700,6 +700,8 @@ function M.status()
   return R.status
 end
 
+function M.getDistanceToPlayer()
+  return R.distToPlayer
 function M.getDebugState()
   return {
     careerActive = CareerMoney and CareerMoney.isCareerActive and CareerMoney.isCareerActive() or false,
