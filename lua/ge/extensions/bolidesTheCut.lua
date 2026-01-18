@@ -10,6 +10,7 @@ local M = {}
 local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
 local RobberFKB200mEMP = require("lua/ge/extensions/events/RobberFkb200mEMP")
 local RobberShotgun = require("lua/ge/extensions/events/RobberShotgun")
+local BoldiePacing = require("lua/ge/extensions/events/BoldiePacing")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
@@ -151,6 +152,13 @@ local function closeMissionInfoDialogue()
   if extensions and extensions.missionInfo and extensions.missionInfo.closeDialogue then
     pcall(extensions.missionInfo.closeDialogue)
   end
+end
+
+local function formatCountdown(seconds)
+  local totalSeconds = math.max(0, math.floor((seconds or 0) + 0.5))
+  local minutes = math.floor(totalSeconds / 60)
+  local rem = totalSeconds % 60
+  return string.format("%02d:%02d", minutes, rem)
 end
 
 function M.showMissionMessage(args)
@@ -499,6 +507,10 @@ imgui.Separator()
     CareerMoney.draw(imgui)
     imgui.PopStyleColor()
     imgui.SetWindowFontScale(1.0)
+    local countdown = BoldiePacing and BoldiePacing.getCountdown and BoldiePacing.getCountdown()
+    if countdown ~= nil then
+      imgui.Text(string.format("next event occurs in: %s", formatCountdown(countdown)))
+    end
 
     -- =========================
     -- Status Messages
@@ -760,6 +772,12 @@ function M.onExtensionLoaded()
   if FireAttack and FireAttack.init then
     FireAttack.init(CFG, EVENT_HOST)
   end
+  if BoldiePacing and BoldiePacing.init then
+    BoldiePacing.init(CFG, EVENT_HOST, {
+      RobberFKB200mEMP = RobberFKB200mEMP,
+      RobberShotgun = RobberShotgun,
+    })
+  end
 end
 
 -- Update-only: NO drawing here (prevents loading hang)
@@ -778,6 +796,9 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   end
   if FireAttack and FireAttack.update then
     FireAttack.update(dtSim)
+  end
+  if BoldiePacing and BoldiePacing.update then
+    BoldiePacing.update(dtSim)
   end
 end
 
