@@ -1192,11 +1192,32 @@ function M.update(dtSim)
       if R.cashFound then
         recoveredDelta = recoveredDelta + R.cashFound
       end
+      local empRewardText = nil
+      local empInstruction = nil
+      local inventoryDelta = nil
+      if math.random() < 0.5 then
+        empRewardText = "You obtained the EMP device."
+        inventoryDelta = {
+          { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = 0 },
+        }
+      else
+        local empCharges = math.random(1, 3)
+        empRewardText = "You gained EMP charges."
+        empInstruction = "You may deploy the EMP now."
+        inventoryDelta = {
+          { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = empCharges },
+        }
+      end
+      local statusMessage = "You recovered your money and found additional loot."
+      if empRewardText then
+        statusMessage = statusMessage .. " " .. empRewardText
+      end
       updateHudState({
         threat = "safe",
-        status = "You recovered your money and found additional loot.",
-        instruction = "Stay alert and control your speed.",
+        status = statusMessage,
+        instruction = empInstruction or "Stay alert and control your speed.",
         moneyDelta = recoveredDelta > 0 and recoveredDelta or nil,
+        inventoryDelta = inventoryDelta,
       })
       R.guiBaseMessage = string.format(
         "you got your money back\nand you found $%d cash in the robbers glovebox",
