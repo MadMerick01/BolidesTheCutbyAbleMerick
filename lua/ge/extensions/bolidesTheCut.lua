@@ -2,13 +2,13 @@
 -- BolidesTheCut (fresh rebuild): GUI + About/Hide Info + Intro audio (OldCode-style) + Breadcrumb debug UI
 -- Requires:
 --   lua/ge/extensions/breadcrumbs.lua
---   lua/ge/extensions/events/RobberFkb200mEMP.lua
+--   lua/ge/extensions/events/RobberEMP.lua
 --   lua/ge/extensions/events/RobberShotgun.lua
 
 local M = {}
 
 local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
-local RobberFKB200mEMP = require("lua/ge/extensions/events/RobberFkb200mEMP")
+local RobberFKB200mEMP = require("lua/ge/extensions/events/RobberEMP")
 local RobberShotgun = require("lua/ge/extensions/events/RobberShotgun")
 local BoldiePacing = require("lua/ge/extensions/events/BoldiePacing")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
