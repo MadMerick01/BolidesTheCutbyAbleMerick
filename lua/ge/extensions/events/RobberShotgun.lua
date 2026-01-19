@@ -9,6 +9,7 @@
 local M = {}
 
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
+local NewHud = require("lua/ge/extensions/NewHud")
 
 local CFG = nil
 local Host = nil
@@ -27,6 +28,9 @@ local R = {
 
   spawnClock = nil,
   spawnSnapped = false,
+
+  shotsStarted = false,
+  fleeNotified = false,
 }
 
 local function log(msg)
@@ -36,6 +40,37 @@ local function log(msg)
   else
     print("[RobberShotgun] " .. tostring(R.status))
   end
+end
+
+local function setHud(threat, status, instruction, dangerReason)
+  if not NewHud then return end
+  if NewHud.setThreat then
+    NewHud.setThreat(threat)
+  end
+  if NewHud.setStatus then
+    NewHud.setStatus(status)
+  end
+  if NewHud.setInstruction then
+    NewHud.setInstruction(instruction)
+  end
+  if NewHud.setDangerReason then
+    NewHud.setDangerReason(dangerReason)
+  end
+end
+
+local function resetRuntime()
+  R.active = false
+  R.spawnedId = nil
+  R.spawnPos = nil
+  R.spawnMode = nil
+  R.spawnMethod = nil
+  R.phase = "idle"
+  R.distToPlayer = nil
+  R.nextShotAt = nil
+  R.spawnClock = nil
+  R.spawnSnapped = false
+  R.shotsStarted = false
+  R.fleeNotified = false
 end
 
 local function chooseFkbPos(spacing, maxAgeSec)
@@ -485,28 +520,38 @@ function M.triggerManual()
   R.phase = "idle"
   R.distToPlayer = nil
   R.nextShotAt = nil
+  R.shotsStarted = false
+  R.fleeNotified = false
 
   R.spawnClock = os.clock()
   R.spawnSnapped = false
 
   startFollowAI(id)
+  setHud(
+    "event",
+    "A vehicle is tailing you.",
+    "Keep moving. Watch your mirrors.",
+    nil
+  )
   return true
 end
 
-function M.endEvent()
+function M.endEvent(reason)
   if not R.active then return end
 
+  local status = "Threat cleared."
+  if reason == "escape" then
+    status = "Contact lost."
+  end
+  setHud(
+    "safe",
+    status,
+    "Resume route.",
+    nil
+  )
+
   local id = R.spawnedId
-  R.active = false
-  R.spawnedId = nil
-  R.spawnPos = nil
-  R.spawnMode = nil
-  R.spawnMethod = nil
-  R.phase = "idle"
-  R.distToPlayer = nil
-  R.nextShotAt = nil
-  R.spawnClock = nil
-  R.spawnSnapped = false
+  resetRuntime()
 
   if type(id) == "number" then
     local v = getObjById(id)
@@ -526,15 +571,15 @@ function M.update(dtSim)
 
   local robber = getObjById(R.spawnedId)
   if not robber then
-    R.active = false
-    R.spawnedId = nil
-    R.spawnPos = nil
-    R.spawnMode = nil
-    R.spawnMethod = nil
-    R.phase = "idle"
-    R.nextShotAt = nil
-    R.spawnClock = nil
-    R.spawnSnapped = false
+    if R.active then
+      setHud(
+        "safe",
+        "Threat cleared.",
+        "Resume route.",
+        nil
+      )
+    end
+    resetRuntime()
     log("Ended (robber missing).")
     return
   end
@@ -572,9 +617,27 @@ function M.update(dtSim)
 
   if R.phase ~= "flee" and d <= 30.0 then
     switchToFleeAI(R.spawnedId)
+    if not R.fleeNotified then
+      setHud(
+        "danger",
+        "The attacker is breaking away.",
+        "Pursue if safe. Stop the attacker.",
+        R.shotsStarted and "shotsFired" or nil
+      )
+      R.fleeNotified = true
+    end
   end
 
   if d <= 50.0 then
+    if not R.shotsStarted then
+      R.shotsStarted = true
+      setHud(
+        "danger",
+        "Shots fired.",
+        "Break line of sight or create distance.",
+        "shotsFired"
+      )
+    end
     if not R.nextShotAt then
       R.nextShotAt = now + randomShotDelay()
     elseif now >= R.nextShotAt then
@@ -586,7 +649,7 @@ function M.update(dtSim)
   end
 
   if R.phase == "flee" and d >= 500.0 then
-    M.endEvent()
+    M.endEvent("escape")
     return
   end
 end
