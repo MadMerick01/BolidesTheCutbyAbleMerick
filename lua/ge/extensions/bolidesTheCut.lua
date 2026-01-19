@@ -358,7 +358,7 @@ local function postEventLine(tag, msg)
 end
 
 local DEFAULT_HUD_WEAPONS = {
-  { id = "beretta92fs", name = "Beretta 92FS", ammoLabel = "Ammo", ammo = 15 },
+  { id = "beretta92fs", name = "shotgun", ammoLabel = "Ammo", ammo = 15 },
   { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammo = 2 },
 }
 
