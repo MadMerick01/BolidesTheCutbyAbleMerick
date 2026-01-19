@@ -71,7 +71,13 @@ local S = {
 
   hudWallet = nil,
   hudWeapons = nil,
+  hudStatus = "",
+  hudInstruction = "",
+  hudThreat = nil,
   hudDangerReason = nil,
+
+  uiShowWeapons = false,
+  uiShowAbout = false,
 }
 
 -- =========================
@@ -389,6 +395,12 @@ local function ensureHudState()
   if S.hudWallet == nil then
     S.hudWallet = getCareerMoney() or 0
   end
+  if S.hudStatus == nil then
+    S.hudStatus = ""
+  end
+  if S.hudInstruction == nil then
+    S.hudInstruction = ""
+  end
 end
 
 local function applyHudInventoryDelta(inventoryDelta)
@@ -430,12 +442,15 @@ function M.setNewHudState(payload)
   ensureHudState()
 
   if payload.threat then
+    S.hudThreat = tostring(payload.threat)
     NewHud.setThreat(payload.threat)
   end
   if payload.status then
+    S.hudStatus = tostring(payload.status)
     NewHud.setStatus(payload.status)
   end
   if payload.instruction then
+    S.hudInstruction = tostring(payload.instruction)
     NewHud.setInstruction(payload.instruction)
   end
   if payload.dangerReason then
@@ -614,38 +629,118 @@ local function drawGui()
 
   imgui.SetNextWindowSize(imgui.ImVec2(460, 740), imgui.Cond_FirstUseEver)
 
-  local threatState = getThreatState()
-  local windowColor = nil
-  if threatState == "imminent" then
-    windowColor = imgui.ImColorByRGB(140, 30, 30, 220).Value
-  elseif threatState == "event" then
-    windowColor = imgui.ImColorByRGB(160, 140, 30, 220).Value
-  else
-    windowColor = imgui.ImColorByRGB(30, 120, 30, 220).Value
+  ensureHudState()
+  local currentMoney = getCareerMoney()
+  if currentMoney ~= nil then
+    S.hudWallet = currentMoney
   end
+
+  local function getHudThreatLevel()
+    if S.hudThreat and S.hudThreat ~= "" then
+      return S.hudThreat
+    end
+    local threatState = getThreatState()
+    if threatState == "imminent" then
+      return "danger"
+    end
+    if threatState == "event" then
+      return "event"
+    end
+    return "safe"
+  end
+
+  local function getHudTint()
+    local threat = getHudThreatLevel()
+    if threat == "danger" then
+      return imgui.ImColorByRGB(89, 13, 13, 235).Value
+    end
+    if threat == "event" then
+      return imgui.ImColorByRGB(89, 71, 13, 235).Value
+    end
+    return imgui.ImColorByRGB(13, 51, 20, 235).Value
+  end
+
+  local windowColor = getHudTint()
 
   imgui.PushStyleColor2(imgui.Col_WindowBg, windowColor)
   local openPtr = imgui.BoolPtr(CFG.windowVisible)
   if imgui.Begin(CFG.windowTitle, openPtr) then
     CFG.windowVisible = openPtr[0]
 
-    -- Header: Title + tagline (subtle, professional)
-imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(235, 235, 235, 255).Value)
-imgui.SetWindowFontScale(1.15)
-imgui.Text(CFG.windowTitle)
-imgui.SetWindowFontScale(1.0)
-imgui.PopStyleColor()
+    -- Header (New HUD)
+    imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(235, 235, 235, 255).Value)
+    imgui.SetWindowFontScale(1.15)
+    imgui.Text(CFG.windowTitle)
+    imgui.SetWindowFontScale(1.0)
+    imgui.PopStyleColor()
 
--- Tagline (muted, slightly spaced)
-imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(200, 200, 200, 180).Value)
-imgui.SetWindowFontScale(0.95)
-imgui.TextWrapped("You transport value, watch the road")
-imgui.SetWindowFontScale(1.0)
-imgui.PopStyleColor()
+    imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(200, 200, 200, 180).Value)
+    imgui.SetWindowFontScale(0.95)
+    imgui.TextWrapped("You transport value, watch the road")
+    imgui.SetWindowFontScale(1.0)
+    imgui.PopStyleColor()
 
--- Breathing room + subtle divider
-imgui.Spacing()
-imgui.Separator()
+    imgui.Spacing()
+    if imgui.Button("About") then
+      S.uiShowAbout = not S.uiShowAbout
+    end
+
+    imgui.SameLine()
+    imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(235, 235, 235, 230).Value)
+    imgui.Text(string.format("Wallet: $%s", tostring(S.hudWallet or 0)))
+    imgui.PopStyleColor()
+
+    if S.uiShowAbout then
+      imgui.Separator()
+      imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(210, 210, 210, 220).Value)
+      imgui.TextWrapped("placeholder text")
+      imgui.PopStyleColor()
+    end
+
+    -- Narrative (New HUD)
+    imgui.Separator()
+    imgui.Text("STATUS")
+    imgui.TextWrapped((S.hudStatus and S.hudStatus ~= "") and S.hudStatus or "—")
+    imgui.Spacing()
+    imgui.Text("INSTRUCTION")
+    imgui.TextWrapped((S.hudInstruction and S.hudInstruction ~= "") and S.hudInstruction or "—")
+
+    -- Weapons (New HUD)
+    imgui.Separator()
+    local weaponsLabel = S.uiShowWeapons and "Hide Weapons / Inventory" or "Show Weapons / Inventory"
+    if imgui.Button(weaponsLabel, imgui.ImVec2(-1, 0)) then
+      S.uiShowWeapons = not S.uiShowWeapons
+    end
+
+    if S.uiShowWeapons then
+      imgui.Spacing()
+      for i = 1, #S.hudWeapons do
+        local w = S.hudWeapons[i]
+        local ammo = tonumber(w.ammo) or 0
+        local label = w.ammoLabel or "Ammo"
+
+        imgui.Text(w.name or w.id or "Unknown")
+        imgui.SameLine()
+        imgui.Text(string.format("%s: %d", label, ammo))
+        imgui.SameLine()
+        local btnText = (w.id == "emp") and "Use" or "Fire"
+        if ammo <= 0 then
+          imgui.BeginDisabled()
+          imgui.Button(btnText .. "##" .. tostring(w.id))
+          imgui.EndDisabled()
+        else
+          if imgui.Button(btnText .. "##" .. tostring(w.id)) then
+            w.ammo = math.max(0, ammo - 1)
+            log("I", "NewHud", "Weapon fired: " .. tostring(w.id))
+          end
+        end
+        imgui.Spacing()
+      end
+    end
+
+    -- Breathing room + subtle divider
+    imgui.Spacing()
+    imgui.Separator()
 
 
     local TR, crumbs, totalFwd = Breadcrumbs.getTravel()
@@ -1022,9 +1117,6 @@ end
 function M.onDrawDebug()
   -- safe draw UI
   pcall(drawGui)
-
-  -- new HUD
-  pcall(NewHud.draw)
 
   -- safe draw markers (keep behind CFG gate)
   if CFG.debugBreadcrumbMarkers and Breadcrumbs.onDrawDebug then
