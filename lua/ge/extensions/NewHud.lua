@@ -22,6 +22,7 @@ local H = {
   instruction = "",
 
   threat = "safe", -- "safe" | "event" | "danger"
+  dangerReason = nil,
   aboutOpen = false,
 
   weapons = {
@@ -61,6 +62,14 @@ function M.setThreat(level)
   level = tostring(level or "safe")
   if level ~= "safe" and level ~= "event" and level ~= "danger" then level = "safe" end
   H.threat = level
+end
+
+function M.setDangerReason(reason)
+  if reason == nil or reason == "" then
+    H.dangerReason = nil
+  else
+    H.dangerReason = tostring(reason)
+  end
 end
 
 function M.setWeapons(list)
