@@ -15,6 +15,7 @@ local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
 local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
+local NewHud = require("lua/ge/extensions/NewHud")
 local CareerMoney = require("CareerMoney")
 
 -- =========================
@@ -833,6 +834,12 @@ function M.onExtensionLoaded()
     attachHostApi(_G.Host)
   end
 
+  NewHud.setHost({
+    onHudWeaponFire = function(weaponId, weaponState)
+      log("I", "NewHud", "Weapon fired: " .. tostring(weaponId))
+    end
+  })
+
   Breadcrumbs.init(CFG, S)
   Breadcrumbs.reset()
 
@@ -910,10 +917,17 @@ function M.onDrawDebug()
   -- safe draw UI
   pcall(drawGui)
 
+  -- new HUD
+  pcall(NewHud.draw)
+
   -- safe draw markers (keep behind CFG gate)
   if CFG.debugBreadcrumbMarkers and Breadcrumbs.onDrawDebug then
     pcall(Breadcrumbs.onDrawDebug)
   end
+end
+
+function M.setNewHudVisible(v)
+  NewHud.setVisible(v)
 end
 
 M.Audio = Audio
