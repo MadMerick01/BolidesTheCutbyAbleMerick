@@ -68,6 +68,10 @@ local S = {
   bulletDamageStatus = "",
 
   guiStatusMessage = "Nothing unusual",
+
+  hudWallet = nil,
+  hudWeapons = nil,
+  hudDangerReason = nil,
 }
 
 -- =========================
@@ -353,6 +357,104 @@ local function postEventLine(tag, msg)
   print(string.format("[Bolides] %s: %s", tostring(tag), tostring(msg)))
 end
 
+local DEFAULT_HUD_WEAPONS = {
+  { id = "beretta92fs", name = "Beretta 92FS", ammoLabel = "Ammo", ammo = 15 },
+  { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammo = 2 },
+}
+
+local function cloneWeapons(list)
+  local out = {}
+  for _, w in ipairs(list or {}) do
+    out[#out + 1] = {
+      id = w.id,
+      name = w.name,
+      ammoLabel = w.ammoLabel,
+      ammo = w.ammo,
+    }
+  end
+  return out
+end
+
+local function getCareerMoney()
+  if not CareerMoney or not CareerMoney.isCareerActive or not CareerMoney.isCareerActive() then
+    return nil
+  end
+  return CareerMoney.get and CareerMoney.get() or nil
+end
+
+local function ensureHudState()
+  if S.hudWeapons == nil then
+    S.hudWeapons = cloneWeapons(DEFAULT_HUD_WEAPONS)
+  end
+  if S.hudWallet == nil then
+    S.hudWallet = getCareerMoney() or 0
+  end
+end
+
+local function applyHudInventoryDelta(inventoryDelta)
+  if type(inventoryDelta) ~= "table" then
+    return
+  end
+  ensureHudState()
+
+  for _, delta in ipairs(inventoryDelta) do
+    local id = delta.id
+    local ammoDelta = tonumber(delta.ammoDelta or 0) or 0
+    if id then
+      local existing = nil
+      for _, w in ipairs(S.hudWeapons) do
+        if w.id == id then
+          existing = w
+          break
+        end
+      end
+      if not existing then
+        local isEmp = id == "emp"
+        existing = {
+          id = id,
+          name = delta.name or (isEmp and "EMP Device" or id),
+          ammoLabel = delta.ammoLabel or (isEmp and "Charges" or "Ammo"),
+          ammo = 0,
+        }
+        table.insert(S.hudWeapons, existing)
+      end
+      existing.ammo = math.max(0, (tonumber(existing.ammo) or 0) + ammoDelta)
+    end
+  end
+
+  NewHud.setWeapons(S.hudWeapons)
+end
+
+function M.setNewHudState(payload)
+  payload = payload or {}
+  ensureHudState()
+
+  if payload.threat then
+    NewHud.setThreat(payload.threat)
+  end
+  if payload.status then
+    NewHud.setStatus(payload.status)
+  end
+  if payload.instruction then
+    NewHud.setInstruction(payload.instruction)
+  end
+  if payload.dangerReason then
+    S.hudDangerReason = tostring(payload.dangerReason)
+  end
+
+  if payload.moneyDelta then
+    local delta = tonumber(payload.moneyDelta)
+    if delta then
+      S.hudWallet = (tonumber(S.hudWallet) or 0) + delta
+      NewHud.setWallet(S.hudWallet)
+    end
+  end
+
+  if payload.inventoryDelta then
+    applyHudInventoryDelta(payload.inventoryDelta)
+  end
+end
+
 local EVENT_HOST = {
   Breadcrumbs = Breadcrumbs,
   getPlayerVeh = getPlayerVeh,
@@ -364,6 +466,7 @@ local function attachHostApi(host)
   host.showMissionMessage = M.showMissionMessage
   host.closeMissionMessage = M.closeMissionMessage
   host.setGuiStatusMessage = M.setGuiStatusMessage
+  host.setNewHudState = M.setNewHudState
 end
 
 -- =========================================================
@@ -839,6 +942,9 @@ function M.onExtensionLoaded()
       log("I", "NewHud", "Weapon fired: " .. tostring(weaponId))
     end
   })
+  ensureHudState()
+  NewHud.setWallet(S.hudWallet)
+  NewHud.setWeapons(S.hudWeapons)
 
   Breadcrumbs.init(CFG, S)
   Breadcrumbs.reset()
