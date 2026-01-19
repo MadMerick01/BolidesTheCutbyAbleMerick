@@ -56,6 +56,10 @@ local R = {
   robberyProcessed = false,
   robbedAmount = 0,
   cashFound = nil,
+
+  hudThreat = nil,
+  hudStatus = nil,
+  hudInstruction = nil,
 }
 
 local function log(msg)
@@ -342,6 +346,40 @@ local function setGuiStatusMessage(msg)
   end
   if extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.setGuiStatusMessage then
     extensions.bolidesTheCut.setGuiStatusMessage(msg)
+  end
+end
+
+local function pushNewHudState(payload)
+  if Host and Host.setNewHudState then
+    Host.setNewHudState(payload)
+    return
+  end
+  if extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.setNewHudState then
+    extensions.bolidesTheCut.setNewHudState(payload)
+  end
+end
+
+local function updateHudState(payload)
+  if not payload then return end
+
+  local hasDelta = payload.moneyDelta or payload.inventoryDelta or payload.dangerReason
+  local changed = false
+
+  if payload.threat and payload.threat ~= R.hudThreat then
+    R.hudThreat = payload.threat
+    changed = true
+  end
+  if payload.status and payload.status ~= R.hudStatus then
+    R.hudStatus = payload.status
+    changed = true
+  end
+  if payload.instruction and payload.instruction ~= R.hudInstruction then
+    R.hudInstruction = payload.instruction
+    changed = true
+  end
+
+  if changed or hasDelta then
+    pushNewHudState(payload)
   end
 end
 
@@ -702,6 +740,7 @@ end
 
 function M.getDistanceToPlayer()
   return R.distToPlayer
+end
 function M.getDebugState()
   return {
     careerActive = CareerMoney and CareerMoney.isCareerActive and CareerMoney.isCareerActive() or false,
@@ -790,8 +829,16 @@ function M.triggerManual()
   R.robberyProcessed = false
   R.robbedAmount = 0
   R.cashFound = nil
+  R.hudThreat = nil
+  R.hudStatus = nil
+  R.hudInstruction = nil
 
   startFollowAI(id)
+  updateHudState({
+    threat = "event",
+    status = "A vehicle is closing in on you.",
+    instruction = "Stay alert and control your speed.",
+  })
   return true
 end
 
@@ -846,10 +893,21 @@ function M.endEvent(opts)
   R.robberyProcessed = false
   R.robbedAmount = 0
   R.cashFound = nil
+  R.hudThreat = nil
+  R.hudStatus = nil
+  R.hudInstruction = nil
 
   if not opts.keepGuiMessage then
     setGuiStatusMessage(nil)
     R.postSuccessMessageAt = nil
+  end
+
+  if not opts.keepHudState then
+    updateHudState({
+      threat = "safe",
+      status = "The robber has been stopped.",
+      instruction = "Stay alert and control your speed.",
+    })
   end
 
   if type(id) == "number" then
@@ -900,6 +958,11 @@ function M.update(dtSim)
     R.hideDistance = false
     R.postSuccessMessageAt = nil
     setGuiStatusMessage(nil)
+    updateHudState({
+      threat = "safe",
+      status = "The robber has been stopped.",
+      instruction = "Stay alert and control your speed.",
+    })
     log("Ended (robber missing).")
     return
   end
@@ -1021,6 +1084,13 @@ function M.update(dtSim)
       end)
     end
 
+    updateHudState({
+      threat = "danger",
+      status = "An EMP device was triggered.",
+      instruction = "Create distance or disable the robber.",
+      dangerReason = "emp",
+    })
+
     log("EMP fired: player robbed.")
   end
 
@@ -1048,6 +1118,19 @@ function M.update(dtSim)
       end
       R.robberyProcessed = true
     end
+
+    local robbedDelta = nil
+    if R.robbedAmount and R.robbedAmount > 0 then
+      robbedDelta = -R.robbedAmount
+    end
+    updateHudState({
+      threat = "danger",
+      status = "You were robbed.",
+      instruction = "Stop the robber vehicle to recover your money.",
+      dangerReason = "robbed",
+      moneyDelta = robbedDelta,
+    })
+
     local msgArgs = {
       title = "YOU'VE BEEN ROBBED",
       text = "Chase the robber!\n\nPress Continue to resume.",
@@ -1102,6 +1185,19 @@ function M.update(dtSim)
           adjustCareerMoney(money + R.robbedAmount + R.cashFound)
         end
       end
+      local recoveredDelta = 0
+      if R.robbedAmount then
+        recoveredDelta = recoveredDelta + R.robbedAmount
+      end
+      if R.cashFound then
+        recoveredDelta = recoveredDelta + R.cashFound
+      end
+      updateHudState({
+        threat = "safe",
+        status = "You recovered your money and found additional loot.",
+        instruction = "Stay alert and control your speed.",
+        moneyDelta = recoveredDelta > 0 and recoveredDelta or nil,
+      })
       R.guiBaseMessage = string.format(
         "you got your money back\nand you found $%d cash in the robbers glovebox",
         R.cashFound
@@ -1125,7 +1221,7 @@ function M.update(dtSim)
   end
 
   if R.successTriggered and R.successDespawnAt and now >= R.successDespawnAt then
-    M.endEvent({ keepGuiMessage = true })
+    M.endEvent({ keepGuiMessage = true, keepHudState = true })
     return
   end
 
@@ -1134,7 +1230,12 @@ function M.update(dtSim)
     R.hideDistance = true
     R.postSuccessMessageAt = now
     updateGuiDistanceMessage(d)
-    M.endEvent({ keepGuiMessage = true })
+    updateHudState({
+      threat = "safe",
+      status = "The robber has escaped.",
+      instruction = "Stay alert and control your speed.",
+    })
+    M.endEvent({ keepGuiMessage = true, keepHudState = true })
     return
   end
 
