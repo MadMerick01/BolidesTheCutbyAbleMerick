@@ -126,6 +126,9 @@ local function drawHeader()
 
   if im.Button("About") then
     H.aboutOpen = not H.aboutOpen
+    if Host and Host.onHudAboutToggle then
+      pcall(Host.onHudAboutToggle, H.aboutOpen)
+    end
   end
 
   im.SameLine()

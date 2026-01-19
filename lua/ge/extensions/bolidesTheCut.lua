@@ -619,6 +619,18 @@ function Audio.stopId(v, name)
   v:queueLuaCommand(cmd)
 end
 
+local function handleAboutIntroAudio(showing)
+  local v = getPlayerVeh()
+  if not v then return end
+  Audio.ensureIntro(v)
+  if showing then
+    Audio.stopId(v, CFG.sfxBolidesIntroName)
+    Audio.playId(v, CFG.sfxBolidesIntroName, CFG.bolidesIntroVol, CFG.bolidesIntroPitch)
+  else
+    Audio.stopId(v, CFG.sfxBolidesIntroName)
+  end
+end
+
 -- =========================
 -- GUI (safe to call ONLY from onDrawDebug, and wrapped in pcall there)
 -- =========================
@@ -683,6 +695,7 @@ local function drawGui()
     imgui.Spacing()
     if imgui.Button("About") then
       S.uiShowAbout = not S.uiShowAbout
+      handleAboutIntroAudio(S.uiShowAbout)
     end
 
     imgui.SameLine()
@@ -919,19 +932,10 @@ local function drawGui()
     -- =========================
     imgui.Separator()
 
-    local wasInfo = S.uiShowInfo
     local btnLabel = S.uiShowInfo and "Hide info" or "About"
     if imgui.Button(btnLabel, imgui.ImVec2(-1, 0)) then
       S.uiShowInfo = not S.uiShowInfo
-      local v = getPlayerVeh()
-      if v then
-        Audio.ensureIntro(v)
-        if S.uiShowInfo and (not wasInfo) then
-          Audio.playId(v, CFG.sfxBolidesIntroName, CFG.bolidesIntroVol, CFG.bolidesIntroPitch)
-        elseif (not S.uiShowInfo) and wasInfo then
-          Audio.stopId(v, CFG.sfxBolidesIntroName)
-        end
-      end
+      handleAboutIntroAudio(S.uiShowInfo)
     end
 
     if S.uiShowInfo then
@@ -1035,7 +1039,10 @@ function M.onExtensionLoaded()
   NewHud.setHost({
     onHudWeaponFire = function(weaponId, weaponState)
       log("I", "NewHud", "Weapon fired: " .. tostring(weaponId))
-    end
+    end,
+    onHudAboutToggle = function(isOpen)
+      handleAboutIntroAudio(isOpen)
+    end,
   })
   ensureHudState()
   NewHud.setWallet(S.hudWallet)
