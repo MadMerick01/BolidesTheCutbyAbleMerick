@@ -759,6 +759,10 @@ end
 function M.getDistanceToPlayer()
   return R.distToPlayer
 end
+
+function M.getRobberVehicleId()
+  return R.spawnedId
+end
 function M.getDebugState()
   return {
     careerActive = CareerMoney and CareerMoney.isCareerActive and CareerMoney.isCareerActive() or false,

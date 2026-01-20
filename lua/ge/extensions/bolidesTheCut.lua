@@ -387,6 +387,70 @@ local function getCareerMoney()
   return CareerMoney.get and CareerMoney.get() or nil
 end
 
+local function getActiveRobberVehicle(eventModule)
+  if not (eventModule and eventModule.isActive and eventModule.isActive()) then
+    return nil
+  end
+  if eventModule.getRobberVehicleId then
+    return eventModule.getRobberVehicleId()
+  end
+  return nil
+end
+
+local function getActiveRobberDistance(eventModule)
+  if not (eventModule and eventModule.isActive and eventModule.isActive()) then
+    return nil
+  end
+  if eventModule.getDistanceToPlayer then
+    return eventModule.getDistanceToPlayer()
+  end
+  return nil
+end
+
+local function lerp(a, b, t)
+  return a + (b - a) * t
+end
+
+local function distanceChance(distance, nearDist, farDist, nearChance, farChance)
+  if not distance then
+    return nil
+  end
+  if distance <= nearDist then
+    return nearChance
+  end
+  if distance >= farDist then
+    return farChance
+  end
+  local t = (distance - nearDist) / (farDist - nearDist)
+  return lerp(nearChance, farChance, t)
+end
+
+local function formatChanceLine(label, chance)
+  if not chance then
+    return string.format("%s: --", label)
+  end
+  return string.format("%s: %d%%", label, math.floor((chance * 100) + 0.5))
+end
+
+local function disableRobberAI(robberVeh)
+  if not robberVeh then
+    return false
+  end
+  if robberVeh.queueLuaCommand then
+    local ok = pcall(function()
+      robberVeh:queueLuaCommand([[
+        if ai then
+          pcall(function() ai.setMode("disabled") end)
+          pcall(function() ai.setMode("none") end)
+          pcall(function() ai.setAggression(0) end)
+        end
+      ]])
+    end)
+    return ok == true
+  end
+  return false
+end
+
 local function ensureHudState()
   if S.hudWeapons == nil then
     S.hudWeapons = cloneWeapons(DEFAULT_HUD_WEAPONS)
@@ -730,15 +794,111 @@ local function drawGui()
         imgui.SameLine()
         imgui.Text(string.format("%s: %d", label, ammo))
         imgui.SameLine()
-        local btnText = (w.id == "emp") and "Use" or "Fire"
-        if ammo <= 0 then
-          imgui.BeginDisabled()
-          imgui.Button(btnText .. "##" .. tostring(w.id))
-          imgui.EndDisabled()
+        if w.id == "emp" then
+          local dist = getActiveRobberDistance(RobberFKB200mEMP)
+          local inRange = dist ~= nil and dist <= 20.0
+          if dist ~= nil then
+            imgui.TextWrapped(inRange and "In range (20m)" or "Out of range (20m)")
+          else
+            imgui.TextWrapped("No active EMP target.")
+          end
+          local btnText = "Use"
+          if ammo <= 0 then
+            imgui.BeginDisabled()
+            imgui.Button(btnText .. "##" .. tostring(w.id))
+            imgui.EndDisabled()
+          else
+            if imgui.Button(btnText .. "##" .. tostring(w.id)) then
+              local robberId = getActiveRobberVehicle(RobberFKB200mEMP)
+              local playerVeh = getPlayerVeh()
+              local robberVeh = robberId and getObjById(robberId) or nil
+              if robberVeh and playerVeh and inRange then
+                local ok, reason = EMP.trigger({
+                  playerId = robberVeh:getID(),
+                  sourceId = playerVeh:getID(),
+                  sourcePos = playerVeh:getPosition(),
+                  empDurationSec = 10.0,
+                  shockDurationSec = 0.5,
+                  thrusterKickSpeed = 5.0,
+                  forceMultiplier = 0.5,
+                })
+                if ok then
+                  w.ammo = math.max(0, ammo - 1)
+                  log("I", "BolidesTheCut", "EMP deployed on robber.")
+                else
+                  log("W", "BolidesTheCut", "EMP deploy failed: " .. tostring(reason))
+                end
+              else
+                log("W", "BolidesTheCut", "EMP deploy blocked (no target or out of range).")
+              end
+            end
+          end
+        elseif w.id == "beretta92fs" then
+          local dist = getActiveRobberDistance(RobberShotgun)
+          local driverChance = distanceChance(dist, 10.0, 60.0, 0.35, 0.05)
+          local tyreChance = distanceChance(dist, 10.0, 60.0, 0.6, 0.15)
+          imgui.TextWrapped(formatChanceLine("Driver hit chance", driverChance))
+          imgui.TextWrapped(formatChanceLine("Tyre hit chance", tyreChance))
+
+          if ammo <= 0 then
+            imgui.BeginDisabled()
+            imgui.Button("Shoot driver##shotgun_driver")
+            imgui.Button("Shoot tyres##shotgun_tyres")
+            imgui.EndDisabled()
+          else
+            if imgui.Button("Shoot driver##shotgun_driver") then
+              local robberId = getActiveRobberVehicle(RobberShotgun)
+              local robberVeh = robberId and getObjById(robberId) or nil
+              if robberVeh and driverChance then
+                w.ammo = math.max(0, ammo - 1)
+                if math.random() < driverChance then
+                  disableRobberAI(robberVeh)
+                  log("I", "BolidesTheCut", "Driver shot landed; AI disabled.")
+                else
+                  local ok = BulletDamage.trigger({
+                    targetId = robberVeh:getID(),
+                    accuracyRadius = 3.0,
+                    applyDamage = false,
+                  })
+                  if not ok then
+                    log("W", "BolidesTheCut", "Driver shot missed; fallback hit failed.")
+                  end
+                end
+              else
+                log("W", "BolidesTheCut", "Driver shot blocked (no target).")
+              end
+            end
+            if imgui.Button("Shoot tyres##shotgun_tyres") then
+              local robberId = getActiveRobberVehicle(RobberShotgun)
+              local robberVeh = robberId and getObjById(robberId) or nil
+              if robberVeh and tyreChance then
+                w.ammo = math.max(0, ammo - 1)
+                if math.random() < tyreChance then
+                  local ok = BulletDamage.trigger({
+                    targetId = robberVeh:getID(),
+                    accuracyRadius = 3.0,
+                    applyDamage = false,
+                  })
+                  if not ok then
+                    log("W", "BolidesTheCut", "Tyre shot triggered but hit failed.")
+                  end
+                end
+              else
+                log("W", "BolidesTheCut", "Tyre shot blocked (no target).")
+              end
+            end
+          end
         else
-          if imgui.Button(btnText .. "##" .. tostring(w.id)) then
-            w.ammo = math.max(0, ammo - 1)
-            log("I", "BolidesTheCut", "Weapon fired: " .. tostring(w.id))
+          local btnText = "Fire"
+          if ammo <= 0 then
+            imgui.BeginDisabled()
+            imgui.Button(btnText .. "##" .. tostring(w.id))
+            imgui.EndDisabled()
+          else
+            if imgui.Button(btnText .. "##" .. tostring(w.id)) then
+              w.ammo = math.max(0, ammo - 1)
+              log("I", "BolidesTheCut", "Weapon fired: " .. tostring(w.id))
+            end
           end
         end
         imgui.Spacing()
