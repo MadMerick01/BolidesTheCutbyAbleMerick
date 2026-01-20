@@ -375,10 +375,17 @@ local INVENTORY_SAVE_PATH = "settings/bolidesTheCut_inventory.json"
 
 local DEFAULT_HUD_WEAPONS = {
   { id = "beretta1301", name = "Beretta 1301", ammoLabel = "Rifled Slugs", ammo = 0 },
-  { id = "ammo_slug_ap", name = "Armor-Piercing Slugs", ammoLabel = "Armor-Piercing Slugs", ammo = 0 },
-  { id = "ammo_slug_tracking", name = "Tracking Slugs", ammoLabel = "Tracking Slugs", ammo = 0 },
   { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammo = 0 },
 }
+
+local HIDDEN_HUD_WEAPON_IDS = {
+  ammo_slug_ap = true,
+  ammo_slug_tracking = true,
+}
+
+local function isHudWeaponHidden(id)
+  return HIDDEN_HUD_WEAPON_IDS[tostring(id or "")] == true
+end
 
 local function cloneWeapons(list)
   local out = {}
@@ -399,6 +406,9 @@ local function sanitizeWeaponEntry(entry)
   end
   local id = tostring(entry.id or "")
   if id == "" then
+    return nil
+  end
+  if isHudWeaponHidden(id) then
     return nil
   end
   if id == "beretta92fs" then
@@ -550,6 +560,9 @@ local function applyHudInventoryDelta(inventoryDelta)
     local id = delta.id
     local ammoDelta = tonumber(delta.ammoDelta or 0) or 0
     if id then
+      if isHudWeaponHidden(id) then
+        goto continue
+      end
       local existing = nil
       for _, w in ipairs(S.hudWeapons) do
         if w.id == id then
@@ -569,6 +582,7 @@ local function applyHudInventoryDelta(inventoryDelta)
       end
       existing.ammo = math.max(0, (tonumber(existing.ammo) or 0) + ammoDelta)
     end
+    ::continue::
   end
 
   saveInventory()
@@ -901,6 +915,9 @@ local function drawGui()
       imgui.Spacing()
       for i = 1, #S.hudWeapons do
         local w = S.hudWeapons[i]
+        if isHudWeaponHidden(w.id) then
+          goto continue
+        end
         local ammo = tonumber(w.ammo) or 0
         local label = w.ammoLabel or "Ammo"
 
@@ -1014,6 +1031,7 @@ local function drawGui()
           end
         end
         imgui.Spacing()
+        ::continue::
       end
     end
 
