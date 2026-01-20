@@ -813,6 +813,10 @@ local function drawGui()
     imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(200, 200, 200, 180).Value)
     imgui.SetWindowFontScale(0.95)
     imgui.TextWrapped("You transport value, watch the road")
+    local countdown = BoldiePacing and BoldiePacing.getCountdown and BoldiePacing.getCountdown()
+    if countdown ~= nil then
+      imgui.Text(string.format("next event occurs in: %s", formatCountdown(countdown)))
+    end
     imgui.SetWindowFontScale(1.0)
     imgui.PopStyleColor()
 
@@ -824,7 +828,8 @@ local function drawGui()
 
     imgui.SameLine()
     imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(235, 235, 235, 230).Value)
-    imgui.Text(string.format("Wallet: $%s", tostring(S.hudWallet or 0)))
+    local walletAmount = tonumber(S.hudWallet) or 0
+    imgui.Text(string.format("Wallet: $%d", math.floor(walletAmount)))
     imgui.PopStyleColor()
 
     if S.uiShowAbout then
@@ -1181,12 +1186,6 @@ local function drawGui()
         local backMeters = backMetersList[i]
         local ready = isBackReady(backMeters)
         imgui.Text(string.format("%dm back ready: %s", backMeters, ready and "yes" or "no"))
-      end
-
-      imgui.Spacing()
-      local countdown = BoldiePacing and BoldiePacing.getCountdown and BoldiePacing.getCountdown()
-      if countdown ~= nil then
-        imgui.Text(string.format("next event occurs in: %s", formatCountdown(countdown)))
       end
 
       imgui.Spacing()
