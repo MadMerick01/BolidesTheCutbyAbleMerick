@@ -496,6 +496,10 @@ function M.getDistanceToPlayer()
   return R.distToPlayer
 end
 
+function M.getRobberVehicleId()
+  return R.spawnedId
+end
+
 function M.getSpawnMethod()
   return R.spawnMethod
 end
