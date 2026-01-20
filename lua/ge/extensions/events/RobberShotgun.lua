@@ -31,6 +31,7 @@ local R = {
 
   shotsStarted = false,
   fleeNotified = false,
+  hudStatusBase = nil,
 }
 
 local function log(msg)
@@ -42,13 +43,20 @@ local function log(msg)
   end
 end
 
+local function formatStatusWithDistance(status, distance)
+  if not status or status == "" then return status end
+  local distMeters = math.floor((distance or 0) + 0.5)
+  return string.format("%s\nDistance to contact: %dm", status, distMeters)
+end
+
 local function setHud(threat, status, instruction, dangerReason)
   if not NewHud then return end
   if NewHud.setThreat then
     NewHud.setThreat(threat)
   end
   if NewHud.setStatus then
-    NewHud.setStatus(status)
+    R.hudStatusBase = status
+    NewHud.setStatus(formatStatusWithDistance(status, R.distToPlayer))
   end
   if NewHud.setInstruction then
     NewHud.setInstruction(instruction)
@@ -56,6 +64,12 @@ local function setHud(threat, status, instruction, dangerReason)
   if NewHud.setDangerReason then
     NewHud.setDangerReason(dangerReason)
   end
+end
+
+local function refreshHudStatusDistance()
+  if not NewHud or not NewHud.setStatus then return end
+  if not R.hudStatusBase then return end
+  NewHud.setStatus(formatStatusWithDistance(R.hudStatusBase, R.distToPlayer))
 end
 
 local function resetRuntime()
@@ -71,6 +85,7 @@ local function resetRuntime()
   R.spawnSnapped = false
   R.shotsStarted = false
   R.fleeNotified = false
+  R.hudStatusBase = nil
 end
 
 local function chooseFkbPos(spacing, maxAgeSec)
@@ -593,6 +608,7 @@ function M.update(dtSim)
 
   local d = (rp - pp):length()
   R.distToPlayer = d
+  refreshHudStatusDistance()
   local now = os.clock()
 
   if R.spawnPos and R.spawnClock and (now - R.spawnClock) <= 2.0 and not R.spawnSnapped then

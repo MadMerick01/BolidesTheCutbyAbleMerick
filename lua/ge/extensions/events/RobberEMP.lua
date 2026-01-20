@@ -59,6 +59,7 @@ local R = {
 
   hudThreat = nil,
   hudStatus = nil,
+  hudStatusBase = nil,
   hudInstruction = nil,
 }
 
@@ -359,6 +360,12 @@ local function pushNewHudState(payload)
   end
 end
 
+local function formatStatusWithDistance(status, distance)
+  if not status or status == "" then return status end
+  local distMeters = math.floor((distance or 0) + 0.5)
+  return string.format("%s\nDistance to contact: %dm", status, distMeters)
+end
+
 local function updateHudState(payload)
   if not payload then return end
 
@@ -369,13 +376,24 @@ local function updateHudState(payload)
     R.hudThreat = payload.threat
     changed = true
   end
-  if payload.status and payload.status ~= R.hudStatus then
-    R.hudStatus = payload.status
+  if payload.status then
+    R.hudStatusBase = payload.status
+  end
+  local statusToSend = nil
+  if R.hudStatusBase then
+    statusToSend = formatStatusWithDistance(R.hudStatusBase, R.distToPlayer)
+  end
+  if statusToSend and statusToSend ~= R.hudStatus then
+    R.hudStatus = statusToSend
     changed = true
   end
   if payload.instruction and payload.instruction ~= R.hudInstruction then
     R.hudInstruction = payload.instruction
     changed = true
+  end
+
+  if statusToSend then
+    payload.status = statusToSend
   end
 
   if changed or hasDelta then
@@ -390,7 +408,7 @@ local function updateGuiDistanceMessage(distance)
     return
   end
   local distMeters = math.floor((distance or 0) + 0.5)
-  setGuiStatusMessage(string.format("%s\nRobber distance: %dm", R.guiBaseMessage, distMeters))
+  setGuiStatusMessage(string.format("%s\nDistance to contact: %dm", R.guiBaseMessage, distMeters))
 end
 
 local function getPlayerVeh()
@@ -831,6 +849,7 @@ function M.triggerManual()
   R.cashFound = nil
   R.hudThreat = nil
   R.hudStatus = nil
+  R.hudStatusBase = nil
   R.hudInstruction = nil
 
   startFollowAI(id)
@@ -895,6 +914,7 @@ function M.endEvent(opts)
   R.cashFound = nil
   R.hudThreat = nil
   R.hudStatus = nil
+  R.hudStatusBase = nil
   R.hudInstruction = nil
 
   if not opts.keepGuiMessage then
@@ -980,6 +1000,9 @@ function M.update(dtSim)
   local now = os.clock()
 
   updateGuiDistanceMessage(d)
+  if R.hudStatusBase then
+    updateHudState({ status = R.hudStatusBase })
+  end
 
   if R.empBrakeEnd and now >= R.empBrakeEnd then
     if robber.queueLuaCommand then
