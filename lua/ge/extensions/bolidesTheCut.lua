@@ -15,7 +15,6 @@ local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
 local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
-local NewHud = require("lua/ge/extensions/NewHud")
 local CareerMoney = require("CareerMoney")
 
 -- =========================
@@ -434,7 +433,6 @@ local function applyHudInventoryDelta(inventoryDelta)
     end
   end
 
-  NewHud.setWeapons(S.hudWeapons)
 end
 
 function M.setNewHudState(payload)
@@ -443,15 +441,12 @@ function M.setNewHudState(payload)
 
   if payload.threat then
     S.hudThreat = tostring(payload.threat)
-    NewHud.setThreat(payload.threat)
   end
   if payload.status then
     S.hudStatus = tostring(payload.status)
-    NewHud.setStatus(payload.status)
   end
   if payload.instruction then
     S.hudInstruction = tostring(payload.instruction)
-    NewHud.setInstruction(payload.instruction)
   end
   if payload.dangerReason then
     S.hudDangerReason = tostring(payload.dangerReason)
@@ -461,7 +456,6 @@ function M.setNewHudState(payload)
     local delta = tonumber(payload.moneyDelta)
     if delta then
       S.hudWallet = (tonumber(S.hudWallet) or 0) + delta
-      NewHud.setWallet(S.hudWallet)
     end
   end
 
@@ -744,7 +738,7 @@ local function drawGui()
         else
           if imgui.Button(btnText .. "##" .. tostring(w.id)) then
             w.ammo = math.max(0, ammo - 1)
-            log("I", "NewHud", "Weapon fired: " .. tostring(w.id))
+            log("I", "BolidesTheCut", "Weapon fired: " .. tostring(w.id))
           end
         end
         imgui.Spacing()
@@ -994,17 +988,7 @@ function M.onExtensionLoaded()
     attachHostApi(_G.Host)
   end
 
-  NewHud.setHost({
-    onHudWeaponFire = function(weaponId, weaponState)
-      log("I", "NewHud", "Weapon fired: " .. tostring(weaponId))
-    end,
-    onHudAboutToggle = function(isOpen)
-      handleAboutIntroAudio(isOpen)
-    end,
-  })
   ensureHudState()
-  NewHud.setWallet(S.hudWallet)
-  NewHud.setWeapons(S.hudWeapons)
 
   Breadcrumbs.init(CFG, S)
   Breadcrumbs.reset()
@@ -1089,9 +1073,6 @@ function M.onDrawDebug()
   end
 end
 
-function M.setNewHudVisible(v)
-  NewHud.setVisible(v)
-end
 
 M.Audio = Audio
 
