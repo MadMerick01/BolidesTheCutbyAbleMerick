@@ -362,8 +362,12 @@ local function postEventLine(tag, msg)
   print(string.format("[Bolides] %s: %s", tostring(tag), tostring(msg)))
 end
 
+local INVENTORY_SAVE_PATH = "settings/bolidesTheCut_inventory.json"
+
 local DEFAULT_HUD_WEAPONS = {
-  { id = "beretta92fs", name = "shotgun", ammoLabel = "Ammo", ammo = 0 },
+  { id = "beretta1301", name = "Beretta 1301", ammoLabel = "Rifled Slugs", ammo = 0 },
+  { id = "ammo_slug_ap", name = "Armor-Piercing Slugs", ammoLabel = "Armor-Piercing Slugs", ammo = 0 },
+  { id = "ammo_slug_tracking", name = "Tracking Slugs", ammoLabel = "Tracking Slugs", ammo = 0 },
   { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammo = 0 },
 }
 
@@ -378,6 +382,67 @@ local function cloneWeapons(list)
     }
   end
   return out
+end
+
+local function sanitizeWeaponEntry(entry)
+  if type(entry) ~= "table" then
+    return nil
+  end
+  local id = tostring(entry.id or "")
+  if id == "" then
+    return nil
+  end
+  if id == "beretta92fs" then
+    id = "beretta1301"
+  end
+  local defaultName = id == "beretta1301" and "Beretta 1301" or id
+  local defaultLabel = id == "beretta1301" and "Rifled Slugs" or "Ammo"
+  return {
+    id = id,
+    name = tostring(entry.name or defaultName),
+    ammoLabel = tostring(entry.ammoLabel or defaultLabel),
+    ammo = math.max(0, tonumber(entry.ammo or 0) or 0),
+  }
+end
+
+local function loadInventory()
+  if not jsonReadFile then
+    return nil
+  end
+  local ok, data = pcall(jsonReadFile, INVENTORY_SAVE_PATH)
+  if not ok or type(data) ~= "table" then
+    return nil
+  end
+  local weapons = data.weapons or data
+  if type(weapons) ~= "table" then
+    return nil
+  end
+  local out = {}
+  for _, w in ipairs(weapons) do
+    local sanitized = sanitizeWeaponEntry(w)
+    if sanitized then
+      out[#out + 1] = sanitized
+    end
+  end
+  if #out == 0 then
+    return nil
+  end
+  return out
+end
+
+local function saveInventory()
+  if not jsonWriteFile then
+    return false
+  end
+  if type(S.hudWeapons) ~= "table" then
+    return false
+  end
+  local payload = {
+    version = 1,
+    weapons = cloneWeapons(S.hudWeapons),
+  }
+  pcall(jsonWriteFile, INVENTORY_SAVE_PATH, payload, true)
+  return true
 end
 
 local function getCareerMoney()
@@ -453,7 +518,7 @@ end
 
 local function ensureHudState()
   if S.hudWeapons == nil then
-    S.hudWeapons = cloneWeapons(DEFAULT_HUD_WEAPONS)
+    S.hudWeapons = loadInventory() or cloneWeapons(DEFAULT_HUD_WEAPONS)
   end
   if S.hudWallet == nil then
     S.hudWallet = getCareerMoney() or 0
@@ -497,6 +562,7 @@ local function applyHudInventoryDelta(inventoryDelta)
     end
   end
 
+  saveInventory()
 end
 
 function M.setNewHudState(payload)
@@ -833,7 +899,7 @@ local function drawGui()
               end
             end
           end
-        elseif w.id == "beretta92fs" then
+        elseif w.id == "beretta1301" then
           local dist = getActiveRobberDistance(RobberShotgun)
           local driverChance = distanceChance(dist, 10.0, 60.0, 0.35, 0.05)
           local tyreChance = distanceChance(dist, 10.0, 60.0, 0.6, 0.15)

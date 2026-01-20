@@ -1221,30 +1221,82 @@ function M.update(dtSim)
       end
       local empRewardText = nil
       local empInstruction = nil
-      local inventoryDelta = nil
+      local inventoryDelta = {}
+      local rewardNotes = {}
       if math.random() < 0.5 then
         empRewardText = "You obtained the EMP device."
-        inventoryDelta = {
-          { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = 0 },
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "emp",
+          name = "EMP Device",
+          ammoLabel = "Charges",
+          ammoDelta = 0,
         }
       else
         local empCharges = math.random(1, 3)
         empRewardText = "You gained EMP charges."
         empInstruction = "You may deploy the EMP now."
-        inventoryDelta = {
-          { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = empCharges },
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "emp",
+          name = "EMP Device",
+          ammoLabel = "Charges",
+          ammoDelta = empCharges,
         }
+      end
+      if math.random() < 0.3 then
+        rewardNotes[#rewardNotes + 1] = "You recovered a Beretta 1301 shotgun."
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "beretta1301",
+          name = "Beretta 1301",
+          ammoLabel = "Rifled Slugs",
+          ammoDelta = 0,
+        }
+      end
+      local rifledSlugs = 0
+      local armorPiercing = 0
+      local tracking = 0
+      if math.random() < 0.3 then
+        rifledSlugs = math.random(1, 3)
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "beretta1301",
+          name = "Beretta 1301",
+          ammoLabel = "Rifled Slugs",
+          ammoDelta = rifledSlugs,
+        }
+        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d rifled slugs.", rifledSlugs)
+      end
+      if math.random() < 0.10 then
+        armorPiercing = math.random(1, 2)
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "ammo_slug_ap",
+          name = "Armor-Piercing Slugs",
+          ammoLabel = "Armor-Piercing Slugs",
+          ammoDelta = armorPiercing,
+        }
+        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d armor-piercing slug(s).", armorPiercing)
+      end
+      if math.random() < 0.05 then
+        tracking = 1
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "ammo_slug_tracking",
+          name = "Tracking Slugs",
+          ammoLabel = "Tracking Slugs",
+          ammoDelta = tracking,
+        }
+        rewardNotes[#rewardNotes + 1] = "You recovered a tracking slug."
       end
       local statusMessage = "You recovered your money and found additional loot."
       if empRewardText then
         statusMessage = statusMessage .. " " .. empRewardText
+      end
+      if #rewardNotes > 0 then
+        statusMessage = statusMessage .. " " .. table.concat(rewardNotes, " ")
       end
       updateHudState({
         threat = "safe",
         status = statusMessage,
         instruction = empInstruction or "Stay alert and control your speed.",
         moneyDelta = recoveredDelta > 0 and recoveredDelta or nil,
-        inventoryDelta = inventoryDelta,
+        inventoryDelta = #inventoryDelta > 0 and inventoryDelta or nil,
       })
       R.guiBaseMessage = string.format(
         "you got your money back\nand you found $%d cash in the robbers glovebox",
