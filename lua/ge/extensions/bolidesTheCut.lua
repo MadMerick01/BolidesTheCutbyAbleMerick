@@ -22,7 +22,7 @@ local CareerMoney = require("CareerMoney")
 -- Config
 -- =========================
 local CFG = {
-  windowTitle = "Bolides: Risk • Pressure • Pursuit",
+  windowTitle = "Bolides: The Cut",
   windowVisible = false,
 
   -- Debug marker gate (Codex-safe pattern)
@@ -706,7 +706,7 @@ local function drawGui()
     if S.uiShowAbout then
       imgui.Separator()
       imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(210, 210, 210, 220).Value)
-      imgui.TextWrapped("placeholder text")
+      imgui.TextWrapped("Bolides: The Cut drops you into an unpredictable career—where every run carries risk, every job builds pressure, and the road can turn into a pursuit at any moment. Stay sharp, protect your earnings, and watch the road.")
       imgui.PopStyleColor()
     end
 
@@ -760,25 +760,6 @@ local function drawGui()
     local fwdCache, fwdMeta, spacings = Breadcrumbs.getForwardKnown()
     local backMetersList, _, isBackReady = Breadcrumbs.getBack()
 
-    imgui.SetWindowFontScale(1.5)
-    imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(0, 255, 0, 255).Value)
-    CareerMoney.draw(imgui)
-    imgui.PopStyleColor()
-    imgui.SetWindowFontScale(1.0)
-    local countdown = BoldiePacing and BoldiePacing.getCountdown and BoldiePacing.getCountdown()
-    if countdown ~= nil then
-      imgui.Text(string.format("next event occurs in: %s", formatCountdown(countdown)))
-    end
-
-    -- =========================
-    -- Status Messages
-    -- =========================
-    imgui.Separator()
-    imgui.Text("Whats Happening?")
-    imgui.SetWindowFontScale(2.0)
-    imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(255, 0, 0, 255).Value)
-    imgui.TextWrapped(S.guiStatusMessage or "Nothing unusual")
-    imgui.PopStyleColor()
     imgui.SetWindowFontScale(1.0)
 
     -- =========================
@@ -792,14 +773,6 @@ local function drawGui()
 
     if S.uiShowManualEvents then
       imgui.Spacing()
-      if imgui.Button("TEST MISSION MESSAGE", imgui.ImVec2(-1, 0)) then
-        M.showMissionMessage({
-          title = "TEST",
-          text = "Scenario-style message.\n\nPress Continue.",
-          freeze = true,
-        })
-      end
-
       if imgui.Button("EMP test (nearest vehicle)", imgui.ImVec2(-1, 0)) then
         local playerVeh = getPlayerVeh()
         local targetVeh, dist, err = findNearestVehicleToPlayer()
@@ -873,11 +846,11 @@ local function drawGui()
         imgui.TextWrapped(S.bulletDamageStatus)
       end
 
-      if imgui.Button("RobberFKB200mEMP event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
+      if imgui.Button("RobberEMP", imgui.ImVec2(-1, 0)) then
         RobberFKB200mEMP.triggerManual()
       end
 
-      if imgui.Button("End RobberFKB200mEMP", imgui.ImVec2(-1, 0)) then
+      if imgui.Button("End RobberEMP", imgui.ImVec2(-1, 0)) then
         RobberFKB200mEMP.endEvent()
       end
 
@@ -920,27 +893,6 @@ local function drawGui()
         imgui.TextWrapped("FireAttack: " .. fireStatus)
       end
 
-      if CFG.debugButtons then
-        if imgui.Button("Deflate random tyre (player)", imgui.ImVec2(-1, 0)) then
-          DeflateRandomTyre.trigger(Host, CFG)
-        end
-      end
-    end
-
-    -- =========================
-    -- About / Hide Info
-    -- =========================
-    imgui.Separator()
-
-    local btnLabel = S.uiShowInfo and "Hide info" or "About"
-    if imgui.Button(btnLabel, imgui.ImVec2(-1, 0)) then
-      S.uiShowInfo = not S.uiShowInfo
-      handleAboutIntroAudio(S.uiShowInfo)
-    end
-
-    if S.uiShowInfo then
-      imgui.Spacing()
-      imgui.TextWrapped("BolidesTheCut\n\n- About opens this panel and plays the intro.\n- Hide info closes the panel and stops/mutes the intro.\n\nBreadcrumb system is running continuously and exposing debug lines above.")
     end
 
     -- =========================
@@ -1009,6 +961,12 @@ local function drawGui()
         local backMeters = backMetersList[i]
         local ready = isBackReady(backMeters)
         imgui.Text(string.format("%dm back ready: %s", backMeters, ready and "yes" or "no"))
+      end
+
+      imgui.Spacing()
+      local countdown = BoldiePacing and BoldiePacing.getCountdown and BoldiePacing.getCountdown()
+      if countdown ~= nil then
+        imgui.Text(string.format("next event occurs in: %s", formatCountdown(countdown)))
       end
 
       imgui.Spacing()
