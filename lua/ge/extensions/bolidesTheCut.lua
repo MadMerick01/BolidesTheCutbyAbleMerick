@@ -23,6 +23,10 @@ local CareerMoney = require("CareerMoney")
 local CFG = {
   windowTitle = "Bolides: The Cut",
   windowVisible = false,
+  bannerEnabled = true,
+  bannerImagePath = "/art/ui/bolides_the_cut/bolides_the_cut_banner.png",
+  bannerAspect = 0.562,
+  bannerMaxHeight = 210,
 
   -- Debug marker gate (Codex-safe pattern)
   debugBreadcrumbMarkers = false,
@@ -77,6 +81,11 @@ local S = {
 
   uiShowWeapons = false,
   uiShowAbout = false,
+}
+
+local UI = {
+  bannerTexture = nil,
+  bannerLoadFailed = false,
 }
 
 -- =========================
@@ -755,6 +764,37 @@ local function handleAboutIntroAudio(showing)
   end
 end
 
+local function ensureBannerTexture(imgui)
+  if UI.bannerTexture or UI.bannerLoadFailed then return end
+  if not imgui or type(imgui.LoadTexture) ~= "function" then
+    UI.bannerLoadFailed = true
+    return
+  end
+  local ok, tex = pcall(imgui.LoadTexture, CFG.bannerImagePath)
+  if ok and tex then
+    UI.bannerTexture = tex
+  else
+    UI.bannerLoadFailed = true
+    missionLog("W", "Failed to load GUI banner texture: " .. tostring(CFG.bannerImagePath))
+  end
+end
+
+local function drawBanner(imgui)
+  if not CFG.bannerEnabled then return end
+  ensureBannerTexture(imgui)
+  if not UI.bannerTexture or type(imgui.Image) ~= "function" then return end
+  if type(imgui.GetContentRegionAvail) ~= "function" then return end
+  local avail = imgui.GetContentRegionAvail()
+  local width = avail and avail.x or 0
+  if not width or width <= 0 then return end
+  local height = width * (CFG.bannerAspect or 0.562)
+  if CFG.bannerMaxHeight and height > CFG.bannerMaxHeight then
+    height = CFG.bannerMaxHeight
+  end
+  imgui.Image(UI.bannerTexture, imgui.ImVec2(width, height))
+  imgui.Spacing()
+end
+
 -- =========================
 -- GUI (safe to call ONLY from onDrawDebug, and wrapped in pcall there)
 -- =========================
@@ -802,6 +842,8 @@ local function drawGui()
   local openPtr = imgui.BoolPtr(CFG.windowVisible)
   if imgui.Begin(CFG.windowTitle, openPtr) then
     CFG.windowVisible = openPtr[0]
+
+    drawBanner(imgui)
 
     -- Header (New HUD)
     imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(235, 235, 235, 255).Value)
