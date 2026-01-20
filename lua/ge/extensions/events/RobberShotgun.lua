@@ -701,27 +701,6 @@ function M.update(dtSim)
         }
         rewardNotes[#rewardNotes + 1] = string.format("You recovered %d rifled slugs.", rifledSlugs)
       end
-      if math.random() < 0.25 then
-        local armorPiercing = math.random(1, 3)
-        inventoryDelta[#inventoryDelta + 1] = {
-          id = "ammo_slug_ap",
-          name = "Armor-Piercing Slugs",
-          ammoLabel = "Armor-Piercing Slugs",
-          ammoDelta = armorPiercing,
-        }
-        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d armor-piercing slug(s).", armorPiercing)
-      end
-      if math.random() < 0.10 then
-        local tracking = math.random(1, 2)
-        inventoryDelta[#inventoryDelta + 1] = {
-          id = "ammo_slug_tracking",
-          name = "Tracking Slugs",
-          ammoLabel = "Tracking Slugs",
-          ammoDelta = tracking,
-        }
-        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d tracking slug(s).", tracking)
-      end
-
       local status = "Attacker stopped. Loot recovered."
       if #rewardNotes > 0 then
         status = status .. " " .. table.concat(rewardNotes, " ")
