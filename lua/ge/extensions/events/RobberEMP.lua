@@ -1147,12 +1147,18 @@ function M.update(dtSim)
     end
 
     local robbedDelta = nil
+    local robbedText = nil
     if R.robbedAmount and R.robbedAmount > 0 then
       robbedDelta = -R.robbedAmount
+      if CareerMoney and CareerMoney.fmt then
+        robbedText = CareerMoney.fmt(R.robbedAmount)
+      else
+        robbedText = string.format("%d", math.floor(R.robbedAmount))
+      end
     end
     updateHudState({
       threat = "danger",
-      status = "You were robbed.",
+      status = robbedText and string.format("You were robbed of $%s.", robbedText) or "You were robbed.",
       instruction = "Stop the robber vehicle to recover your money.",
       dangerReason = "robbed",
       moneyDelta = robbedDelta,
