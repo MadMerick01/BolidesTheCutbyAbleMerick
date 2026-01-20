@@ -116,10 +116,24 @@ local function adjustCareerMoney(amount)
   if not CareerMoney or not CareerMoney.isCareerActive or not CareerMoney.isCareerActive() then
     return false
   end
-  if not CareerMoney.set then
+  if CareerMoney.set and CareerMoney.set(amount) then
+    return true
+  end
+  return false
+end
+
+local function addCareerMoney(delta)
+  if not CareerMoney or not CareerMoney.isCareerActive or not CareerMoney.isCareerActive() then
     return false
   end
-  return CareerMoney.set(amount)
+  if CareerMoney.add and CareerMoney.add(delta) then
+    return true
+  end
+  local current = getCareerMoney()
+  if current == nil then
+    return false
+  end
+  return adjustCareerMoney(current + (tonumber(delta) or 0))
 end
 
 local function getCareerMoney()
@@ -1141,7 +1155,7 @@ function M.update(dtSim)
       local money = getCareerMoney()
       if money then
         R.robbedAmount = math.max(0, math.floor((money * 0.5) + 0.5))
-        adjustCareerMoney(money - R.robbedAmount)
+        addCareerMoney(-R.robbedAmount)
       end
       R.robberyProcessed = true
     end
@@ -1213,10 +1227,7 @@ function M.update(dtSim)
       R.successDespawnAt = now + 15.0
       R.cashFound = math.random(50, 2500)
       if R.robberyProcessed and R.robbedAmount > 0 then
-        local money = getCareerMoney()
-        if money then
-          adjustCareerMoney(money + R.robbedAmount + R.cashFound)
-        end
+        addCareerMoney(R.robbedAmount + R.cashFound)
       end
       local recoveredDelta = 0
       if R.robbedAmount then
