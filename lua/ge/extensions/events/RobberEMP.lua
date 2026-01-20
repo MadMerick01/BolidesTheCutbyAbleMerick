@@ -1140,7 +1140,7 @@ function M.update(dtSim)
     if not R.robberyProcessed then
       local money = getCareerMoney()
       if money then
-        R.robbedAmount = money * 0.5
+        R.robbedAmount = math.max(0, math.floor((money * 0.5) + 0.5))
         adjustCareerMoney(money - R.robbedAmount)
       end
       R.robberyProcessed = true
