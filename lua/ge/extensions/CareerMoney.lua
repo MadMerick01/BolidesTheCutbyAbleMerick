@@ -25,13 +25,51 @@ local function setMoneySafe(amount)
   return ok
 end
 
+local function addMoneySafe(delta)
+  if not career_modules_playerAttributes or not career_modules_playerAttributes.addAttributeValue then
+    return false
+  end
+
+  local ok = pcall(career_modules_playerAttributes.addAttributeValue, "money", delta)
+  return ok
+end
+
 function M.get()
   local value = getMoneySafe()
   return tonumber(value) or 0
 end
 
 function M.set(amount)
-  return setMoneySafe(tonumber(amount) or 0)
+  amount = tonumber(amount) or 0
+  if setMoneySafe(amount) then
+    return true
+  end
+
+  local current = getMoneySafe()
+  if current == nil then
+    return false
+  end
+
+  local delta = amount - current
+  if delta == 0 then
+    return true
+  end
+
+  return addMoneySafe(delta)
+end
+
+function M.add(delta)
+  delta = tonumber(delta) or 0
+  if addMoneySafe(delta) then
+    return true
+  end
+
+  local current = getMoneySafe()
+  if current == nil then
+    return false
+  end
+
+  return setMoneySafe(current + delta)
 end
 
 function M.isCareerActive()
