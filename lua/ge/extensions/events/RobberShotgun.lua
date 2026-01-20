@@ -9,7 +9,6 @@
 local M = {}
 
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
-local NewHud = require("lua/ge/extensions/NewHud")
 
 local CFG = nil
 local Host = nil
@@ -49,27 +48,29 @@ local function formatStatusWithDistance(status, distance)
   return string.format("%s\nDistance to contact: %dm", status, distMeters)
 end
 
-local function setHud(threat, status, instruction, dangerReason)
-  if not NewHud then return end
-  if NewHud.setThreat then
-    NewHud.setThreat(threat)
-  end
-  if NewHud.setStatus then
-    R.hudStatusBase = status
-    NewHud.setStatus(formatStatusWithDistance(status, R.distToPlayer))
-  end
-  if NewHud.setInstruction then
-    NewHud.setInstruction(instruction)
-  end
-  if NewHud.setDangerReason then
-    NewHud.setDangerReason(dangerReason)
+local function pushHudState(payload)
+  if Host and Host.setNewHudState then
+    Host.setNewHudState(payload)
+  elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.setNewHudState then
+    extensions.bolidesTheCut.setNewHudState(payload)
   end
 end
 
+local function setHud(threat, status, instruction, dangerReason)
+  R.hudStatusBase = status
+  pushHudState({
+    threat = threat,
+    status = formatStatusWithDistance(status, R.distToPlayer),
+    instruction = instruction,
+    dangerReason = dangerReason,
+  })
+end
+
 local function refreshHudStatusDistance()
-  if not NewHud or not NewHud.setStatus then return end
   if not R.hudStatusBase then return end
-  NewHud.setStatus(formatStatusWithDistance(R.hudStatusBase, R.distToPlayer))
+  pushHudState({
+    status = formatStatusWithDistance(R.hudStatusBase, R.distToPlayer),
+  })
 end
 
 local function resetRuntime()
