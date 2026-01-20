@@ -4,7 +4,7 @@
 --   1) Spawn and FOLLOW player (legal speed, lane changes, avoid cars/obstacles).
 --   2) When within 50m, fire shotgun damage at fixed 2.0s intervals.
 --   3) When within 30m, switch to FLEE until event end.
---   4) End when robber escapes to 500m while fleeing (despawn).
+--   4) End when robber escapes to 800m (despawn).
 
 local M = {}
 
@@ -31,6 +31,10 @@ local R = {
   shotsStarted = false,
   fleeNotified = false,
   hudStatusBase = nil,
+  successTriggered = false,
+  successDespawnAt = nil,
+  closeTimer = 0,
+  robberSlowTimer = 0,
 }
 
 local function log(msg)
@@ -87,6 +91,10 @@ local function resetRuntime()
   R.shotsStarted = false
   R.fleeNotified = false
   R.hudStatusBase = nil
+  R.successTriggered = false
+  R.successDespawnAt = nil
+  R.closeTimer = 0
+  R.robberSlowTimer = 0
 end
 
 local function chooseFkbPos(spacing, maxAgeSec)
@@ -561,7 +569,9 @@ function M.endEvent(reason)
 
   local status = "Threat cleared."
   if reason == "escape" then
-    status = "Contact lost."
+    status = "Robber got away."
+  elseif reason == "caught" then
+    status = "Attacker caught."
   end
   setHud(
     "safe",
@@ -616,6 +626,24 @@ function M.update(dtSim)
   refreshHudStatusDistance()
   local now = os.clock()
 
+  if d >= 800.0 then
+    M.endEvent("escape")
+    return
+  end
+
+  local robberSpeedKph = nil
+  if robber.getVelocity then
+    local vel = robber:getVelocity()
+    if vel then
+      robberSpeedKph = vel:length() * 3.6
+    end
+  elseif robber.getSpeed then
+    local ok, speed = pcall(function() return robber:getSpeed() end)
+    if ok and speed then
+      robberSpeedKph = speed * 3.6
+    end
+  end
+
   if R.spawnPos and R.spawnClock and (now - R.spawnClock) <= 2.0 and not R.spawnSnapped then
     local spawnDist = (rp - R.spawnPos):length()
     if spawnDist >= 50.0 then
@@ -634,6 +662,84 @@ function M.update(dtSim)
         log("ERROR: failed to snap robber back to spawn.")
       end
     end
+  end
+
+  if R.phase == "flee" and not R.successTriggered then
+    if d <= 7.0 then
+      R.closeTimer = R.closeTimer + (dtSim or 0)
+    else
+      R.closeTimer = 0
+    end
+
+    if robberSpeedKph and robberSpeedKph <= 5.0 then
+      R.robberSlowTimer = R.robberSlowTimer + (dtSim or 0)
+    else
+      R.robberSlowTimer = 0
+    end
+
+    if R.closeTimer >= 7.0 and R.robberSlowTimer >= 7.0 then
+      R.successTriggered = true
+      R.successDespawnAt = now + 12.0
+      local inventoryDelta = {}
+      local rewardNotes = {}
+      if math.random() < 0.75 then
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "beretta1301",
+          name = "Beretta 1301",
+          ammoLabel = "Rifled Slugs",
+          ammoDelta = 0,
+        }
+        rewardNotes[#rewardNotes + 1] = "You recovered a Beretta 1301 shotgun."
+      end
+      if math.random() < 0.70 then
+        local rifledSlugs = math.random(2, 6)
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "beretta1301",
+          name = "Beretta 1301",
+          ammoLabel = "Rifled Slugs",
+          ammoDelta = rifledSlugs,
+        }
+        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d rifled slugs.", rifledSlugs)
+      end
+      if math.random() < 0.25 then
+        local armorPiercing = math.random(1, 3)
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "ammo_slug_ap",
+          name = "Armor-Piercing Slugs",
+          ammoLabel = "Armor-Piercing Slugs",
+          ammoDelta = armorPiercing,
+        }
+        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d armor-piercing slug(s).", armorPiercing)
+      end
+      if math.random() < 0.10 then
+        local tracking = math.random(1, 2)
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "ammo_slug_tracking",
+          name = "Tracking Slugs",
+          ammoLabel = "Tracking Slugs",
+          ammoDelta = tracking,
+        }
+        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d tracking slug(s).", tracking)
+      end
+
+      local status = "Attacker stopped. Loot recovered."
+      if #rewardNotes > 0 then
+        status = status .. " " .. table.concat(rewardNotes, " ")
+      end
+      R.hudStatusBase = status
+      pushHudState({
+        threat = "safe",
+        status = formatStatusWithDistance(status, R.distToPlayer),
+        instruction = "Secure the area and continue.",
+        dangerReason = nil,
+        inventoryDelta = #inventoryDelta > 0 and inventoryDelta or nil,
+      })
+    end
+  end
+
+  if R.successTriggered and R.successDespawnAt and now >= R.successDespawnAt then
+    M.endEvent("caught")
+    return
   end
 
   if R.phase ~= "flee" and d <= 30.0 then
@@ -669,10 +775,6 @@ function M.update(dtSim)
     R.nextShotAt = nil
   end
 
-  if R.phase == "flee" and d >= 500.0 then
-    M.endEvent("escape")
-    return
-  end
 end
 
 return M
