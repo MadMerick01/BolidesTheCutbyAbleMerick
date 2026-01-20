@@ -841,37 +841,15 @@ local function drawGui()
 
     -- Narrative (New HUD)
     imgui.Separator()
-    local statusColor = imgui.ImColorByRGB(20, 54, 88, 220).Value
-    local instructionColor = imgui.ImColorByRGB(64, 33, 90, 220).Value
-    local avail = imgui.GetContentRegionAvail()
-    local panelSpacing = 12
-    local panelWidth = (avail.x - panelSpacing) * 0.5
-    local panelHeight = 90
-
-    imgui.PushStyleColor2(imgui.Col_ChildBg, statusColor)
-    imgui.BeginChild("BolideStatusPanel", imgui.ImVec2(panelWidth, panelHeight), true)
     imgui.Text("STATUS")
     imgui.TextWrapped((S.hudStatus and S.hudStatus ~= "") and S.hudStatus or "—")
-    imgui.EndChild()
-    imgui.PopStyleColor()
 
-    imgui.SameLine(0, panelSpacing)
-    imgui.PushStyleColor2(imgui.Col_ChildBg, instructionColor)
-    imgui.BeginChild("BolideInstructionPanel", imgui.ImVec2(panelWidth, panelHeight), true)
+    imgui.Spacing()
     imgui.Text("INSTRUCTION")
     imgui.TextWrapped((S.hudInstruction and S.hudInstruction ~= "") and S.hudInstruction or "—")
-    imgui.EndChild()
-    imgui.PopStyleColor()
 
     -- Weapons (New HUD)
     imgui.Separator()
-    local weaponsPanelColor = imgui.ImColorByRGB(18, 72, 40, 220).Value
-    local weaponsPanelHeight = 52
-    if S.uiShowWeapons then
-      weaponsPanelHeight = math.min(320, 52 + (#S.hudWeapons * 90))
-    end
-    imgui.PushStyleColor2(imgui.Col_ChildBg, weaponsPanelColor)
-    imgui.BeginChild("BolideWeaponsPanel", imgui.ImVec2(-1, weaponsPanelHeight), true)
     local weaponsLabel = S.uiShowWeapons and "Hide Weapons / Inventory" or "Show Weapons / Inventory"
     if imgui.Button(weaponsLabel, imgui.ImVec2(-1, 0)) then
       S.uiShowWeapons = not S.uiShowWeapons
@@ -998,8 +976,6 @@ local function drawGui()
         imgui.Spacing()
       end
     end
-    imgui.EndChild()
-    imgui.PopStyleColor()
 
     -- Breathing room + subtle divider
     imgui.Spacing()
