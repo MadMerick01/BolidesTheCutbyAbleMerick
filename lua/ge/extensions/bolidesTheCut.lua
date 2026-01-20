@@ -841,14 +841,51 @@ local function drawGui()
 
     -- Narrative (New HUD)
     imgui.Separator()
+    local statusColor = imgui.ImColorByRGB(20, 54, 88, 220).Value
+    local instructionColor = imgui.ImColorByRGB(64, 33, 90, 220).Value
+    local avail = imgui.GetContentRegionAvail()
+    local panelSpacing = 12
+    local panelWidth = math.max(140, (avail.x - panelSpacing) * 0.5)
+    local panelHeight = 90
+    local panelPadding = 8
+    local drawList = imgui.GetWindowDrawList()
+    local panelsStart = imgui.GetCursorScreenPos()
+
+    local statusEnd = imgui.ImVec2(panelsStart.x + panelWidth, panelsStart.y + panelHeight)
+    drawList.AddRectFilled(panelsStart, statusEnd, statusColor, 6)
+    drawList.AddRect(panelsStart, statusEnd, imgui.ImColorByRGB(255, 255, 255, 40).Value, 6)
+    imgui.SetCursorScreenPos(imgui.ImVec2(panelsStart.x + panelPadding, panelsStart.y + panelPadding))
+    imgui.BeginGroup()
     imgui.Text("STATUS")
     imgui.TextWrapped((S.hudStatus and S.hudStatus ~= "") and S.hudStatus or "—")
-    imgui.Spacing()
+    imgui.EndGroup()
+
+    local instructionStart = imgui.ImVec2(panelsStart.x + panelWidth + panelSpacing, panelsStart.y)
+    local instructionEnd = imgui.ImVec2(instructionStart.x + panelWidth, instructionStart.y + panelHeight)
+    drawList.AddRectFilled(instructionStart, instructionEnd, instructionColor, 6)
+    drawList.AddRect(instructionStart, instructionEnd, imgui.ImColorByRGB(255, 255, 255, 40).Value, 6)
+    imgui.SetCursorScreenPos(imgui.ImVec2(instructionStart.x + panelPadding, instructionStart.y + panelPadding))
+    imgui.BeginGroup()
     imgui.Text("INSTRUCTION")
     imgui.TextWrapped((S.hudInstruction and S.hudInstruction ~= "") and S.hudInstruction or "—")
+    imgui.EndGroup()
+
+    imgui.SetCursorScreenPos(imgui.ImVec2(panelsStart.x, panelsStart.y + panelHeight + 8))
 
     -- Weapons (New HUD)
     imgui.Separator()
+    local weaponsPanelColor = imgui.ImColorByRGB(18, 72, 40, 220).Value
+    local weaponsPanelHeight = 52
+    if S.uiShowWeapons then
+      weaponsPanelHeight = math.min(320, 52 + (#S.hudWeapons * 90))
+    end
+    local weaponsStart = imgui.GetCursorScreenPos()
+    local weaponsAvail = imgui.GetContentRegionAvail()
+    local weaponsEnd = imgui.ImVec2(weaponsStart.x + weaponsAvail.x, weaponsStart.y + weaponsPanelHeight)
+    drawList.AddRectFilled(weaponsStart, weaponsEnd, weaponsPanelColor, 6)
+    drawList.AddRect(weaponsStart, weaponsEnd, imgui.ImColorByRGB(255, 255, 255, 40).Value, 6)
+    imgui.SetCursorScreenPos(imgui.ImVec2(weaponsStart.x + panelPadding, weaponsStart.y + panelPadding))
+    imgui.BeginGroup()
     local weaponsLabel = S.uiShowWeapons and "Hide Weapons / Inventory" or "Show Weapons / Inventory"
     if imgui.Button(weaponsLabel, imgui.ImVec2(-1, 0)) then
       S.uiShowWeapons = not S.uiShowWeapons
@@ -975,6 +1012,8 @@ local function drawGui()
         imgui.Spacing()
       end
     end
+    imgui.EndGroup()
+    imgui.SetCursorScreenPos(imgui.ImVec2(weaponsStart.x, weaponsStart.y + weaponsPanelHeight + 8))
 
     -- Breathing room + subtle divider
     imgui.Spacing()
