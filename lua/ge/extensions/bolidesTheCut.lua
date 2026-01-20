@@ -905,9 +905,7 @@ local function drawGui()
         local label = w.ammoLabel or "Ammo"
 
         imgui.Text(w.name or w.id or "Unknown")
-        imgui.SameLine()
         imgui.Text(string.format("%s: %d", label, ammo))
-        imgui.SameLine()
         if w.id == "emp" then
           local dist = getActiveRobberDistance(RobberFKB200mEMP)
           local inRange = dist ~= nil and dist <= 20.0
