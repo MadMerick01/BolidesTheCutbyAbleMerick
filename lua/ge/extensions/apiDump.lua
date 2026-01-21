@@ -158,10 +158,13 @@ function M.dump(opts)
   if outputDir == "" then
     outputDir = nil
   end
-  local baseDir = outputDir or "user:/"
-  local sep = baseDir:match("[/\\]$") and "" or "/"
-  local jsonPath = string.format("%s%sapi_dump_0.38.json", baseDir, sep)
-  local textPath = string.format("%s%sapi_dump_0.38.txt", baseDir, sep)
+
+  local function buildPaths(baseDir)
+    local sep = baseDir:match("[/\\]$") and "" or "/"
+    local jsonPath = string.format("%s%sapi_dump_0.38.json", baseDir, sep)
+    local textPath = string.format("%s%sapi_dump_0.38.txt", baseDir, sep)
+    return jsonPath, textPath
+  end
 
   local function fileExists(path)
     if FS and FS.fileExists then
@@ -207,23 +210,49 @@ function M.dump(opts)
     return true
   end
 
-  local okJson, jsonErr = safeJsonWrite(jsonPath, data)
-  if not okJson then
-    local msg = string.format("Failed to write API dump JSON (%s): %s", jsonPath, jsonErr or "unknown error")
-    log("E", "apiDump", msg)
-    return false, msg, jsonPath, textPath
+  local function tryWrite(baseDir)
+    local jsonPath, textPath = buildPaths(baseDir)
+    local okJson, jsonErr = safeJsonWrite(jsonPath, data)
+    if not okJson then
+      return false, jsonErr, jsonPath, textPath
+    end
+
+    local text = renderText(data)
+    local okText, textErr = safeTextWrite(textPath, text)
+    if not okText then
+      return false, textErr, jsonPath, textPath
+    end
+
+    return true, nil, jsonPath, textPath
   end
 
-  local text = renderText(data)
-  local okText, textErr = safeTextWrite(textPath, text)
-  if not okText then
-    local msg = string.format("Failed to write API dump text (%s): %s", textPath, textErr or "unknown error")
-    log("E", "apiDump", msg)
-    return false, msg, jsonPath, textPath
+  local candidateDirs
+  if outputDir then
+    candidateDirs = { outputDir }
+  else
+    candidateDirs = { "user:/", "settings/", "." }
   end
 
-  log("I", "apiDump", string.format("Wrote API dump to %s and %s", jsonPath, textPath))
-  return true, nil, jsonPath, textPath
+  local lastErr, lastJsonPath, lastTextPath
+  for _, baseDir in ipairs(candidateDirs) do
+    if baseDir and baseDir ~= "" then
+      local ok, err, jsonPath, textPath = tryWrite(baseDir)
+      if ok then
+        log("I", "apiDump", string.format("Wrote API dump to %s and %s", jsonPath, textPath))
+        return true, nil, jsonPath, textPath
+      end
+      lastErr = err
+      lastJsonPath = jsonPath
+      lastTextPath = textPath
+    end
+  end
+
+  local msg = string.format("Failed to write API dump output (%s): %s", lastJsonPath or "?", lastErr or "unknown error")
+  if not outputDir then
+    msg = msg .. " (set CFG.apiDumpOutputDir to a writable path)"
+  end
+  log("E", "apiDump", msg)
+  return false, msg, lastJsonPath, lastTextPath
 end
 
 return M
