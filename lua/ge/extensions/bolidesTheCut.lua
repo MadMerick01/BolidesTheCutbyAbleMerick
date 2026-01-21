@@ -957,6 +957,7 @@ local function drawGui()
                   shockDurationSec = 0.5,
                   thrusterKickSpeed = 5.0,
                   forceMultiplier = 0.5,
+                  aiDisableDurationSec = 5.0,
                 })
                 if ok then
                   w.ammo = math.max(0, ammo - 1)

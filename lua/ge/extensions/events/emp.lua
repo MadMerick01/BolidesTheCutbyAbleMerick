@@ -40,6 +40,9 @@ local DEFAULT = {
   forceMultiplier = 1.0,
   forceReferenceDistance = 39.0,
 
+  -- Optional AI disable for NPC drivers (seconds)
+  aiDisableDurationSec = 0.0,
+
   -- Safety / spam prevention
   cooldownSec = 2.0,
 }
@@ -294,6 +297,43 @@ local function _cmdEmpEnd()
   ]]
 end
 
+local function _cmdAiDisable()
+  return [[
+    do
+      if ai then
+        emp_prevAiMode = emp_prevAiMode or nil
+        if ai.getState then
+          local ok, state = pcall(function() return ai.getState() end)
+          if ok and type(state) == "table" and state.mode then
+            emp_prevAiMode = state.mode
+          end
+        end
+        if emp_prevAiMode == nil and ai.getMode then
+          local ok, mode = pcall(function() return ai.getMode() end)
+          if ok then emp_prevAiMode = mode end
+        end
+        pcall(function() ai.setMode("disabled") end)
+        pcall(function() ai.setMode("none") end)
+      end
+    end
+  ]]
+end
+
+local function _cmdAiRestore()
+  return [[
+    do
+      if ai and ai.setMode then
+        local mode = emp_prevAiMode
+        if mode == nil or mode == "" then
+          mode = "traffic"
+        end
+        pcall(function() ai.setMode(mode) end)
+      end
+      emp_prevAiMode = nil
+    end
+  ]]
+end
+
 local function _cmdThrusterKick(kickVec, delaySec)
   -- delaySec is optional; thrusters.applyVelocity supports (vec, delay) in some mods (see main.lua usage).
   if delaySec and delaySec > 0 then
@@ -317,7 +357,7 @@ end
 --  sourceId (optional): robber vehicle ID (for shock direction + planets center)
 --  sourcePos (optional): vec3 position if you don't have sourceId
 --  empDurationSec, shockDurationSec, thrusterKickSpeed, forceMultiplier, forceReferenceDistance,
---  planetRadius, mass, planetsUpdateIntervalSec
+--  planetRadius, mass, planetsUpdateIntervalSec, aiDisableDurationSec
 function M.trigger(args)
   if not args or not args.playerId then return false, "missing playerId" end
 
@@ -368,6 +408,11 @@ function M.trigger(args)
   st.forceMultiplier = cfg.forceMultiplier
   st.forceReferenceDistance = cfg.forceReferenceDistance
 
+  if cfg.aiDisableDurationSec and cfg.aiDisableDurationSec > 0 then
+    _queue(playerVeh, _cmdAiDisable())
+    st.aiDisableEnd = now + cfg.aiDisableDurationSec
+  end
+
   return true
 end
 
@@ -376,6 +421,7 @@ function M.cancel(playerId)
   local veh = _vehById(playerId)
   if _isValidVeh(veh) then
     _queue(veh, _cmdEmpEnd())
+    _queue(veh, _cmdAiRestore())
     _queue(veh, "obj:setPlanets({})")
   end
   active[playerId] = nil
@@ -444,8 +490,13 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
         st.empEnd = nil
       end
 
+      if st.aiDisableEnd and now >= st.aiDisableEnd then
+        _queue(veh, _cmdAiRestore())
+        st.aiDisableEnd = nil
+      end
+
       -- Cleanup entry if done
-      if not st.empEnd and not st.shockEnd then
+      if not st.empEnd and not st.shockEnd and not st.aiDisableEnd then
         active[vid] = nil
       end
     end
