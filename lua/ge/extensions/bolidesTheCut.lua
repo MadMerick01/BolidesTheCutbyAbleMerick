@@ -1196,6 +1196,14 @@ local function drawGui()
 
     if S.uiShowDebug then
       imgui.Spacing()
+      if imgui.Button("Add +5 ammo (Rifled Slugs + EMP)", imgui.ImVec2(-1, 0)) then
+        applyHudInventoryDelta({
+          { id = "beretta1301", name = "Beretta 1301", ammoLabel = "Rifled Slugs", ammoDelta = 5 },
+          { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = 5 },
+        })
+      end
+
+      imgui.Spacing()
       imgui.Text(string.format("Crumb every: %.2f m", (TR.crumbEveryMeters or 0)))
       imgui.Text(string.format("Crumb keep: %.0f m", (TR.keepMeters or 0)))
       imgui.Text(string.format("Crumbs: %d", #crumbs))
