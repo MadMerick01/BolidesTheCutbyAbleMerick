@@ -997,7 +997,7 @@ local function drawGui()
                 else
                   local ok = BulletDamage.trigger({
                     targetId = nearestVeh:getID(),
-                    accuracyRadius = 3.0,
+                    accuracyRadius = 1.5,
                     applyDamage = false,
                   })
                   if not ok then
@@ -1016,7 +1016,7 @@ local function drawGui()
                 if math.random() < tyreChance then
                   local ok = BulletDamage.trigger({
                     targetId = nearestVeh:getID(),
-                    accuracyRadius = 3.0,
+                    accuracyRadius = 1.5,
                     applyDamage = false,
                   })
                   if not ok then
@@ -1101,7 +1101,7 @@ local function drawGui()
         if playerVeh then
           local ok, info = BulletDamage.trigger({
             targetId = playerVeh:getID(),
-            accuracyRadius = 3.0,
+            accuracyRadius = 1.5,
           })
           if ok then
             local lines = { "Bullet damage triggered on player." }
