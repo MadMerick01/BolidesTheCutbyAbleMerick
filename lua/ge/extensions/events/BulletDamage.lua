@@ -51,6 +51,17 @@ local function _randomOffset(radius)
   return dir * scale
 end
 
+local function _vec3From(v)
+  if not v then return nil end
+  if type(v) == "table" and v.x and v.y and v.z then
+    return vec3(v.x, v.y, v.z)
+  end
+  if type(v) == "table" and #v >= 3 then
+    return vec3(v[1], v[2], v[3])
+  end
+  return vec3(v)
+end
+
 local function _getAudioHelper()
   if not extensions or not extensions.bolidesTheCut then return nil end
   return extensions.bolidesTheCut.Audio
@@ -156,8 +167,11 @@ function M.trigger(args)
   local targetPos = targetVeh:getPosition()
   if not targetPos then return false, "target position unavailable" end
 
-  local offset = _randomOffset(cfg.accuracyRadius)
-  local impactPos = targetPos + offset
+  local impactPos = _vec3From(args.impactPos)
+  if not impactPos then
+    local offset = _randomOffset(cfg.accuracyRadius)
+    impactPos = targetPos + offset
+  end
 
   local sourcePos = args.sourcePos
   if not sourcePos and args.sourceId then
@@ -167,7 +181,12 @@ function M.trigger(args)
     end
   end
 
-  local approachDir
+  local approachDir = _vec3From(args.approachDir)
+  if approachDir and approachDir:length() > 0.001 then
+    approachDir = approachDir:normalized()
+  else
+    approachDir = nil
+  end
   if sourcePos then
     local dir = impactPos - sourcePos
     if dir:length() > 0.001 then
