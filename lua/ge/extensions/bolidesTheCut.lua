@@ -543,10 +543,10 @@ local function ensureHudState()
     S.hudWallet = getCareerMoney() or 0
   end
   if S.hudStatus == nil then
-    S.hudStatus = ""
+    S.hudStatus = "Normal"
   end
   if S.hudInstruction == nil then
-    S.hudInstruction = ""
+    S.hudInstruction = "Lets make money"
   end
 end
 
