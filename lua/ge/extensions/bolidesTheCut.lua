@@ -78,6 +78,7 @@ local S = {
   hudInstruction = "",
   hudThreat = nil,
   hudDangerReason = nil,
+  hudShotgunMessage = "Aim carefully",
 
   uiShowWeapons = false,
   uiShowAbout = false,
@@ -991,6 +992,7 @@ local function drawGui()
                 if math.random() < driverChance then
                   disableRobberAI(nearestVeh)
                   log("I", "BolidesTheCut", "Driver shot landed; AI disabled.")
+                  S.hudShotgunMessage = "HEADSHOT"
                 else
                   local ok = BulletDamage.trigger({
                     targetId = nearestVeh:getID(),
@@ -1000,9 +1002,11 @@ local function drawGui()
                   if not ok then
                     log("W", "BolidesTheCut", "Driver shot missed; fallback hit failed.")
                   end
+                  S.hudShotgunMessage = "MISSED"
                 end
               else
                 log("W", "BolidesTheCut", "Driver shot blocked (no nearby target).")
+                S.hudShotgunMessage = "MISSED"
               end
             end
             if imgui.Button("Shoot tyres##shotgun_tyres") then
@@ -1017,12 +1021,17 @@ local function drawGui()
                   if not ok then
                     log("W", "BolidesTheCut", "Tyre shot triggered but hit failed.")
                   end
+                  S.hudShotgunMessage = "GOOD HIT"
+                else
+                  S.hudShotgunMessage = "MISSED"
                 end
               else
                 log("W", "BolidesTheCut", "Tyre shot blocked (no nearby target).")
+                S.hudShotgunMessage = "MISSED"
               end
             end
           end
+          imgui.TextWrapped(S.hudShotgunMessage or "Aim carefully")
         else
           local btnText = "Fire"
           if ammo <= 0 then
