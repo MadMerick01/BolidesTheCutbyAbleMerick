@@ -931,12 +931,12 @@ local function drawGui()
         imgui.Text(w.name or w.id or "Unknown")
         imgui.Text(string.format("%s: %d", label, ammo))
         if w.id == "emp" then
-          local dist = getActiveRobberDistance(RobberFKB200mEMP)
+          local _, dist, err = findNearestVehicleToPlayer()
           local inRange = dist ~= nil and dist <= 20.0
           if dist ~= nil then
-            imgui.TextWrapped(inRange and "In range (20m)" or "Out of range (20m)")
+            imgui.TextWrapped(inRange and "Nearest vehicle in range (20m)" or "Nearest vehicle out of range (20m)")
           else
-            imgui.TextWrapped("No active EMP target.")
+            imgui.TextWrapped("No nearby vehicle.")
           end
           local btnText = "Use"
           if ammo <= 0 then
@@ -945,12 +945,12 @@ local function drawGui()
             imgui.EndDisabled()
           else
             if imgui.Button(btnText .. "##" .. tostring(w.id)) then
-              local robberId = getActiveRobberVehicle(RobberFKB200mEMP)
               local playerVeh = getPlayerVeh()
-              local robberVeh = robberId and getObjById(robberId) or nil
-              if robberVeh and playerVeh and inRange then
+              local targetVeh, targetDist, targetErr = findNearestVehicleToPlayer()
+              local targetInRange = targetDist ~= nil and targetDist <= 20.0
+              if targetVeh and playerVeh and targetInRange then
                 local ok, reason = EMP.trigger({
-                  playerId = robberVeh:getID(),
+                  playerId = targetVeh:getID(),
                   sourceId = playerVeh:getID(),
                   sourcePos = playerVeh:getPosition(),
                   empDurationSec = 10.0,
@@ -960,21 +960,24 @@ local function drawGui()
                 })
                 if ok then
                   w.ammo = math.max(0, ammo - 1)
-                  log("I", "BolidesTheCut", "EMP deployed on robber.")
+                  log("I", "BolidesTheCut", "EMP deployed on nearest vehicle.")
                 else
                   log("W", "BolidesTheCut", "EMP deploy failed: " .. tostring(reason))
                 end
               else
-                log("W", "BolidesTheCut", "EMP deploy blocked (no target or out of range).")
+                log("W", "BolidesTheCut", "EMP deploy blocked (no nearby target or out of range).")
+                if targetErr then
+                  log("W", "BolidesTheCut", "EMP deploy blocked reason: " .. tostring(targetErr))
+                end
               end
             end
           end
         elseif w.id == "beretta1301" then
-          local dist = getActiveRobberDistance(RobberShotgun)
-          local driverChance = distanceChance(dist, 10.0, 60.0, 0.35, 0.05)
-          local tyreChance = distanceChance(dist, 10.0, 60.0, 0.6, 0.15)
-          imgui.TextWrapped(formatChanceLine("Driver hit chance", driverChance))
-          imgui.TextWrapped(formatChanceLine("Tyre hit chance", tyreChance))
+          local nearestVeh, nearestDist = findNearestVehicleToPlayer()
+          local driverChance = distanceChance(nearestDist, 10.0, 60.0, 0.35, 0.05)
+          local tyreChance = distanceChance(nearestDist, 10.0, 60.0, 0.6, 0.15)
+          imgui.TextWrapped(formatChanceLine("Nearest driver hit chance", driverChance))
+          imgui.TextWrapped(formatChanceLine("Nearest tyre hit chance", tyreChance))
 
           if ammo <= 0 then
             imgui.BeginDisabled()
@@ -983,16 +986,14 @@ local function drawGui()
             imgui.EndDisabled()
           else
             if imgui.Button("Shoot driver##shotgun_driver") then
-              local robberId = getActiveRobberVehicle(RobberShotgun)
-              local robberVeh = robberId and getObjById(robberId) or nil
-              if robberVeh and driverChance then
+              if nearestVeh and driverChance then
                 w.ammo = math.max(0, ammo - 1)
                 if math.random() < driverChance then
-                  disableRobberAI(robberVeh)
+                  disableRobberAI(nearestVeh)
                   log("I", "BolidesTheCut", "Driver shot landed; AI disabled.")
                 else
                   local ok = BulletDamage.trigger({
-                    targetId = robberVeh:getID(),
+                    targetId = nearestVeh:getID(),
                     accuracyRadius = 3.0,
                     applyDamage = false,
                   })
@@ -1001,17 +1002,15 @@ local function drawGui()
                   end
                 end
               else
-                log("W", "BolidesTheCut", "Driver shot blocked (no target).")
+                log("W", "BolidesTheCut", "Driver shot blocked (no nearby target).")
               end
             end
             if imgui.Button("Shoot tyres##shotgun_tyres") then
-              local robberId = getActiveRobberVehicle(RobberShotgun)
-              local robberVeh = robberId and getObjById(robberId) or nil
-              if robberVeh and tyreChance then
+              if nearestVeh and tyreChance then
                 w.ammo = math.max(0, ammo - 1)
                 if math.random() < tyreChance then
                   local ok = BulletDamage.trigger({
-                    targetId = robberVeh:getID(),
+                    targetId = nearestVeh:getID(),
                     accuracyRadius = 3.0,
                     applyDamage = false,
                   })
@@ -1020,7 +1019,7 @@ local function drawGui()
                   end
                 end
               else
-                log("W", "BolidesTheCut", "Tyre shot blocked (no target).")
+                log("W", "BolidesTheCut", "Tyre shot blocked (no nearby target).")
               end
             end
           end
