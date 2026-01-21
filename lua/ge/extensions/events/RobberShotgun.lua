@@ -680,6 +680,8 @@ function M.update(dtSim)
     if R.closeTimer >= 7.0 and R.robberSlowTimer >= 7.0 then
       R.successTriggered = true
       R.successDespawnAt = now + 12.0
+      R.nextShotAt = nil
+      R.shotsStarted = false
       local inventoryDelta = {}
       local rewardNotes = {}
       if math.random() < 0.75 then
@@ -718,6 +720,11 @@ function M.update(dtSim)
 
   if R.successTriggered and R.successDespawnAt and now >= R.successDespawnAt then
     M.endEvent("caught")
+    return
+  end
+
+  if R.successTriggered then
+    R.nextShotAt = nil
     return
   end
 
