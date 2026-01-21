@@ -143,6 +143,52 @@ local function addCareerMoney(delta)
   return adjustCareerMoney(current + (tonumber(delta) or 0))
 end
 
+local function walletCanPay(amount)
+  if not career_modules_payment or type(career_modules_payment.canPay) ~= "function" then return false end
+  local ok, can = pcall(function()
+    return career_modules_payment.canPay({ money = { amount = amount, canBeNegative = false } })
+  end)
+  return ok and can == true
+end
+
+local function walletRemove(amount)
+  if not career_modules_payment or type(career_modules_payment.pay) ~= "function" then return false end
+  local ok, res = pcall(function()
+    return career_modules_payment.pay({ money = { amount = amount, canBeNegative = false } }, { label = "Robbery" })
+  end)
+  return ok and res == true
+end
+
+local function walletAdd(amount)
+  if not career_modules_payment or type(career_modules_payment.reward) ~= "function" then return false end
+  local ok, res = pcall(function()
+    return career_modules_payment.reward({ money = { amount = amount } }, { label = "Recovered money" }, true)
+  end)
+  return ok and res == true
+end
+
+local function removeCareerMoney(amount)
+  amount = tonumber(amount) or 0
+  if amount <= 0 then
+    return false
+  end
+  if walletCanPay(amount) and walletRemove(amount) then
+    return true
+  end
+  return addCareerMoney(-amount)
+end
+
+local function restoreCareerMoney(amount)
+  amount = tonumber(amount) or 0
+  if amount <= 0 then
+    return false
+  end
+  if walletAdd(amount) then
+    return true
+  end
+  return addCareerMoney(amount)
+end
+
 local function resolveVehicleId(result)
   if result == nil then return nil end
   local t = type(result)
@@ -1166,7 +1212,7 @@ function M.update(dtSim)
       local money = getCareerMoney()
       if money then
         R.robbedAmount = math.max(0, math.floor((money * 0.5) + 0.5))
-        addCareerMoney(-R.robbedAmount)
+        removeCareerMoney(R.robbedAmount)
       end
       R.robberyProcessed = true
     end
@@ -1238,7 +1284,7 @@ function M.update(dtSim)
       R.successDespawnAt = now + 15.0
       R.cashFound = math.random(50, 2500)
       if R.robberyProcessed and R.robbedAmount > 0 then
-        addCareerMoney(R.robbedAmount + R.cashFound)
+        restoreCareerMoney(R.robbedAmount + R.cashFound)
       end
       local recoveredDelta = 0
       if R.robbedAmount then
