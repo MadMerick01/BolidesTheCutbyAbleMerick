@@ -242,7 +242,16 @@ local AUDIO = {
 
 local Audio = {}
 
+local function _getPlayerVeh()
+  return (be and be.getPlayerVehicle) and be:getPlayerVehicle(0) or nil
+end
+
+local function _resolveAudioVeh(v)
+  return _getPlayerVeh() or v
+end
+
 function Audio.ensureSources(v, sources)
+  v = _resolveAudioVeh(v)
   if not v or not v.queueLuaCommand then return end
   sources = sources or {}
 
@@ -251,7 +260,7 @@ function Audio.ensureSources(v, sources)
     "local A = _G.__robberShotgunAudio.ids",
     "local function mk(path, name)",
     "  if A[name] then return end",
-    "  local id = obj:createSFXSource(path, \"Audio2D\", name, -1)",
+    "  local id = obj:createSFXSource(path, \"Audio2D\", name, 0)",
     "  A[name] = id",
     "end"
   }
@@ -272,6 +281,7 @@ function Audio.ensureAll(v)
 end
 
 function Audio.playId(v, name, vol, pitch, fileFallback)
+  v = _resolveAudioVeh(v)
   if not v or not v.queueLuaCommand then return end
   vol = tonumber(vol) or 1.0
   pitch = tonumber(pitch) or 1.0
