@@ -70,6 +70,7 @@ local S = {
   testDumpTruckStatus = "",
   empTestStatus = "",
   bulletDamageStatus = "",
+  apiDumpStatus = "",
 
   guiStatusMessage = "Nothing unusual",
 
@@ -1206,6 +1207,22 @@ local function drawGui()
           { id = "beretta1301", name = "Beretta 1301", ammoLabel = "Rifled Slugs", ammoDelta = 5 },
           { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = 5 },
         })
+      end
+
+      imgui.Spacing()
+      if imgui.Button("Dump BeamNG API (0.38)", imgui.ImVec2(-1, 0)) then
+        extensions.load("apiDump")
+        if extensions.apiDump and extensions.apiDump.dump then
+          extensions.apiDump.dump()
+          S.apiDumpStatus = "API dump written to user:/api_dump_0.38.txt and .json"
+          log("I", "Bolides", "API dump complete: user:/api_dump_0.38.*")
+        else
+          S.apiDumpStatus = "apiDump extension missing or failed to load"
+          log("E", "Bolides", "apiDump extension missing or failed to load")
+        end
+      end
+      if S.apiDumpStatus and S.apiDumpStatus ~= "" then
+        imgui.TextWrapped(S.apiDumpStatus)
       end
 
       imgui.Spacing()
