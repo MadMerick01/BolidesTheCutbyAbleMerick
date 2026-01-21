@@ -645,7 +645,7 @@ function Audio.ensureSources(v, sources)
     "local A = _G.__bolidesAudio.ids",
     "local function mk(path, name)",
     "  if A[name] then return end",
-    "  local id = obj:createSFXSource(path, \"Audio2D\", name, -1)",
+    "  local id = obj:createSFXSource(path, \"Audio2D\", name, 0)",
     "  A[name] = id",
     "end"
   }
