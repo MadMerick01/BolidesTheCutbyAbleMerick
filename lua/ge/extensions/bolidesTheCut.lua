@@ -636,7 +636,12 @@ end
 -- =========================================================
 local Audio = {}
 
+local function resolveAudioVehicle(v)
+  return getPlayerVeh() or v
+end
+
 function Audio.ensureSources(v, sources)
+  v = resolveAudioVehicle(v)
   if not v or not v.queueLuaCommand then return end
   sources = sources or {}
 
@@ -645,7 +650,7 @@ function Audio.ensureSources(v, sources)
     "local A = _G.__bolidesAudio.ids",
     "local function mk(path, name)",
     "  if A[name] then return end",
-    "  local id = obj:createSFXSource(path, \"Audio2D\", name, -1)",
+    "  local id = obj:createSFXSource(path, \"Audio2D\", name, 0)",
     "  A[name] = id",
     "end"
   }
@@ -667,6 +672,7 @@ end
 
 function Audio.playId(v, name, vol, pitch)
   if not CFG.audioEnabled then return end
+  v = resolveAudioVehicle(v)
   if not v or not v.queueLuaCommand then return end
   vol = tonumber(vol) or 1.0
   pitch = tonumber(pitch) or 1.0
@@ -676,6 +682,11 @@ function Audio.playId(v, name, vol, pitch)
     if not (_G.__bolidesAudio and _G.__bolidesAudio.ids) then return end
     local id = _G.__bolidesAudio.ids[%q]
     if not id then return end
+
+    if obj.setSFXSourceLooping then pcall(function() obj:setSFXSourceLooping(id, false) end) end
+    if obj.setSFXSourceLoop then pcall(function() obj:setSFXSourceLoop(id, false) end) end
+    if obj.stopSFX then pcall(function() obj:stopSFX(id) end) end
+    if obj.stopSFXSource then pcall(function() obj:stopSFXSource(id) end) end
 
     if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 1.0) end) end
     if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end
@@ -705,6 +716,7 @@ end
 
 function Audio.playFile(v, name, vol, pitch, file)
   if not CFG.audioEnabled then return end
+  v = resolveAudioVehicle(v)
   if not v or not v.queueLuaCommand then return end
   vol = tonumber(vol) or 1.0
   pitch = tonumber(pitch) or 1.0
@@ -744,6 +756,7 @@ function Audio.playFile(v, name, vol, pitch, file)
 end
 
 function Audio.stopId(v, name)
+  v = resolveAudioVehicle(v)
   if not v or not v.queueLuaCommand then return end
   name = tostring(name)
 
