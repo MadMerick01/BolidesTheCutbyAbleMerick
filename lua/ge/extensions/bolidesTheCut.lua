@@ -28,6 +28,7 @@ local CFG = {
   bannerImagePath = "/art/ui/bolides_the_cut/bolides_the_cut_banner.png",
   bannerAspect = 0.562,
   bannerMaxHeight = 210,
+  apiDumpOutputDir = nil, -- Optional override (e.g. "C:/temp") for apiDump output.
 
   -- Debug marker gate (Codex-safe pattern)
   debugBreadcrumbMarkers = false,
@@ -1213,9 +1214,16 @@ local function drawGui()
       if imgui.Button("Dump BeamNG API (0.38)", imgui.ImVec2(-1, 0)) then
         extensions.load("apiDump")
         if extensions.apiDump and extensions.apiDump.dump then
-          extensions.apiDump.dump()
-          S.apiDumpStatus = "API dump written to user:/api_dump_0.38.txt and .json"
-          log("I", "Bolides", "API dump complete: user:/api_dump_0.38.*")
+          local ok, err, jsonPath, textPath = extensions.apiDump.dump({
+            outputDir = CFG.apiDumpOutputDir,
+          })
+          if ok then
+            S.apiDumpStatus = string.format("API dump written to %s and %s", textPath or "?", jsonPath or "?")
+            log("I", "Bolides", "API dump complete")
+          else
+            S.apiDumpStatus = err or "API dump failed to write"
+            log("E", "Bolides", S.apiDumpStatus)
+          end
         else
           S.apiDumpStatus = "apiDump extension missing or failed to load"
           log("E", "Bolides", "apiDump extension missing or failed to load")

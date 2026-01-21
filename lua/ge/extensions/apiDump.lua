@@ -154,16 +154,76 @@ function M.dump(opts)
 
   local data = dumpRoots(roots, maxDepth)
 
-  jsonWriteFile("user:/api_dump_0.38.json", data, true)
+  local outputDir = opts.outputDir
+  if outputDir == "" then
+    outputDir = nil
+  end
+  local baseDir = outputDir or "user:/"
+  local sep = baseDir:match("[/\\]$") and "" or "/"
+  local jsonPath = string.format("%s%sapi_dump_0.38.json", baseDir, sep)
+  local textPath = string.format("%s%sapi_dump_0.38.txt", baseDir, sep)
 
-  local text = renderText(data)
-  if writeFile then
-    writeFile("user:/api_dump_0.38.txt", text)
-  else
-    jsonWriteFile("user:/api_dump_0.38.txt", { text = text }, true)
+  local function fileExists(path)
+    if FS and FS.fileExists then
+      return FS:fileExists(path)
+    end
+    if _G.fileExists then
+      return _G.fileExists(path)
+    end
+    return nil
   end
 
-  log("I", "apiDump", "Wrote API dump to user:/api_dump_0.38.*")
+  local function safeJsonWrite(path, payload)
+    if not jsonWriteFile then
+      return false, "jsonWriteFile missing"
+    end
+    local ok, err = pcall(jsonWriteFile, path, payload, true)
+    if not ok then
+      return false, tostring(err)
+    end
+    local exists = fileExists(path)
+    if exists == false then
+      return false, "file not created"
+    end
+    return true
+  end
+
+  local function safeTextWrite(path, payload)
+    if writeFile then
+      local ok, err = pcall(writeFile, path, payload)
+      if not ok then
+        return false, tostring(err)
+      end
+    else
+      local ok, err = pcall(jsonWriteFile, path, { text = payload }, true)
+      if not ok then
+        return false, tostring(err)
+      end
+    end
+    local exists = fileExists(path)
+    if exists == false then
+      return false, "file not created"
+    end
+    return true
+  end
+
+  local okJson, jsonErr = safeJsonWrite(jsonPath, data)
+  if not okJson then
+    local msg = string.format("Failed to write API dump JSON (%s): %s", jsonPath, jsonErr or "unknown error")
+    log("E", "apiDump", msg)
+    return false, msg, jsonPath, textPath
+  end
+
+  local text = renderText(data)
+  local okText, textErr = safeTextWrite(textPath, text)
+  if not okText then
+    local msg = string.format("Failed to write API dump text (%s): %s", textPath, textErr or "unknown error")
+    log("E", "apiDump", msg)
+    return false, msg, jsonPath, textPath
+  end
+
+  log("I", "apiDump", string.format("Wrote API dump to %s and %s", jsonPath, textPath))
+  return true, nil, jsonPath, textPath
 end
 
 return M
