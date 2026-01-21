@@ -122,6 +122,13 @@ local function adjustCareerMoney(amount)
   return false
 end
 
+local function getCareerMoney()
+  if not CareerMoney or not CareerMoney.isCareerActive or not CareerMoney.isCareerActive() then
+    return nil
+  end
+  return CareerMoney.get and CareerMoney.get() or nil
+end
+
 local function addCareerMoney(delta)
   if not CareerMoney or not CareerMoney.isCareerActive or not CareerMoney.isCareerActive() then
     return false
@@ -134,13 +141,6 @@ local function addCareerMoney(delta)
     return false
   end
   return adjustCareerMoney(current + (tonumber(delta) or 0))
-end
-
-local function getCareerMoney()
-  if not CareerMoney or not CareerMoney.isCareerActive or not CareerMoney.isCareerActive() then
-    return nil
-  end
-  return CareerMoney.get and CareerMoney.get() or nil
 end
 
 local function resolveVehicleId(result)
