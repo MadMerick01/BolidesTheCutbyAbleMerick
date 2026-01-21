@@ -859,21 +859,21 @@ local function drawGui()
 
     drawBanner(imgui)
 
+    local baseTextScale = 1.05
+
     -- Header (New HUD)
-    imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(235, 235, 235, 255).Value)
-    imgui.SetWindowFontScale(1.15)
+    imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(242, 214, 128, 255).Value)
+    imgui.SetWindowFontScale(1.25)
     imgui.Text(CFG.windowTitle)
-    imgui.SetWindowFontScale(1.0)
+    imgui.SetWindowFontScale(baseTextScale)
     imgui.PopStyleColor()
 
-    imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(200, 200, 200, 180).Value)
-    imgui.SetWindowFontScale(0.95)
+    imgui.PushStyleColor2(imgui.Col_Text, imgui.ImColorByRGB(170, 210, 255, 210).Value)
     imgui.TextWrapped("You transport value, watch the road")
     local countdown = BoldiePacing and BoldiePacing.getCountdown and BoldiePacing.getCountdown()
     if countdown ~= nil then
       imgui.Text(string.format("next event occurs in: %s", formatCountdown(countdown)))
     end
-    imgui.SetWindowFontScale(1.0)
     imgui.PopStyleColor()
 
     imgui.Spacing()
@@ -897,12 +897,19 @@ local function drawGui()
 
     -- Narrative (New HUD)
     imgui.Separator()
+    local threatLevel = getHudThreatLevel()
+    local statusScale = baseTextScale
+    if threatLevel == "event" or threatLevel == "danger" then
+      statusScale = baseTextScale + 0.05
+    end
+    imgui.SetWindowFontScale(statusScale)
     imgui.Text("STATUS")
     imgui.TextWrapped((S.hudStatus and S.hudStatus ~= "") and S.hudStatus or "—")
 
     imgui.Spacing()
     imgui.Text("INSTRUCTION")
     imgui.TextWrapped((S.hudInstruction and S.hudInstruction ~= "") and S.hudInstruction or "—")
+    imgui.SetWindowFontScale(baseTextScale)
 
     -- Weapons (New HUD)
     imgui.Separator()
