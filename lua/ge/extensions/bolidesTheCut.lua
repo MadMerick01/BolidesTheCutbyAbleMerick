@@ -14,6 +14,7 @@ local BoldiePacing = require("lua/ge/extensions/events/BoldiePacing")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
+local FirstPersonShoot = require("lua/ge/extensions/FirstPersonShoot")
 local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
 
@@ -551,6 +552,27 @@ local function ensureHudState()
   end
 end
 
+local function getHudWeaponById(id)
+  if not id then return nil end
+  ensureHudState()
+  for _, w in ipairs(S.hudWeapons) do
+    if w.id == id then
+      return w
+    end
+  end
+  return nil
+end
+
+local function consumeHudAmmo(id, amount)
+  local w = getHudWeaponById(id)
+  if not w then return false end
+  local current = tonumber(w.ammo) or 0
+  local delta = tonumber(amount) or 0
+  w.ammo = math.max(0, current - delta)
+  saveInventory()
+  return true
+end
+
 local function applyHudInventoryDelta(inventoryDelta)
   if type(inventoryDelta) ~= "table" then
     return
@@ -988,64 +1010,24 @@ local function drawGui()
             end
           end
         elseif w.id == "beretta1301" then
-          local nearestVeh, nearestDist = findNearestVehicleToPlayer()
-          local driverChance = distanceChance(nearestDist, 10.0, 60.0, 0.35, 0.05)
-          local tyreChance = distanceChance(nearestDist, 10.0, 60.0, 0.6, 0.15)
-          imgui.TextWrapped(formatChanceLine("Nearest driver hit chance", driverChance))
-          imgui.TextWrapped(formatChanceLine("Nearest tyre hit chance", tyreChance))
+          local aimEnabled = FirstPersonShoot and FirstPersonShoot.isAimEnabled and FirstPersonShoot.isAimEnabled()
+          local aimLabel = aimEnabled and "Reholster Shotgun" or "Unholster Shotgun"
 
           if ammo <= 0 then
             imgui.BeginDisabled()
-            imgui.Button("Shoot driver##shotgun_driver")
-            imgui.Button("Shoot tyres##shotgun_tyres")
+            imgui.Button(aimLabel .. "##shotgun_aim")
             imgui.EndDisabled()
           else
-            if imgui.Button("Shoot driver##shotgun_driver") then
-              if nearestVeh and driverChance then
-                w.ammo = math.max(0, ammo - 1)
-                if math.random() < driverChance then
-                  disableRobberAI(nearestVeh)
-                  log("I", "BolidesTheCut", "Driver shot landed; AI disabled.")
-                  S.hudShotgunMessage = "HEADSHOT"
-                else
-                  local ok = BulletDamage.trigger({
-                    targetId = nearestVeh:getID(),
-                    accuracyRadius = 1.5,
-                    applyDamage = false,
-                  })
-                  if not ok then
-                    log("W", "BolidesTheCut", "Driver shot missed; fallback hit failed.")
-                  end
-                  S.hudShotgunMessage = "MISSED"
-                end
-              else
-                log("W", "BolidesTheCut", "Driver shot blocked (no nearby target).")
-                S.hudShotgunMessage = "MISSED"
-              end
-            end
-            if imgui.Button("Shoot tyres##shotgun_tyres") then
-              if nearestVeh and tyreChance then
-                w.ammo = math.max(0, ammo - 1)
-                if math.random() < tyreChance then
-                  local ok = BulletDamage.trigger({
-                    targetId = nearestVeh:getID(),
-                    accuracyRadius = 1.5,
-                    applyDamage = false,
-                  })
-                  if not ok then
-                    log("W", "BolidesTheCut", "Tyre shot triggered but hit failed.")
-                  end
-                  S.hudShotgunMessage = "GOOD HIT"
-                else
-                  S.hudShotgunMessage = "MISSED"
-                end
-              else
-                log("W", "BolidesTheCut", "Tyre shot blocked (no nearby target).")
-                S.hudShotgunMessage = "MISSED"
-              end
+            if imgui.Button(aimLabel .. "##shotgun_aim") then
+              FirstPersonShoot.toggleAim()
             end
           end
-          imgui.TextWrapped(S.hudShotgunMessage or "Aim carefully")
+
+          if not aimEnabled then
+            imgui.TextWrapped(S.hudShotgunMessage or "Unholster to aim.")
+          else
+            imgui.TextWrapped(S.hudShotgunMessage or "Aim and left-click to fire.")
+          end
         else
           local btnText = "Fire"
           if ammo <= 0 then
@@ -1330,6 +1312,49 @@ function M.onExtensionLoaded()
       RobberShotgun = RobberShotgun,
     })
   end
+
+  if FirstPersonShoot and FirstPersonShoot.init then
+    FirstPersonShoot.init({
+      getAmmo = function()
+        local w = getHudWeaponById("beretta1301")
+        return w and tonumber(w.ammo) or 0
+      end,
+      consumeAmmo = function(amount)
+        return consumeHudAmmo("beretta1301", amount or 1)
+      end,
+      getPlayerVeh = getPlayerVeh,
+      onShot = function(ok, info)
+        if ok then
+          S.hudShotgunMessage = "DIRECT HIT"
+        else
+          if type(info) == "string" then
+            if info == "no_vehicle_hit" then
+              S.hudShotgunMessage = "NO VEHICLE HIT"
+            elseif info == "out_of_ammo" then
+              S.hudShotgunMessage = "OUT OF AMMO"
+            elseif info == "self_hit_blocked" then
+              S.hudShotgunMessage = "SHOT BLOCKED"
+            else
+              S.hudShotgunMessage = "MISSED"
+            end
+          else
+            S.hudShotgunMessage = "MISSED"
+          end
+        end
+      end,
+      onAimChanged = function(enabled, reason)
+        if enabled then
+          S.hudShotgunMessage = "Aim and left-click to fire."
+        else
+          if reason == "not_first_person" then
+            S.hudShotgunMessage = "First-person view only."
+          elseif reason == "no_ammo" then
+            S.hudShotgunMessage = "Out of ammo."
+          end
+        end
+      end,
+    })
+  end
 end
 
 -- Update-only: NO drawing here (prevents loading hang)
@@ -1338,6 +1363,10 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
 
   if EMP and EMP.onUpdate then
     EMP.onUpdate(dtReal, dtSim, dtRaw)
+  end
+
+  if FirstPersonShoot and FirstPersonShoot.onUpdate then
+    FirstPersonShoot.onUpdate(dtSim)
   end
 
   if RobberFKB200mEMP and RobberFKB200mEMP.update then
@@ -1387,6 +1416,10 @@ end
 function M.onDrawDebug()
   -- safe draw UI
   pcall(drawGui)
+
+  if FirstPersonShoot and FirstPersonShoot.onDraw then
+    pcall(FirstPersonShoot.onDraw)
+  end
 
   -- safe draw markers (keep behind CFG gate)
   if CFG.debugBreadcrumbMarkers and Breadcrumbs.onDrawDebug then
