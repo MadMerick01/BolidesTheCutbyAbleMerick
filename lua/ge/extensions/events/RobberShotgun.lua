@@ -240,83 +240,9 @@ local AUDIO = {
   eventStartPitch = 1.0,
 }
 
-local Audio = {}
-
-local function _getPlayerVeh()
-  return (be and be.getPlayerVehicle) and be:getPlayerVehicle(0) or nil
-end
-
-local function _resolveAudioVeh(v)
-  return _getPlayerVeh() or v
-end
-
-function Audio.ensureSources(v, sources)
-  v = _resolveAudioVeh(v)
-  if not v or not v.queueLuaCommand then return end
-  sources = sources or {}
-
-  local lines = {
-    "_G.__robberShotgunAudio = _G.__robberShotgunAudio or { ids = {} }",
-    "local A = _G.__robberShotgunAudio.ids",
-    "local function mk(path, name)",
-    "  if A[name] then return end",
-    "  local id = obj:createSFXSource(path, \"Audio2D\", name, 0)",
-    "  A[name] = id",
-    "end"
-  }
-
-  for _, source in ipairs(sources) do
-    if source and source.file and source.name then
-      lines[#lines + 1] = string.format("mk(%q, %q)", source.file, source.name)
-    end
-  end
-
-  v:queueLuaCommand(table.concat(lines, "\n"))
-end
-
-function Audio.ensureAll(v)
-  Audio.ensureSources(v, {
-    { file = AUDIO.eventStartFile, name = AUDIO.eventStartName },
-  })
-end
-
-function Audio.playId(v, name, vol, pitch, fileFallback)
-  v = _resolveAudioVeh(v)
-  if not v or not v.queueLuaCommand then return end
-  vol = tonumber(vol) or 1.0
-  pitch = tonumber(pitch) or 1.0
-  name = tostring(name)
-  fileFallback = tostring(fileFallback or "")
-
-  local cmd = string.format([[ 
-    if not (_G.__robberShotgunAudio and _G.__robberShotgunAudio.ids) then return end
-    local id = _G.__robberShotgunAudio.ids[%q]
-    if not id then return end
-
-    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 1.0) end) end
-    if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end
-    if obj.setVolume then         pcall(function() obj:setVolume(id, 1.0) end) end
-
-    local played = false
-    if obj.playSFX then
-      played = played or pcall(function() obj:playSFX(id) end)
-      played = played or pcall(function() obj:playSFX(id, 0) end)
-      played = played or pcall(function() obj:playSFX(id, false) end)
-      played = played or pcall(function() obj:playSFX(id, 0, false) end)
-      played = played or pcall(function() obj:playSFX(id, 0, %0.3f, %0.3f, false) end)
-      played = played or pcall(function() obj:playSFX(id, %0.3f, %0.3f, false) end)
-      played = played or pcall(function() obj:playSFX(id, 0, false, %0.3f, %0.3f) end)
-    end
-
-    if (not played) and obj.playSFXOnce and %q ~= "" then
-      pcall(function() obj:playSFXOnce(%q, 0, %0.3f, %0.3f) end)
-    end
-
-    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, %0.3f) end) end
-    if obj.setSFXSourcePitch  then pcall(function() obj:setSFXSourcePitch(id, %0.3f) end) end
-  ]], name, vol, pitch, vol, pitch, vol, pitch, fileFallback, fileFallback, vol, pitch, vol, pitch)
-
-  v:queueLuaCommand(cmd)
+local function getAudioHelper()
+  if not extensions or not extensions.bolidesTheCut then return nil end
+  return extensions.bolidesTheCut.Audio
 end
 
 local function getObjById(id)
@@ -444,15 +370,18 @@ local function startFollowAI(robberId)
   end
 
   local playerVeh = getPlayerVeh()
-  if playerVeh then
-    Audio.ensureAll(playerVeh)
+  local audio = getAudioHelper()
+  if playerVeh and audio and audio.ensureSources then
+    audio.ensureSources(playerVeh, {
+      { file = AUDIO.eventStartFile, name = AUDIO.eventStartName },
+    })
   end
   queueAI_FollowLegal(veh, targetId)
   R.phase = "follow"
   R.nextShotAt = nil
 
-  if playerVeh then
-    Audio.playId(playerVeh, AUDIO.eventStartName, AUDIO.eventStartVol, AUDIO.eventStartPitch, AUDIO.eventStartFile)
+  if playerVeh and audio and audio.playId then
+    audio.playId(playerVeh, AUDIO.eventStartName, AUDIO.eventStartVol, AUDIO.eventStartPitch, AUDIO.eventStartFile)
   end
   log("RobberShotgun AI: FOLLOW (legal, lane changes, avoid cars/crash). targetId=" .. tostring(targetId))
 end
@@ -485,6 +414,11 @@ local function triggerShot(playerVeh, robberVeh)
     return false
   end
   if not playerVeh or not robberVeh then return false end
+
+  local audio = getAudioHelper()
+  if audio and audio.playGunshot then
+    audio.playGunshot(playerVeh)
+  end
 
   local ok, info = BulletDamage.trigger({
     targetId = playerVeh:getID(),
