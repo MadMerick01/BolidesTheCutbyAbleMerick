@@ -161,7 +161,6 @@ local function _fireShot()
   if (now - state.lastShotTime) < CFG.shotCooldownSec then
     return
   end
-  _playShotAudio()
 
   local camPosRaw = getCameraPosition and getCameraPosition() or nil
   local camPos = _vec3From(camPosRaw)
@@ -181,6 +180,13 @@ local function _fireShot()
     return
   end
   rayDir = rayDir:normalized()
+
+  state.lastShotTime = now
+  if callbacks.consumeAmmo then
+    callbacks.consumeAmmo(1)
+  end
+  _playShotAudio()
+  _applyRecoilKick()
 
   local hit = cameraMouseRayCast and cameraMouseRayCast(true) or nil
   local objId, hitPos, hitDist = _extractHitInfo(hit)
@@ -218,14 +224,6 @@ local function _fireShot()
     approachDir = rayDir,
     accuracyRadius = 0.0,
   })
-
-  if ok then
-    state.lastShotTime = now
-    if callbacks.consumeAmmo then
-      callbacks.consumeAmmo(1)
-    end
-    _applyRecoilKick()
-  end
 
   if callbacks.onShot then
     callbacks.onShot(ok and true or false, info)
