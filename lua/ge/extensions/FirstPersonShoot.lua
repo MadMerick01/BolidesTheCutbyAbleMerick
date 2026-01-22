@@ -129,6 +129,17 @@ local function _applyRecoilKick()
   end
 end
 
+local function _playShotAudio()
+  if not extensions or not extensions.bolidesTheCut or not extensions.bolidesTheCut.Audio then
+    return
+  end
+  local audio = extensions.bolidesTheCut.Audio
+  if audio.playGunshot then
+    local playerVeh = callbacks.getPlayerVeh and callbacks.getPlayerVeh() or nil
+    audio.playGunshot(playerVeh)
+  end
+end
+
 local function _fireShot()
   if not state.aimEnabled then return end
 
@@ -150,6 +161,7 @@ local function _fireShot()
   if (now - state.lastShotTime) < CFG.shotCooldownSec then
     return
   end
+  _playShotAudio()
 
   local camPosRaw = getCameraPosition and getCameraPosition() or nil
   local camPos = _vec3From(camPosRaw)

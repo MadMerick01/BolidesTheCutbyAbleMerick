@@ -17,6 +17,7 @@ local DEFAULT = {
   shotSoundName = "bulletDamageShot",
   shotSoundVolume = 12.0,
   shotSoundPitch = 1.0,
+  playShotSound = false,
   applyDamage = true,
 }
 
@@ -206,18 +207,20 @@ function M.trigger(args)
     audioPlayed = false,
   }
 
-  local audio = _getAudioHelper()
-  if audio and audio.ensureSources then
-    info.audioAttempted = true
-    audio.ensureSources(targetVeh, {
-      { file = cfg.shotSoundFile, name = cfg.shotSoundName }
-    })
-    if audio.stopId then
-      audio.stopId(targetVeh, cfg.shotSoundName)
-    end
-    if audio.playFile then
-      audio.playFile(targetVeh, cfg.shotSoundName, cfg.shotSoundVolume, cfg.shotSoundPitch, cfg.shotSoundFile)
-      info.audioPlayed = true
+  if cfg.playShotSound then
+    local audio = _getAudioHelper()
+    if audio and audio.ensureSources then
+      info.audioAttempted = true
+      audio.ensureSources(targetVeh, {
+        { file = cfg.shotSoundFile, name = cfg.shotSoundName }
+      })
+      if audio.stopId then
+        audio.stopId(targetVeh, cfg.shotSoundName)
+      end
+      if audio.playFile then
+        audio.playFile(targetVeh, cfg.shotSoundName, cfg.shotSoundVolume, cfg.shotSoundPitch, cfg.shotSoundFile)
+        info.audioPlayed = true
+      end
     end
   end
 

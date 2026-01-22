@@ -52,6 +52,11 @@ local CFG = {
   sfxBolidesIntroName = "bolidesIntroHit",
   bolidesIntroVol = 4.0,
   bolidesIntroPitch = 1.0,
+  sfxGunshotFile = "/art/sound/bolides/distantgunshot.wav",
+  sfxGunshotName = "bolidesGunshot",
+  sfxGunshotPoolSize = 6,
+  sfxGunshotVol = 12.0,
+  sfxGunshotPitch = 1.0,
 
   -- GUI threat coloring
   threatDistanceRobber = 50.0,
@@ -689,6 +694,43 @@ function Audio.ensureSources(v, sources)
   v:queueLuaCommand(table.concat(lines, "\n"))
 end
 
+function Audio.ensurePooledSources(v, source)
+  v = resolveAudioVehicle(v)
+  if not v or not v.queueLuaCommand then return end
+  if not source or not source.name or not source.file then return end
+
+  local poolSize = tonumber(source.count) or tonumber(source.poolSize) or CFG.sfxGunshotPoolSize or 4
+  poolSize = math.max(1, math.floor(poolSize))
+  local name = tostring(source.name)
+  local file = tostring(source.file)
+
+  local cmd = string.format([[
+    _G.__bolidesAudio = _G.__bolidesAudio or { ids = {}, pools = {} }
+    local A = _G.__bolidesAudio.ids
+    local P = _G.__bolidesAudio.pools
+    local function mk(path, nm)
+      if A[nm] then return end
+      local id = obj:createSFXSource(path, "Audio2D", nm, 0)
+      A[nm] = id
+    end
+    local base = %q
+    local path = %q
+    local count = %d
+    P[base] = P[base] or { ids = {}, index = 1 }
+    local pool = P[base]
+    for i = 1, count do
+      local nm = base .. "_" .. tostring(i)
+      mk(path, nm)
+      pool.ids[i] = nm
+    end
+    if (pool.index or 1) < 1 or (pool.index or 1) > count then
+      pool.index = 1
+    end
+  ]], name, file, poolSize)
+
+  v:queueLuaCommand(cmd)
+end
+
 function Audio.ensureIntro(v)
   Audio.ensureSources(v, {
     { file = CFG.sfxBolidesIntroFile, name = CFG.sfxBolidesIntroName }
@@ -778,6 +820,69 @@ function Audio.playFile(v, name, vol, pitch, file)
   ]], name, vol, pitch, vol, pitch, vol, pitch, vol, pitch, vol, pitch)
 
   v:queueLuaCommand(cmd)
+end
+
+function Audio.playPooledFile(v, name, vol, pitch, file)
+  if not CFG.audioEnabled then return end
+  v = resolveAudioVehicle(v)
+  if not v or not v.queueLuaCommand then return end
+  vol = tonumber(vol) or 1.0
+  pitch = tonumber(pitch) or 1.0
+  name = tostring(name)
+  file = tostring(file or "")
+
+  local cmd = string.format([[
+    if not (_G.__bolidesAudio and _G.__bolidesAudio.ids) then return end
+    local A = _G.__bolidesAudio.ids
+    local P = _G.__bolidesAudio.pools or {}
+    local pool = P[%q]
+    if not pool or not pool.ids or #pool.ids == 0 then return end
+    local idx = pool.index or 1
+    if idx > #pool.ids then idx = 1 end
+    local nm = pool.ids[idx]
+    pool.index = idx + 1
+    if pool.index > #pool.ids then pool.index = 1 end
+    local id = A[nm]
+    if not id then return end
+
+    if obj.setSFXSourceLooping then pcall(function() obj:setSFXSourceLooping(id, false) end) end
+    if obj.setSFXSourceLoop then pcall(function() obj:setSFXSourceLoop(id, false) end) end
+
+    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 1.0) end) end
+    if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end
+    if obj.setVolume then         pcall(function() obj:setVolume(id, 1.0) end) end
+
+    local played = false
+    if obj.playSFX then
+      played = played or pcall(function() obj:playSFX(id) end)
+      played = played or pcall(function() obj:playSFX(id, 0) end)
+      played = played or pcall(function() obj:playSFX(id, false) end)
+      played = played or pcall(function() obj:playSFX(id, 0, false) end)
+      played = played or pcall(function() obj:playSFX(id, 0, %0.3f, %0.3f, false) end)
+      played = played or pcall(function() obj:playSFX(id, %0.3f, %0.3f, false) end)
+      played = played or pcall(function() obj:playSFX(id, 0, false, %0.3f, %0.3f) end)
+    end
+
+    if (not played) and obj.playSFXOnce and %q ~= "" then
+      pcall(function() obj:playSFXOnce(%q, 0, %0.3f, %0.3f) end)
+    end
+
+    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, %0.3f) end) end
+    if obj.setSFXSourcePitch  then pcall(function() obj:setSFXSourcePitch(id, %0.3f) end) end
+  ]], name, vol, pitch, vol, pitch, vol, pitch, file, file, vol, pitch, vol, pitch)
+
+  v:queueLuaCommand(cmd)
+end
+
+function Audio.playGunshot(v)
+  if not CFG.audioEnabled then return end
+  local source = {
+    file = CFG.sfxGunshotFile,
+    name = CFG.sfxGunshotName,
+    count = CFG.sfxGunshotPoolSize,
+  }
+  Audio.ensurePooledSources(v, source)
+  Audio.playPooledFile(v, CFG.sfxGunshotName, CFG.sfxGunshotVol, CFG.sfxGunshotPitch, CFG.sfxGunshotFile)
 end
 
 function Audio.stopId(v, name)
