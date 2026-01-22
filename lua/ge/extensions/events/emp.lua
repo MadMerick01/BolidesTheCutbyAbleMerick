@@ -52,6 +52,7 @@ local AUDIO = {
   name = "empTrigger",
   volume = 1.0,
   pitch = 1.0,
+  poolSize = 4,
 }
 
 local Audio = {}
@@ -64,63 +65,82 @@ local function _resolveAudioVeh(v)
   return _getPlayerVeh() or v
 end
 
-function Audio.ensureSources(v, sources)
+function Audio.ensurePooledSources(v, source)
   v = _resolveAudioVeh(v)
   if not v or not v.queueLuaCommand then return end
-  sources = sources or {}
+  if not source or not source.name or not source.file then return end
 
-  local lines = {
-    "_G.__empAudio = _G.__empAudio or { ids = {} }",
-    "local A = _G.__empAudio.ids",
-    "local function mk(path, name)",
-    "  if A[name] then return end",
-    "  local id = obj:createSFXSource(path, \"Audio2D\", name, 0)",
-    "  A[name] = id",
-    "end"
-  }
+  local poolSize = tonumber(source.count) or tonumber(source.poolSize) or 4
+  poolSize = math.max(1, math.floor(poolSize))
+  local name = tostring(source.name)
+  local file = tostring(source.file)
 
-  for _, source in ipairs(sources) do
-    if source and source.file and source.name then
-      lines[#lines + 1] = string.format("mk(%q, %q)", source.file, source.name)
+  local cmd = string.format([[
+    _G.__empAudio = _G.__empAudio or { ids = {}, pools = {} }
+    local A = _G.__empAudio.ids
+    local P = _G.__empAudio.pools
+    local function mk(path, nm)
+      if A[nm] then return end
+      local id = obj:createSFXSource(path, "Audio2D", nm, 0)
+      A[nm] = id
     end
-  end
+    local base = %q
+    local path = %q
+    local count = %d
+    P[base] = P[base] or { ids = {}, index = 1 }
+    local pool = P[base]
+    for i = 1, count do
+      local nm = base .. "_" .. tostring(i)
+      mk(path, nm)
+      pool.ids[i] = nm
+    end
+    if (pool.index or 1) < 1 or (pool.index or 1) > count then
+      pool.index = 1
+    end
+  ]], name, file, poolSize)
 
-  v:queueLuaCommand(table.concat(lines, "\n"))
+  v:queueLuaCommand(cmd)
 end
 
 function Audio.ensureEmp(v)
-  Audio.ensureSources(v, {
-    { file = AUDIO.file, name = AUDIO.name },
+  Audio.ensurePooledSources(v, {
+    file = AUDIO.file,
+    name = AUDIO.name,
+    count = AUDIO.poolSize,
   })
 end
 
-function Audio.playId(v, name, vol, pitch, fileFallback)
+function Audio.playPooledFile(v, name, vol, pitch, file)
   v = _resolveAudioVeh(v)
   if not v or not v.queueLuaCommand then return end
   vol = tonumber(vol) or 1.0
   pitch = tonumber(pitch) or 1.0
   name = tostring(name)
-  fileFallback = tostring(fileFallback or "")
+  file = tostring(file or "")
 
   local cmd = string.format([[
     if not (_G.__empAudio and _G.__empAudio.ids) then return end
-    local id = _G.__empAudio.ids[%q]
+    local A = _G.__empAudio.ids
+    local P = _G.__empAudio.pools or {}
+    local pool = P[%q]
+    if not pool or not pool.ids or #pool.ids == 0 then return end
+    local idx = pool.index or 1
+    if idx > #pool.ids then idx = 1 end
+    local nm = pool.ids[idx]
+    pool.index = idx + 1
+    if pool.index > #pool.ids then pool.index = 1 end
+    local id = A[nm]
     if not id then return end
 
     if obj.setSFXSourceLooping then pcall(function() obj:setSFXSourceLooping(id, false) end) end
     if obj.setSFXSourceLoop then pcall(function() obj:setSFXSourceLoop(id, false) end) end
-    if obj.stopSFX then pcall(function() obj:stopSFX(id) end) end
 
     if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 1.0) end) end
     if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end
     if obj.setVolume then         pcall(function() obj:setVolume(id, 1.0) end) end
 
     local played = false
-    if obj.playSFXOnce and %q ~= "" then
-      played = played or pcall(function() obj:playSFXOnce(%q, 0, %0.3f, %0.3f) end)
-    end
-
-    if (not played) and obj.playSFX then
+    if obj.playSFX then
       played = played or pcall(function() obj:playSFX(id) end)
       played = played or pcall(function() obj:playSFX(id, 0) end)
       played = played or pcall(function() obj:playSFX(id, false) end)
@@ -130,16 +150,21 @@ function Audio.playId(v, name, vol, pitch, fileFallback)
       played = played or pcall(function() obj:playSFX(id, 0, false, %0.3f, %0.3f) end)
     end
 
+    if (not played) and obj.playSFXOnce and %q ~= "" then
+      pcall(function() obj:playSFXOnce(%q, 0, %0.3f, %0.3f) end)
+    end
+
     if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, %0.3f) end) end
     if obj.setSFXSourcePitch  then pcall(function() obj:setSFXSourcePitch(id, %0.3f) end) end
-  ]], name, fileFallback, fileFallback, vol, pitch, vol, pitch, vol, pitch, vol, pitch, vol, pitch)
+  ]], name, vol, pitch, vol, pitch, vol, pitch, file, file, vol, pitch, vol, pitch)
 
   v:queueLuaCommand(cmd)
 end
 
 function Audio.playEmp(v)
   if not AUDIO.file or AUDIO.file == "" then return end
-  Audio.playId(v, AUDIO.name, AUDIO.volume, AUDIO.pitch, AUDIO.file)
+  Audio.ensureEmp(v)
+  Audio.playPooledFile(v, AUDIO.name, AUDIO.volume, AUDIO.pitch, AUDIO.file)
 end
 
 -- =========================
