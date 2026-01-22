@@ -17,20 +17,20 @@ local function getMoneySafe()
 end
 
 local function setMoneySafe(amount)
-  if not career_modules_playerAttributes or not career_modules_playerAttributes.setAttributeValue then
+  if not career_modules_playerAttributes or not career_modules_playerAttributes.setAttributes then
     return false
   end
 
-  local ok = pcall(career_modules_playerAttributes.setAttributeValue, "money", amount)
+  local ok = pcall(career_modules_playerAttributes.setAttributes, { money = amount })
   return ok
 end
 
 local function addMoneySafe(delta)
-  if not career_modules_playerAttributes or not career_modules_playerAttributes.addAttributeValue then
+  if not career_modules_playerAttributes or not career_modules_playerAttributes.addAttributes then
     return false
   end
 
-  local ok = pcall(career_modules_playerAttributes.addAttributeValue, "money", delta)
+  local ok = pcall(career_modules_playerAttributes.addAttributes, { money = delta })
   return ok
 end
 
@@ -76,6 +76,10 @@ function M.isCareerActive()
   local ok, active = pcall(function()
     if careerActive == true then
       return true
+    end
+
+    if career_career and career_career.isActive then
+      return career_career.isActive()
     end
 
     if career_modules_playerAttributes then
