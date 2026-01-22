@@ -11,9 +11,13 @@ angular.module('beamng.apps')
       controller: function ($scope, $element) {
         if (window.bngApi && bngApi.engineLua) {
           bngApi.engineLua(
-            'extensions.load("bolidesTheCut");' +
-            'if extensions.bolidesTheCut and extensions.bolidesTheCut.setWindowVisible then ' +
-              'extensions.bolidesTheCut.setWindowVisible(true);' +
+            'if extensions and extensions.load then ' +
+              'if not (extensions.isExtensionLoaded and extensions.isExtensionLoaded("bolidesTheCut")) then ' +
+                'extensions.load("bolidesTheCut");' +
+              'end;' +
+              'if extensions.bolidesTheCut and extensions.bolidesTheCut.setWindowVisible then ' +
+                'extensions.bolidesTheCut.setWindowVisible(true);' +
+              'end;' +
             'end'
           );
         }

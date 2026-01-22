@@ -950,12 +950,6 @@ local function ensureBannerTexture(imgui)
     return
   end
 
-  tex = tryLoadTexture(imgui.LoadTexture, CFG.bannerImagePath)
-  if tex then
-    UI.bannerTexture = tex
-    return
-  end
-
   UI.bannerLoadFailed = true
   missionLog("W", "Failed to load GUI banner texture: " .. tostring(CFG.bannerImagePath))
 end
