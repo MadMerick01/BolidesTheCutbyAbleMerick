@@ -69,8 +69,16 @@ local function _getAudioHelper()
 end
 
 local function _queue(veh, cmd)
-  if not veh or not veh.queueLuaCommand then return end
-  return pcall(function() veh:queueLuaCommand(cmd) end)
+  if not veh then return end
+  if veh.queueLuaCommand then
+    return pcall(function() veh:queueLuaCommand(cmd) end)
+  end
+  if be and be.queueObjectLuaCommand and veh.getID then
+    local ok, id = pcall(function() return veh:getID() end)
+    if ok and id then
+      return pcall(function() be:queueObjectLuaCommand(id, cmd) end)
+    end
+  end
 end
 
 local function _buildImpactCmd(impactPos, approachDir, impactForce, impactForceMultiplier, explosionRadius, explosionForce, explosionDirectionInversionCoef)
