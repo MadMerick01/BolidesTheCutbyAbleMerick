@@ -333,14 +333,19 @@ function M.trigger(args)
   end
 
   local veh = _vehById(args.playerId)
-  if not _isValidVeh(veh) or not veh.queueLuaCommand then
+  if not _isValidVeh(veh) then
     return false, "invalid player vehicle"
   end
 
   local cfg = _mergeCfg(args)
   local payload = _mkPayload(cfg)
 
-  local ok = pcall(function() veh:queueLuaCommand(payload) end)
+  local ok = false
+  if veh.queueLuaCommand then
+    ok = pcall(function() veh:queueLuaCommand(payload) end)
+  elseif be and be.queueObjectLuaCommand then
+    ok = pcall(function() be:queueObjectLuaCommand(veh:getID(), payload) end)
+  end
   if not ok then
     return false, "queueLuaCommand failed"
   end
