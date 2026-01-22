@@ -923,17 +923,31 @@ end
 
 local function ensureBannerTexture(imgui)
   if UI.bannerTexture or UI.bannerLoadFailed then return end
-  if not imgui or type(imgui.LoadTexture) ~= "function" then
+  if not imgui then
     UI.bannerLoadFailed = true
     return
   end
-  local ok, tex = pcall(imgui.LoadTexture, CFG.bannerImagePath)
-  if ok and tex then
-    UI.bannerTexture = tex
-  else
-    UI.bannerLoadFailed = true
-    missionLog("W", "Failed to load GUI banner texture: " .. tostring(CFG.bannerImagePath))
+
+  -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
+  local handler = imgui.ImTextureHandler
+  if handler then
+    local ok, tex = pcall(handler, CFG.bannerImagePath)
+    if ok and tex then
+      UI.bannerTexture = tex
+      return
+    end
   end
+
+  if type(imgui.LoadTexture) == "function" then
+    local ok, tex = pcall(imgui.LoadTexture, CFG.bannerImagePath)
+    if ok and tex then
+      UI.bannerTexture = tex
+      return
+    end
+  end
+
+  UI.bannerLoadFailed = true
+  missionLog("W", "Failed to load GUI banner texture: " .. tostring(CFG.bannerImagePath))
 end
 
 local function drawBanner(imgui)
