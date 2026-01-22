@@ -24,10 +24,6 @@ local CareerMoney = require("CareerMoney")
 local CFG = {
   windowTitle = "Bolides: The Cut",
   windowVisible = false,
-  bannerEnabled = true,
-  bannerImagePath = "/art/ui/bolides_the_cut/bolides_the_cut_banner.png",
-  bannerAspect = 0.562,
-  bannerMaxHeight = 210,
   apiDumpOutputDir = nil, -- Optional override (e.g. "C:/temp") for apiDump output.
 
   -- Debug marker gate (Codex-safe pattern)
@@ -92,10 +88,7 @@ local S = {
   uiShowAbout = false,
 }
 
-local UI = {
-  bannerTexture = nil,
-  bannerLoadFailed = false,
-}
+local UI = {}
 
 -- =========================
 -- Mission Info Message Wrapper (module scope)
@@ -921,55 +914,6 @@ local function handleAboutIntroAudio(showing)
   end
 end
 
-local function ensureBannerTexture(imgui)
-  if UI.bannerTexture or UI.bannerLoadFailed then return end
-  if not imgui then
-    UI.bannerLoadFailed = true
-    return
-  end
-
-  local function tryLoadTexture(loader, path)
-    if type(loader) == "function" then
-      local ok, tex = pcall(loader, path)
-      if ok and tex then
-        return tex
-      end
-    elseif type(loader) == "table" then
-      local ok, tex = pcall(function() return loader(path) end)
-      if ok and tex then
-        return tex
-      end
-    end
-    return nil
-  end
-
-  -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
-  local tex = tryLoadTexture(imgui.ImTextureHandler, CFG.bannerImagePath)
-  if tex then
-    UI.bannerTexture = tex
-    return
-  end
-
-  UI.bannerLoadFailed = true
-  missionLog("W", "Failed to load GUI banner texture: " .. tostring(CFG.bannerImagePath))
-end
-
-local function drawBanner(imgui)
-  if not CFG.bannerEnabled then return end
-  ensureBannerTexture(imgui)
-  if not UI.bannerTexture or type(imgui.Image) ~= "function" then return end
-  if type(imgui.GetContentRegionAvail) ~= "function" then return end
-  local avail = imgui.GetContentRegionAvail()
-  local width = avail and avail.x or 0
-  if not width or width <= 0 then return end
-  local height = width * (CFG.bannerAspect or 0.562)
-  if CFG.bannerMaxHeight and height > CFG.bannerMaxHeight then
-    height = CFG.bannerMaxHeight
-  end
-  imgui.Image(UI.bannerTexture, imgui.ImVec2(width, height))
-  imgui.Spacing()
-end
-
 -- =========================
 -- GUI (safe to call ONLY from onDrawDebug, and wrapped in pcall there)
 -- =========================
@@ -1017,8 +961,6 @@ local function drawGui()
   local openPtr = imgui.BoolPtr(CFG.windowVisible)
   if imgui.Begin(CFG.windowTitle, openPtr) then
     CFG.windowVisible = openPtr[0]
-
-    drawBanner(imgui)
 
     local baseTextScale = 1.05
 
