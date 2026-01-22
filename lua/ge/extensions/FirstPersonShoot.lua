@@ -315,6 +315,10 @@ function M.onDraw()
     return
   end
 
+  if imgui.SetMouseCursor and imgui.MouseCursor_None then
+    imgui.SetMouseCursor(imgui.MouseCursor_None)
+  end
+
   _drawCrosshair(imgui)
 
   local io = imgui.GetIO and imgui.GetIO() or nil
