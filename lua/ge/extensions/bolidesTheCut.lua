@@ -928,22 +928,32 @@ local function ensureBannerTexture(imgui)
     return
   end
 
-  -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
-  local handler = imgui.ImTextureHandler
-  if type(handler) == "function" then
-    local ok, tex = pcall(handler, CFG.bannerImagePath)
-    if ok and tex then
-      UI.bannerTexture = tex
-      return
+  local function tryLoadTexture(loader, path)
+    if type(loader) == "function" then
+      local ok, tex = pcall(loader, path)
+      if ok and tex then
+        return tex
+      end
+    elseif type(loader) == "table" then
+      local ok, tex = pcall(function() return loader(path) end)
+      if ok and tex then
+        return tex
+      end
     end
+    return nil
   end
 
-  if type(imgui.LoadTexture) == "function" then
-    local ok, tex = pcall(imgui.LoadTexture, CFG.bannerImagePath)
-    if ok and tex then
-      UI.bannerTexture = tex
-      return
-    end
+  -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
+  local tex = tryLoadTexture(imgui.ImTextureHandler, CFG.bannerImagePath)
+  if tex then
+    UI.bannerTexture = tex
+    return
+  end
+
+  tex = tryLoadTexture(imgui.LoadTexture, CFG.bannerImagePath)
+  if tex then
+    UI.bannerTexture = tex
+    return
   end
 
   UI.bannerLoadFailed = true
