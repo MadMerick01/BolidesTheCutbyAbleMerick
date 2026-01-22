@@ -421,6 +421,7 @@ function M.trigger(args)
   if cfg.aiDisableDurationSec and cfg.aiDisableDurationSec > 0 then
     _queue(playerVeh, _cmdAiDisable())
     st.aiDisableEnd = now + cfg.aiDisableDurationSec
+    st.aiDisableApplied = true
   end
 
   return true
@@ -431,7 +432,10 @@ function M.cancel(playerId)
   local veh = _vehById(playerId)
   if _isValidVeh(veh) then
     _queue(veh, _cmdEmpEnd())
-    _queue(veh, _cmdAiRestore())
+    local st = active[playerId]
+    if st and st.aiDisableApplied then
+      _queue(veh, _cmdAiRestore())
+    end
     _queue(veh, "obj:setPlanets({})")
   end
   active[playerId] = nil
