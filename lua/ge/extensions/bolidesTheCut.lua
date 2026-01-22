@@ -930,7 +930,7 @@ local function ensureBannerTexture(imgui)
 
   -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
   local handler = imgui.ImTextureHandler
-  if handler then
+  if type(handler) == "function" then
     local ok, tex = pcall(handler, CFG.bannerImagePath)
     if ok and tex then
       UI.bannerTexture = tex
