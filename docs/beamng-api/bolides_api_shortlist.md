@@ -6,6 +6,16 @@ This is the small list of BeamNG APIs Codex should consult first for this mod. C
 - [ ] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `obj:createSFXSource(...)`
 - [ ] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `obj:playSFX(...)`
 - [ ] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `obj:playSFXOnce(...)`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `forEachAudioChannel(...)`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `getAudioChannelsVolume(...)`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `setAudioChannelsVolume(...)`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `sfxCreateDevice(...)`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `testSounds(...)`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `core_audio.*`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `core_audioRibbon.*`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `core_sounds.*`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `ui_audio.*`
+- [x] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `core_settings_audio.*`
 
 ## Spawning
 - [ ] Verified in dump · [ ] Used in mod · [ ] Wrapped by compat helper — `core_vehicles.spawnNewVehicle(...)`
