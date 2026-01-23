@@ -83,6 +83,7 @@ local S = {
   hudThreat = nil,
   hudDangerReason = nil,
   hudShotgunMessage = "Aim carefully",
+  hudShotgunHitPoint = "Raycast hit: --",
 
   uiShowWeapons = false,
   uiShowAbout = false,
@@ -172,6 +173,13 @@ local function ensureMissionInfo()
   end
 
   return true
+end
+
+local function formatHitPoint(pos)
+  if not pos or type(pos) ~= "table" or not pos.x or not pos.y or not pos.z then
+    return "Raycast hit: --"
+  end
+  return string.format("Raycast hit: %.2f, %.2f, %.2f", pos.x, pos.y, pos.z)
 end
 
 local function closeMissionInfoDialogue()
@@ -1090,6 +1098,8 @@ local function drawGui()
             end
           end
 
+          imgui.TextWrapped(S.hudShotgunHitPoint or "Raycast hit: --")
+
           if not aimEnabled then
             imgui.TextWrapped(S.hudShotgunMessage or "Unholster to aim.")
           else
@@ -1413,7 +1423,8 @@ function M.onExtensionLoaded()
         return consumeHudAmmo("beretta1301", amount or 1)
       end,
       getPlayerVeh = getPlayerVeh,
-      onShot = function(ok, info)
+      onShot = function(ok, info, hitPos)
+        S.hudShotgunHitPoint = formatHitPoint(hitPos)
         if ok then
           S.hudShotgunMessage = "DIRECT HIT"
         else

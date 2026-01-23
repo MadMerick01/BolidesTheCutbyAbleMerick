@@ -222,7 +222,7 @@ local function _fireShot()
   local ammo = callbacks.getAmmo and callbacks.getAmmo() or nil
   if ammo and ammo <= 0 then
     if callbacks.onShot then
-      callbacks.onShot(false, "out_of_ammo")
+      callbacks.onShot(false, "out_of_ammo", nil)
     end
     return
   end
@@ -237,7 +237,7 @@ local function _fireShot()
   local ray = getCameraMouseRay and getCameraMouseRay() or nil
   if not camPos or not ray or not ray.dir then
     if callbacks.onShot then
-      callbacks.onShot(false, "ray_unavailable")
+      callbacks.onShot(false, "ray_unavailable", nil)
     end
     return
   end
@@ -245,7 +245,7 @@ local function _fireShot()
   local rayDir = _vec3From(ray.dir)
   if not rayDir or rayDir:length() < 0.001 then
     if callbacks.onShot then
-      callbacks.onShot(false, "ray_invalid")
+      callbacks.onShot(false, "ray_invalid", nil)
     end
     return
   end
@@ -289,7 +289,7 @@ local function _fireShot()
     end
     if not _isValidVeh(targetVeh) then
       if callbacks.onShot then
-        callbacks.onShot(false, "no_vehicle_hit")
+        callbacks.onShot(false, "no_vehicle_hit", hitPos)
       end
       return
     end
@@ -297,14 +297,14 @@ local function _fireShot()
 
   if playerVeh and targetVeh:getID() == playerVeh:getID() then
     if callbacks.onShot then
-      callbacks.onShot(false, "self_hit_blocked")
+      callbacks.onShot(false, "self_hit_blocked", hitPos)
     end
     return
   end
 
   if not hitPos then
     if callbacks.onShot then
-      callbacks.onShot(false, "no_hit_position")
+      callbacks.onShot(false, "no_hit_position", nil)
     end
     return
   end
@@ -319,7 +319,7 @@ local function _fireShot()
   })
 
   if callbacks.onShot then
-    callbacks.onShot(ok and true or false, info)
+    callbacks.onShot(ok and true or false, info, hitPos)
   end
 end
 
