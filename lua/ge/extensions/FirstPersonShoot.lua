@@ -12,6 +12,8 @@ local CFG = {
   crosshairSize = 7.0,
   crosshairThickness = 2.0,
   rayStartOffset = 3.0,
+  targetSnapRadius = 6.0,
+  accuracyRadius = 1.5,
 }
 
 local state = {
@@ -45,6 +47,79 @@ local function _vec3From(v)
     return vec3(v[1], v[2], v[3])
   end
   return vec3(v)
+end
+
+local function _listVehicles()
+  if not scenetree or not scenetree.findClassObjects or not scenetree.findObject then
+    return {}
+  end
+  local vehicles = {}
+  local refs = scenetree.findClassObjects("BeamNGVehicle") or {}
+  for i = 1, #refs do
+    local obj = scenetree.findObject(refs[i])
+    if _isValidVeh(obj) then
+      vehicles[#vehicles + 1] = obj
+    end
+  end
+  return vehicles
+end
+
+local function _findSnapTargetNearPoint(point, playerVeh)
+  if not point then return nil end
+  local playerId = playerVeh and playerVeh.getID and playerVeh:getID() or nil
+  local bestVeh = nil
+  local bestDist = nil
+  local maxDist = CFG.targetSnapRadius or 0
+  if maxDist <= 0 then return nil end
+  local vehicles = _listVehicles()
+  for i = 1, #vehicles do
+    local veh = vehicles[i]
+    if veh and (not playerId or veh:getID() ~= playerId) then
+      local pos = veh:getPosition()
+      if pos then
+        local dist = (pos - point):length()
+        if dist <= maxDist and (not bestDist or dist < bestDist) then
+          bestVeh = veh
+          bestDist = dist
+        end
+      end
+    end
+  end
+  return bestVeh
+end
+
+local function _findSnapTargetAlongRay(rayStart, rayDir, maxDistance, playerVeh)
+  if not rayStart or not rayDir then return nil end
+  local playerId = playerVeh and playerVeh.getID and playerVeh:getID() or nil
+  local maxDist = CFG.targetSnapRadius or 0
+  if maxDist <= 0 then return nil end
+  local bestVeh = nil
+  local bestRayDist = nil
+  local bestAlong = nil
+  local vehicles = _listVehicles()
+  for i = 1, #vehicles do
+    local veh = vehicles[i]
+    if veh and (not playerId or veh:getID() ~= playerId) then
+      local pos = veh:getPosition()
+      if pos then
+        local toPos = pos - rayStart
+        local along = toPos:dot(rayDir)
+        if along >= 0 and (not maxDistance or along <= maxDistance) then
+          local closestPoint = rayStart + (rayDir * along)
+          local dist = (pos - closestPoint):length()
+          if dist <= maxDist and (not bestRayDist or dist < bestRayDist) then
+            bestVeh = veh
+            bestRayDist = dist
+            bestAlong = along
+          end
+        end
+      end
+    end
+  end
+  if bestVeh and bestAlong then
+    return bestVeh, rayStart + (rayDir * bestAlong)
+  end
+  return nil
 end
 
 local function _getAimBlockReason()
@@ -205,15 +280,21 @@ local function _fireShot()
     hitPos = rayStartPos + (rayDir * hitDist)
   end
 
+  local playerVeh = callbacks.getPlayerVeh and callbacks.getPlayerVeh() or nil
   local targetVeh = objId and be:getObjectByID(objId) or nil
   if not _isValidVeh(targetVeh) then
-    if callbacks.onShot then
-      callbacks.onShot(false, "no_vehicle_hit")
+    targetVeh = _findSnapTargetNearPoint(hitPos, playerVeh)
+    if not targetVeh then
+      targetVeh, hitPos = _findSnapTargetAlongRay(rayStartPos, rayDir, CFG.maxDistance, playerVeh)
     end
-    return
+    if not _isValidVeh(targetVeh) then
+      if callbacks.onShot then
+        callbacks.onShot(false, "no_vehicle_hit")
+      end
+      return
+    end
   end
 
-  local playerVeh = callbacks.getPlayerVeh and callbacks.getPlayerVeh() or nil
   if playerVeh and targetVeh:getID() == playerVeh:getID() then
     if callbacks.onShot then
       callbacks.onShot(false, "self_hit_blocked")
@@ -233,8 +314,8 @@ local function _fireShot()
     sourcePos = camPos,
     impactPos = hitPos,
     approachDir = rayDir,
-    accuracyRadius = 0.0,
-    applyDamage = false,
+    accuracyRadius = CFG.accuracyRadius or 0.0,
+    applyDamage = true,
   })
 
   if callbacks.onShot then
