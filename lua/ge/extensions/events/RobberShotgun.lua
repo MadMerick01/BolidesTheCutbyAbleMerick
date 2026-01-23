@@ -9,6 +9,7 @@
 local M = {}
 
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
+local PreloadEvent = require("lua/ge/extensions/events/PreloadEvent")
 
 local CFG = nil
 local Host = nil
@@ -36,6 +37,9 @@ local R = {
   closeTimer = 0,
   robberSlowTimer = 0,
 }
+
+local ROBBER_MODEL = "roamer"
+local ROBBER_CONFIG = "robber_light.pc"
 
 local function log(msg)
   R.status = msg or ""
@@ -160,8 +164,8 @@ local function resolveVehicleId(result)
 end
 
 local function spawnVehicleAt(transform)
-  local model = "roamer"
-  local config = "robber_light.pc"
+  local model = ROBBER_MODEL
+  local config = ROBBER_CONFIG
 
   if core_vehicles and core_vehicles.spawnNewVehicle then
     local ok, res = pcall(function()
@@ -456,6 +460,22 @@ function M.getSpawnMethod()
   return R.spawnMethod
 end
 
+function M.getPreloadSpec()
+  return {
+    eventName = "RobberShotgun",
+    model = ROBBER_MODEL,
+    config = ROBBER_CONFIG,
+    prewarmAudio = function(playerVeh)
+      local audio = getAudioHelper()
+      if audio then
+        audio.ensureSources(playerVeh, {
+          { file = AUDIO.eventStartFile, name = AUDIO.eventStartName },
+        })
+      end
+    end,
+  }
+end
+
 function M.isActive()
   return R.active == true
 end
@@ -484,7 +504,16 @@ function M.triggerManual()
   log("Using FKB 200 (" .. tostring(mode) .. ")")
 
   local tf = makeSpawnTransform(pv, R.spawnPos)
-  local id = spawnVehicleAt(tf)
+  local id = nil
+  if PreloadEvent and PreloadEvent.consume then
+    id = PreloadEvent.consume("RobberShotgun", tf)
+    if id then
+      R.spawnMethod = "PreloadEvent"
+    end
+  end
+  if not id then
+    id = spawnVehicleAt(tf)
+  end
   if not id then return false end
 
   R.active = true

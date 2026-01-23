@@ -3,6 +3,7 @@ local M = {}
 local CFG = nil
 local Host = nil
 local Events = {}
+local PreloadRequest = nil
 
 local STATE = {
   intervalSec = 180,
@@ -11,6 +12,7 @@ local STATE = {
   nextIndex = 1,
   retryDelay = 0.5,
   retryTimer = 0,
+  preloadRequested = false,
 }
 
 local EVENT_ORDER = {
@@ -56,15 +58,17 @@ local function triggerEvent(name)
   return false
 end
 
-function M.init(hostCfg, hostApi, eventModules)
+function M.init(hostCfg, hostApi, eventModules, preloadRequestFn)
   CFG = hostCfg
   Host = hostApi
   Events = eventModules or Events
+  PreloadRequest = preloadRequestFn
 
   STATE.countdown = STATE.intervalSec
   STATE.activeEventName = nil
   STATE.retryTimer = 0
   STATE.nextIndex = 1
+  STATE.preloadRequested = false
 end
 
 function M.getCountdown()
@@ -92,8 +96,20 @@ function M.update(dtSim)
       STATE.activeEventName = nil
       STATE.countdown = STATE.intervalSec
       STATE.retryTimer = 0
+      STATE.preloadRequested = false
     end
     return
+  end
+
+  if not STATE.preloadRequested and type(PreloadRequest) == "function" then
+    local nextName = M.getNextEventName()
+    if nextName then
+      PreloadRequest(nextName, {
+        windowStart = os.clock(),
+        windowSeconds = STATE.intervalSec,
+      })
+      STATE.preloadRequested = true
+    end
   end
 
   if STATE.countdown > 0 then
@@ -113,6 +129,7 @@ function M.update(dtSim)
       STATE.activeEventName = nextName
       STATE.retryTimer = 0
       STATE.nextIndex = (STATE.nextIndex % #EVENT_ORDER) + 1
+      STATE.preloadRequested = false
     else
       STATE.retryTimer = STATE.retryDelay
       STATE.countdown = 0

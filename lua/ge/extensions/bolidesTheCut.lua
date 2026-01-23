@@ -14,6 +14,7 @@ local BoldiePacing = require("lua/ge/extensions/events/BoldiePacing")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
+local PreloadEvent = require("lua/ge/extensions/events/PreloadEvent")
 local FirstPersonShoot = require("lua/ge/extensions/FirstPersonShoot")
 local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
@@ -1359,6 +1360,25 @@ local function drawGui()
       end
 
       imgui.Spacing()
+      imgui.Text("PreloadEvent debug:")
+      if PreloadEvent and PreloadEvent.getDebugState then
+        local preloadDebug = PreloadEvent.getDebugState()
+        imgui.Text(string.format("Pending: %s", tostring(preloadDebug.pending)))
+        imgui.Text(string.format("Preloaded: %s", tostring(preloadDebug.preloaded)))
+        imgui.Text(string.format("Preloaded ID: %s", tostring(preloadDebug.preloadedId)))
+        imgui.Text(string.format("Placed: %s", tostring(preloadDebug.placed)))
+        imgui.Text(string.format("Direction: %s", tostring(preloadDebug.direction)))
+        imgui.Text(string.format("Window start: %s", tostring(preloadDebug.windowStart)))
+        imgui.Text(string.format("Window seconds: %s", tostring(preloadDebug.windowSeconds)))
+        imgui.Text(string.format("Min delay: %s", tostring(preloadDebug.minDelay)))
+        imgui.Text(string.format("Last attempt: %s", tostring(preloadDebug.lastAttemptAt)))
+        imgui.Text(string.format("In progress: %s", tostring(preloadDebug.preloadInProgress)))
+        imgui.Text(string.format("UI override: %s", tostring(preloadDebug.uiGateOverride)))
+      else
+        imgui.Text("PreloadEvent debug unavailable.")
+      end
+
+      imgui.Spacing()
       imgui.Text("Back breadcrumbs ready:")
       for i = 1, #backMetersList do
         local backMeters = backMetersList[i]
@@ -1410,7 +1430,12 @@ function M.onExtensionLoaded()
     BoldiePacing.init(CFG, EVENT_HOST, {
       RobberFKB200mEMP = RobberFKB200mEMP,
       RobberShotgun = RobberShotgun,
-    })
+    }, function(nextName, opts)
+      return M.requestEventPreloadByName(nextName, opts)
+    end)
+  end
+  if PreloadEvent and PreloadEvent.init then
+    PreloadEvent.init(CFG, EVENT_HOST)
   end
 
   if FirstPersonShoot and FirstPersonShoot.init then
@@ -1482,6 +1507,37 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if BoldiePacing and BoldiePacing.update then
     BoldiePacing.update(dtSim)
   end
+  if PreloadEvent and PreloadEvent.update then
+    PreloadEvent.update(dtSim)
+  end
+end
+
+function M.requestEventPreload(spec)
+  if not (PreloadEvent and PreloadEvent.request) then
+    return false
+  end
+  return PreloadEvent.request(spec)
+end
+
+function M.requestEventPreloadByName(name, opts)
+  if not name then return false end
+  local spec = nil
+  if name == "RobberFKB200mEMP" and RobberFKB200mEMP and RobberFKB200mEMP.getPreloadSpec then
+    spec = RobberFKB200mEMP.getPreloadSpec()
+  elseif name == "RobberShotgun" and RobberShotgun and RobberShotgun.getPreloadSpec then
+    spec = RobberShotgun.getPreloadSpec()
+  end
+  if not spec then
+    return false
+  end
+  if type(opts) == "table" then
+    for k, v in pairs(opts) do
+      if spec[k] == nil then
+        spec[k] = v
+      end
+    end
+  end
+  return M.requestEventPreload(spec)
 end
 
 function M.startEvent(name, cfg)
