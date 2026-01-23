@@ -119,14 +119,8 @@ local function _extractHitInfo(hit)
 end
 
 local function _applyRecoilKick()
-  if not MoveManager then return end
-  if MoveManager.pitchRelative ~= nil then
-    MoveManager.pitchRelative = MoveManager.pitchRelative - CFG.recoilPitchKick
-    return
-  end
-  if MoveManager.yawRelative ~= nil then
-    MoveManager.yawRelative = MoveManager.yawRelative + (CFG.recoilPitchKick * 0.5)
-  end
+  -- Recoil kick disabled temporarily to focus on accuracy tuning.
+  return
 end
 
 local function _playShotAudio()
