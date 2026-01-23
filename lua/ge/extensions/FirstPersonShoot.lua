@@ -11,6 +11,7 @@ local CFG = {
   recoilPitchKick = 4.0,
   crosshairSize = 7.0,
   crosshairThickness = 2.0,
+  rayStartOffset = 3.0,
 }
 
 local state = {
@@ -182,10 +183,26 @@ local function _fireShot()
   _playShotAudio()
   _applyRecoilKick()
 
-  local hit = cameraMouseRayCast and cameraMouseRayCast(true) or nil
+  local rayStartPos = camPos
+  local rayEndPos = camPos + (rayDir * CFG.maxDistance)
+  local hit = nil
+
+  if castRay and CFG.rayStartOffset and CFG.rayStartOffset > 0 then
+    local offsetStartPos = camPos + (rayDir * CFG.rayStartOffset)
+    local ok, result = pcall(castRay, offsetStartPos, rayEndPos)
+    if ok and type(result) == "table" then
+      hit = result
+      rayStartPos = offsetStartPos
+    end
+  end
+
+  if not hit then
+    hit = cameraMouseRayCast and cameraMouseRayCast(true) or nil
+    rayStartPos = camPos
+  end
   local objId, hitPos, hitDist = _extractHitInfo(hit)
   if not hitPos and hitDist then
-    hitPos = camPos + (rayDir * hitDist)
+    hitPos = rayStartPos + (rayDir * hitDist)
   end
 
   local targetVeh = objId and be:getObjectByID(objId) or nil
@@ -217,6 +234,7 @@ local function _fireShot()
     impactPos = hitPos,
     approachDir = rayDir,
     accuracyRadius = 0.0,
+    applyDamage = false,
   })
 
   if callbacks.onShot then
