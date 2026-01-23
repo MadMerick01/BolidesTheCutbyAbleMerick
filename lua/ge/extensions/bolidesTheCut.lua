@@ -58,6 +58,9 @@ local CFG = {
   -- GUI threat coloring
   threatDistanceRobber = 50.0,
   threatDistanceFireAttack = 100.0,
+
+  -- Preload pacing
+  preloadInitialDelaySec = 60.0,
 }
 
 -- =========================
