@@ -13,6 +13,7 @@ local STATE = {
   retryDelay = 0.5,
   retryTimer = 0,
   preloadRequested = false,
+  preloadDelaySec = 60,
 }
 
 local EVENT_ORDER = {
@@ -69,6 +70,7 @@ function M.init(hostCfg, hostApi, eventModules, preloadRequestFn)
   STATE.retryTimer = 0
   STATE.nextIndex = 1
   STATE.preloadRequested = false
+  STATE.preloadDelaySec = (CFG and CFG.preloadInitialDelaySec) or STATE.preloadDelaySec or 60
 end
 
 function M.getCountdown()
@@ -107,6 +109,7 @@ function M.update(dtSim)
       PreloadRequest(nextName, {
         windowStart = os.clock(),
         windowSeconds = STATE.intervalSec,
+        minDelay = STATE.preloadDelaySec,
       })
       STATE.preloadRequested = true
     end
