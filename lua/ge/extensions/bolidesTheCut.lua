@@ -1375,6 +1375,8 @@ local function drawGui()
         imgui.Text(string.format("Window seconds: %s", tostring(preloadDebug.windowSeconds)))
         imgui.Text(string.format("Min delay: %s", tostring(preloadDebug.minDelay)))
         imgui.Text(string.format("Last attempt: %s", tostring(preloadDebug.lastAttemptAt)))
+        imgui.Text(string.format("Attempts: %s / %s", tostring(preloadDebug.attemptCount), tostring(preloadDebug.maxAttempts)))
+        imgui.Text(string.format("UI token: %s (last attempted: %s)", tostring(preloadDebug.uiPauseToken), tostring(preloadDebug.lastUiPauseTokenAttempted)))
         imgui.Text(string.format("In progress: %s", tostring(preloadDebug.preloadInProgress)))
         imgui.Text(string.format("UI override: %s", tostring(preloadDebug.uiGateOverride)))
       else

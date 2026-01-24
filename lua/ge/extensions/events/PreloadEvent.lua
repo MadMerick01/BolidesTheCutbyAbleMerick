@@ -11,7 +11,11 @@ local S = {
   preloaded = nil,
   preloadInProgress = false,
   lastAttemptAt = 0,
-  attempted = false,
+  attemptCount = 0,
+  maxAttempts = 4,
+  lastUiPauseActive = false,
+  uiPauseToken = 0,
+  lastUiPauseTokenAttempted = 0,
   uiGateOverride = nil,
   windowStart = nil,
   windowSeconds = nil,
@@ -292,7 +296,12 @@ function M.request(opts)
   S.minDelay = tonumber(opts.minDelay) or 0
   S.preloaded = nil
   S.preloadInProgress = false
-  S.attempted = false
+  S.attemptCount = 0
+  S.maxAttempts = math.max(1, math.floor(tonumber(opts.maxAttempts) or S.maxAttempts or 4))
+  S.lastUiPauseActive = false
+  S.uiPauseToken = 0
+  S.lastUiPauseTokenAttempted = 0
+  S.lastAttemptAt = 0
   return true
 end
 
@@ -324,7 +333,12 @@ function M.clear()
   S.pending = nil
   S.preloaded = nil
   S.preloadInProgress = false
-  S.attempted = false
+  S.attemptCount = 0
+  S.maxAttempts = 4
+  S.lastUiPauseActive = false
+  S.uiPauseToken = 0
+  S.lastUiPauseTokenAttempted = 0
+  S.lastAttemptAt = 0
   S.windowStart = nil
   S.windowSeconds = nil
   S.minDelay = nil
@@ -349,7 +363,10 @@ function M.getDebugState()
     windowSeconds = S.windowSeconds,
     minDelay = S.minDelay,
     lastAttemptAt = S.lastAttemptAt,
-    attempted = S.attempted,
+    attemptCount = S.attemptCount,
+    maxAttempts = S.maxAttempts,
+    uiPauseToken = S.uiPauseToken,
+    lastUiPauseTokenAttempted = S.lastUiPauseTokenAttempted,
     preloadInProgress = S.preloadInProgress,
     uiGateOverride = S.uiGateOverride,
   }
@@ -378,8 +395,14 @@ function M.consume(eventName, transform)
 end
 
 function M.update(dtSim)
-  if not S.pending or S.preloaded or S.preloadInProgress then return end
-  if S.attempted then return end
+  if not S.pending or S.preloadInProgress then return end
+
+  if S.preloaded and not getObjById(S.preloaded.vehId) then
+    S.preloaded = nil
+  end
+  if S.preloaded then
+    return
+  end
 
   local now = os.clock()
   local windowStart = S.windowStart or now
@@ -394,14 +417,38 @@ function M.update(dtSim)
     M.clear()
     return
   end
-  if not detectUiPause() then return end
+
+  local uiPauseActive = detectUiPause()
+  if uiPauseActive and not S.lastUiPauseActive then
+    S.uiPauseToken = (S.uiPauseToken or 0) + 1
+  end
+  S.lastUiPauseActive = uiPauseActive
+
+  if not uiPauseActive then return end
+
+  if S.attemptCount >= (S.maxAttempts or 1) then
+    return
+  end
 
   if S.lastAttemptAt ~= 0 and (now - S.lastAttemptAt) < 1.0 then
     return
   end
+
+  local shouldAttempt = false
+  if S.attemptCount == 0 then
+    shouldAttempt = true
+  elseif (S.uiPauseToken or 0) > (S.lastUiPauseTokenAttempted or 0) then
+    shouldAttempt = true
+  end
+
+  if not shouldAttempt then
+    return
+  end
+
   S.lastAttemptAt = now
   S.preloadInProgress = true
-  S.attempted = true
+  S.attemptCount = (S.attemptCount or 0) + 1
+  S.lastUiPauseTokenAttempted = S.uiPauseToken or S.lastUiPauseTokenAttempted
 
   local res, err = attemptLightweightPreload(S.pending)
   if not res or not res.vehId then
@@ -427,7 +474,14 @@ function M.update(dtSim)
     createdAt = now,
   }
   S.preloadInProgress = false
-  log("Preloaded " .. tostring(S.pending.eventName) .. " via " .. tostring(res.placed) .. " (" .. tostring(res.direction) .. ")")
+  log(string.format(
+    "Preloaded %s via %s (%s) on attempt %d/%d",
+    tostring(S.pending.eventName),
+    tostring(res.placed),
+    tostring(res.direction),
+    tonumber(S.attemptCount) or 0,
+    tonumber(S.maxAttempts) or 0
+  ))
 end
 
 return M
