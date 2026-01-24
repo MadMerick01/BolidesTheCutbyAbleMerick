@@ -1,8 +1,6 @@
 -- PreloadEvent.lua
 -- Preloads vehicles + audio during UI pauses to avoid gameplay hitches.
 
-local SafeSpawn = require("lua/ge/extensions/events/safeSpawn")
-
 local M = {}
 
 local CFG = nil
@@ -13,6 +11,7 @@ local S = {
   preloaded = nil,
   preloadInProgress = false,
   lastAttemptAt = 0,
+  attempted = false,
   uiGateOverride = nil,
   windowStart = nil,
   windowSeconds = nil,
@@ -111,16 +110,93 @@ local function detectUiPause()
   return false
 end
 
-local function pickCardinalDirections()
-  return {
-    { name = "north", forward = vec3(0, 1, 0) },
-    { name = "south", forward = vec3(0, -1, 0) },
-    { name = "east", forward = vec3(1, 0, 0) },
-    { name = "west", forward = vec3(-1, 0, 0) },
-  }
+local function parsePlacement(res)
+  if type(res) ~= "table" then
+    return nil
+  end
+  if res.pos or res.rot then
+    return res
+  end
+  if res.position or res.rotation then
+    return { pos = res.position, rot = res.rotation }
+  end
+  if res.transform and (res.transform.pos or res.transform.rot) then
+    return res.transform
+  end
+  return nil
 end
 
-local function attemptSafeSpawn(opts)
+local function tryPickSpawnPoint(playerVeh, distance, tolerance)
+  if not spawn or not spawn.pickSpawnPoint then
+    return nil
+  end
+
+  local attempts = {
+    function()
+      return spawn.pickSpawnPoint()
+    end,
+    function()
+      return spawn.pickSpawnPoint(playerVeh)
+    end,
+    function()
+      return spawn.pickSpawnPoint(playerVeh, distance)
+    end,
+    function()
+      return spawn.pickSpawnPoint(playerVeh, distance, tolerance)
+    end,
+    function()
+      return spawn.pickSpawnPoint({
+        vehicle = playerVeh,
+        distance = distance,
+        tolerance = tolerance,
+      })
+    end,
+  }
+
+  for _, fn in ipairs(attempts) do
+    local ok, res = pcall(fn)
+    if ok then
+      local placement = parsePlacement(res)
+      if placement then
+        return placement
+      end
+    end
+  end
+
+  return nil
+end
+
+local function tryRelativePlacement(playerVeh, distance)
+  if not spawn or not spawn.calculateRelativeVehiclePlacement then
+    return nil
+  end
+
+  local attempts = {
+    function()
+      return spawn.calculateRelativeVehiclePlacement(playerVeh, distance)
+    end,
+    function()
+      return spawn.calculateRelativeVehiclePlacement({
+        vehicle = playerVeh,
+        distance = distance,
+      })
+    end,
+  }
+
+  for _, fn in ipairs(attempts) do
+    local ok, res = pcall(fn)
+    if ok then
+      local placement = parsePlacement(res)
+      if placement then
+        return placement
+      end
+    end
+  end
+
+  return nil
+end
+
+local function attemptLightweightPreload(opts)
   local playerVeh = getPlayerVeh()
   if not playerVeh then
     return nil, "no player vehicle"
@@ -129,16 +205,16 @@ local function attemptSafeSpawn(opts)
     return nil, "missing model"
   end
 
-  local playerPos = playerVeh:getPosition()
-  if not playerPos then
-    return nil, "no player position"
-  end
-
   local distance = tonumber(opts.distance) or 500
   local tolerance = tonumber(opts.tolerance) or 150
-  local searchRadius = tonumber(opts.searchRadius) or 2000
-  local maxAttempts = tonumber(opts.maxAttempts) or 900
-  local parkChance = tonumber(opts.parkChance) or 0.8
+
+  local placement = tryPickSpawnPoint(playerVeh, distance, tolerance)
+  if not placement then
+    placement = tryRelativePlacement(playerVeh, distance)
+  end
+  if not placement then
+    return nil, "no spawn placement"
+  end
 
   local options = {
     config = opts.config,
@@ -146,33 +222,25 @@ local function attemptSafeSpawn(opts)
     autoEnterVehicle = false,
   }
 
-  for _, dir in ipairs(pickCardinalDirections()) do
-    local res = SafeSpawn.spawn({
-      side = "infront",
-      model = opts.model,
-      options = options,
-      distance = distance,
-      tolerance = tolerance,
-      playerPos = playerPos,
-      playerForward = dir.forward,
-      preferParking = true,
-      parkChance = parkChance,
-      searchRadius = searchRadius,
-      maxAttempts = maxAttempts,
-    })
-    if res and res.veh then
-      return {
-        veh = res.veh,
-        vehId = res.vehId,
-        placed = res.placed,
-        direction = dir.name,
-        distanceTarget = res.distanceTarget,
-        tolerance = res.tolerance,
-      }, nil
-    end
+  local veh = core_vehicles.spawnNewVehicle(opts.model, options)
+  if not veh then
+    return nil, "vehicle spawn failed"
   end
 
-  return nil, "no safe spawn candidate"
+  if placement.pos or placement.rot then
+    safeTeleportVehicle(veh, placement.pos, placement.rot)
+  elseif spawn and spawn.teleportToLastRoad then
+    pcall(spawn.teleportToLastRoad, veh)
+  end
+
+  return {
+    veh = veh,
+    vehId = veh:getId(),
+    placed = placement and placement.pos and "spawnModule" or "teleport",
+    direction = nil,
+    distanceTarget = distance,
+    tolerance = tolerance,
+  }, nil
 end
 
 local function ensurePrewarmAudio(opts)
@@ -224,6 +292,7 @@ function M.request(opts)
   S.minDelay = tonumber(opts.minDelay) or 0
   S.preloaded = nil
   S.preloadInProgress = false
+  S.attempted = false
   return true
 end
 
@@ -255,6 +324,7 @@ function M.clear()
   S.pending = nil
   S.preloaded = nil
   S.preloadInProgress = false
+  S.attempted = false
   S.windowStart = nil
   S.windowSeconds = nil
   S.minDelay = nil
@@ -279,6 +349,7 @@ function M.getDebugState()
     windowSeconds = S.windowSeconds,
     minDelay = S.minDelay,
     lastAttemptAt = S.lastAttemptAt,
+    attempted = S.attempted,
     preloadInProgress = S.preloadInProgress,
     uiGateOverride = S.uiGateOverride,
   }
@@ -308,6 +379,7 @@ end
 
 function M.update(dtSim)
   if not S.pending or S.preloaded or S.preloadInProgress then return end
+  if S.attempted then return end
 
   local now = os.clock()
   local windowStart = S.windowStart or now
@@ -329,8 +401,9 @@ function M.update(dtSim)
   end
   S.lastAttemptAt = now
   S.preloadInProgress = true
+  S.attempted = true
 
-  local res, err = attemptSafeSpawn(S.pending)
+  local res, err = attemptLightweightPreload(S.pending)
   if not res or not res.vehId then
     S.preloadInProgress = false
     if err then log("Preload failed: " .. tostring(err)) end
