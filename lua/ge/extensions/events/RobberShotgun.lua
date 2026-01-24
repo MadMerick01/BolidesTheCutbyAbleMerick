@@ -412,6 +412,43 @@ local function randomShotDelay()
   return 0.7 + (math.random() * 1.8)
 end
 
+local function _garageMenuActive()
+  if not (gameplay_garageMode and gameplay_garageMode.getGarageMenuState) then
+    return false
+  end
+  local ok, state = pcall(gameplay_garageMode.getGarageMenuState)
+  if not ok then return false end
+  if state == nil or state == false then return false end
+  if type(state) == "string" then
+    local lowered = string.lower(state)
+    return lowered ~= "none" and lowered ~= "closed" and lowered ~= "inactive"
+  end
+  return true
+end
+
+local function _playerInGarageZone(pv)
+  if not pv or not pv.getPosition then return false end
+  local gm = career_modules_garageManager
+  if not gm then return false end
+
+  local pos = pv:getPosition()
+  if gm.isPositionInGarageZone and pos then
+    local ok, inZone = pcall(gm.isPositionInGarageZone, pos)
+    if ok and inZone then return true end
+  end
+
+  if gm.isSpawnedVehicleInGarageZone and pv.getID then
+    local ok, inZone = pcall(gm.isSpawnedVehicleInGarageZone, pv:getID())
+    if ok and inZone then return true end
+  end
+
+  return false
+end
+
+local function shouldAbortForGarage(pv)
+  return _garageMenuActive() or _playerInGarageZone(pv)
+end
+
 local function triggerShot(playerVeh, robberVeh)
   if not BulletDamage or not BulletDamage.trigger then
     log("WARN: BulletDamage module missing.")
@@ -545,6 +582,8 @@ function M.endEvent(reason)
     status = "Robber got away."
   elseif reason == "caught" then
     status = "Attacker caught."
+  elseif reason == "garage" then
+    status = "Threat cleared after towing to garage."
   end
   setHud(
     "safe",
@@ -589,6 +628,11 @@ function M.update(dtSim)
 
   local pv = getPlayerVeh()
   if not pv then return end
+
+  if shouldAbortForGarage(pv) then
+    M.endEvent("garage")
+    return
+  end
 
   local rp = robber:getPosition()
   local pp = pv:getPosition()
