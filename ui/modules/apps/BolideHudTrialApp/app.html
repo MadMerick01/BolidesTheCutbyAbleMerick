@@ -1,0 +1,132 @@
+<div class="bolide-hud-trial" ng-class="'threat-' + (hudTrial.threat || 'safe')">
+  <style>
+    .bolide-hud-trial {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      padding: 8px 12px;
+      box-sizing: border-box;
+      pointer-events: none;
+      font-family: "Rajdhani", "Orbitron", sans-serif;
+    }
+
+    .bolide-hud-trial__panel {
+      width: 360px;
+      max-width: min(40vw, 420px);
+      color: #f7f4e8;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-left-width: 4px;
+      border-radius: 6px;
+      padding: 12px 14px;
+      box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.35),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      background: linear-gradient(180deg, rgba(16, 42, 28, 0.92), rgba(7, 24, 16, 0.92));
+      backdrop-filter: blur(2px);
+    }
+
+    .bolide-hud-trial.threat-event .bolide-hud-trial__panel {
+      background: linear-gradient(180deg, rgba(74, 56, 16, 0.94), rgba(41, 28, 6, 0.94));
+      border-left-color: rgba(233, 177, 74, 0.9);
+    }
+
+    .bolide-hud-trial.threat-danger .bolide-hud-trial__panel {
+      background: linear-gradient(180deg, rgba(92, 16, 16, 0.96), rgba(48, 7, 7, 0.96));
+      border-left-color: rgba(255, 92, 92, 0.95);
+    }
+
+    .bolide-hud-trial.threat-safe .bolide-hud-trial__panel {
+      border-left-color: rgba(92, 215, 138, 0.9);
+    }
+
+    .bolide-hud-trial__title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      color: #f2d680;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+    }
+
+    .bolide-hud-trial__tagline {
+      font-size: 13px;
+      color: rgba(192, 226, 255, 0.9);
+      margin-bottom: 10px;
+    }
+
+    .bolide-hud-trial__grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .bolide-hud-trial__block {
+      padding: 8px 9px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .bolide-hud-trial__label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: rgba(255, 255, 255, 0.66);
+      margin-bottom: 2px;
+    }
+
+    .bolide-hud-trial__value {
+      font-size: 16px;
+      line-height: 1.25;
+      color: #ffffff;
+      word-break: break-word;
+    }
+
+    .bolide-hud-trial__wallet {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 6px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.86);
+    }
+
+    .bolide-hud-trial__wallet-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .bolide-hud-trial__danger-reason {
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(255, 210, 210, 0.92);
+    }
+  </style>
+
+  <div class="bolide-hud-trial__panel">
+    <div class="bolide-hud-trial__title">{{hudTrial.title}}</div>
+    <div class="bolide-hud-trial__tagline">{{hudTrial.tagline}}</div>
+
+    <div class="bolide-hud-trial__grid">
+      <div class="bolide-hud-trial__block">
+        <div class="bolide-hud-trial__label">Status</div>
+        <div class="bolide-hud-trial__value">{{hudTrial.status || '\u2014'}}</div>
+      </div>
+
+      <div class="bolide-hud-trial__block">
+        <div class="bolide-hud-trial__label">Instruction</div>
+        <div class="bolide-hud-trial__value">{{hudTrial.instruction || '\u2014'}}</div>
+
+        <div class="bolide-hud-trial__wallet">
+          <span>Wallet / MP</span>
+          <span class="bolide-hud-trial__wallet-value">${{hudTrial.wallet | number:0}}</span>
+        </div>
+
+        <div class="bolide-hud-trial__danger-reason" ng-if="hudTrial.dangerReason">
+          {{hudTrial.dangerReason}}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,9 @@
+{
+  "name": "BolideHudTrialApp",
+  "author": "Rowan",
+  "version": "0.1",
+  "description": "Trial HUD in the messages/tasks app container for Bolides: The Cut.",
+  "directive": "bolide-hud-trial-app",
+  "domElement": "<bolide-hud-trial-app></bolide-hud-trial-app>",
+  "types": ["messagesTasks"]
+}
