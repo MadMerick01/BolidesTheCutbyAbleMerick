@@ -18,6 +18,9 @@ angular.module('beamng.apps')
               'if extensions.bolidesTheCut and extensions.bolidesTheCut.setWindowVisible then ' +
                 'extensions.bolidesTheCut.setWindowVisible(true);' +
               'end;' +
+              'if extensions.bolidesTheCut and extensions.bolidesTheCut.requestHudTrialSnapshot then ' +
+                'extensions.bolidesTheCut.requestHudTrialSnapshot();' +
+              'end;' +
             'end'
           );
         }

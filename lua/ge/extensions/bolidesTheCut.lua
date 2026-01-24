@@ -330,6 +330,11 @@ end
 -- extensions.bolidesTheCut.setWindowVisible(true)
 function M.setWindowVisible(v)
   CFG.windowVisible = (v == true)
+  markHudTrialDirty()
+  if v == true then
+    ensureHudTrialAppVisible(true)
+    sendHudTrialPayload(true)
+  end
 end
 
 function M.setGuiStatusMessage(msg)
@@ -338,6 +343,13 @@ function M.setGuiStatusMessage(msg)
     return
   end
   S.guiStatusMessage = tostring(msg)
+end
+
+function M.requestHudTrialSnapshot()
+  markHudTrialDirty()
+  ensureHudTrialAppVisible(true)
+  sendHudTrialPayload(true)
+  return true
 end
 
 local function getPlayerVeh()
@@ -564,6 +576,127 @@ local function ensureHudState()
   end
 end
 
+local function getHudThreatLevel()
+  if S.hudThreat and S.hudThreat ~= "" then
+    return S.hudThreat
+  end
+  local threatState = getThreatState()
+  if threatState == "imminent" then
+    return "danger"
+  end
+  if threatState == "event" then
+    return "event"
+  end
+  return "safe"
+end
+
+local HUD_TRIAL = {
+  appName = "BolideHudTrialApp",
+  eventName = "bolideTheCutHudTrialUpdate",
+  dirty = true,
+  timeSinceEmit = math.huge,
+  emitInterval = 0.25,
+  forceEmitInterval = 1.0,
+  timeSinceEnsureVisible = math.huge,
+  ensureVisibleInterval = 2.0,
+  lastPayloadKey = nil,
+}
+
+local function hudTrialPayloadKey(payload)
+  return table.concat({
+    tostring(payload.title or ""),
+    tostring(payload.tagline or ""),
+    tostring(payload.status or ""),
+    tostring(payload.instruction or ""),
+    tostring(payload.threat or ""),
+    tostring(payload.dangerReason or ""),
+    tostring(payload.wallet or ""),
+  }, "|")
+end
+
+local function buildHudTrialPayload()
+  ensureHudState()
+  local walletAmount = tonumber(S.hudWallet) or 0
+  return {
+    title = CFG.windowTitle or "Bolides: The Cut",
+    tagline = "You transport value, watch the road",
+    status = (S.hudStatus and S.hudStatus ~= "") and S.hudStatus or "—",
+    instruction = (S.hudInstruction and S.hudInstruction ~= "") and S.hudInstruction or "—",
+    threat = getHudThreatLevel(),
+    dangerReason = S.hudDangerReason or "",
+    wallet = math.floor(walletAmount),
+  }
+end
+
+local function ensureHudTrialAppVisible(force)
+  HUD_TRIAL.timeSinceEnsureVisible = force and math.huge or HUD_TRIAL.timeSinceEnsureVisible
+  if not force and HUD_TRIAL.timeSinceEnsureVisible < HUD_TRIAL.ensureVisibleInterval then
+    return false
+  end
+
+  local apps = ui_messagesTasksAppContainers
+  if not apps then return false end
+
+  local visible = nil
+  if type(apps.getAppVisibility) == "function" then
+    local ok, res = pcall(apps.getAppVisibility, HUD_TRIAL.appName)
+    if ok then
+      visible = res == true
+    end
+  end
+
+  if visible == true and not force then
+    HUD_TRIAL.timeSinceEnsureVisible = 0
+    return true
+  end
+
+  if type(apps.showApp) == "function" then
+    -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
+    pcall(apps.showApp, HUD_TRIAL.appName)
+  elseif type(apps.setAppVisibility) == "function" then
+    -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
+    pcall(apps.setAppVisibility, HUD_TRIAL.appName, true)
+  end
+
+  HUD_TRIAL.timeSinceEnsureVisible = 0
+  return true
+end
+
+local function sendHudTrialPayload(force)
+  local hooks = guihooks
+  if not hooks or type(hooks.trigger) ~= "function" then
+    return false
+  end
+
+  ensureHudTrialAppVisible(force)
+
+  local payload = buildHudTrialPayload()
+  local key = hudTrialPayloadKey(payload)
+  local changed = key ~= HUD_TRIAL.lastPayloadKey
+
+  if not force then
+    if HUD_TRIAL.dirty ~= true and not changed and HUD_TRIAL.timeSinceEmit < HUD_TRIAL.forceEmitInterval then
+      return false
+    end
+    if HUD_TRIAL.timeSinceEmit < HUD_TRIAL.emitInterval and not changed and HUD_TRIAL.dirty ~= true then
+      return false
+    end
+  end
+
+  -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
+  local ok = pcall(hooks.trigger, HUD_TRIAL.eventName, payload)
+  if ok then
+    HUD_TRIAL.lastPayloadKey = key
+    HUD_TRIAL.dirty = false
+    HUD_TRIAL.timeSinceEmit = 0
+  end
+  return ok
+end
+
+local function markHudTrialDirty()
+  HUD_TRIAL.dirty = true
+end
+
 local function getHudWeaponById(id)
   if not id then return nil end
   ensureHudState()
@@ -650,6 +783,9 @@ function M.setNewHudState(payload)
   if payload.inventoryDelta then
     applyHudInventoryDelta(payload.inventoryDelta)
   end
+
+  markHudTrialDirty()
+  sendHudTrialPayload(true)
 end
 
 local EVENT_HOST = {
@@ -664,6 +800,7 @@ local function attachHostApi(host)
   host.closeMissionMessage = M.closeMissionMessage
   host.setGuiStatusMessage = M.setGuiStatusMessage
   host.setNewHudState = M.setNewHudState
+  host.requestHudTrialSnapshot = M.requestHudTrialSnapshot
 end
 
 -- =========================================================
@@ -940,20 +1077,6 @@ local function drawGui()
   local currentMoney = getCareerMoney()
   if currentMoney ~= nil then
     S.hudWallet = currentMoney
-  end
-
-  local function getHudThreatLevel()
-    if S.hudThreat and S.hudThreat ~= "" then
-      return S.hudThreat
-    end
-    local threatState = getThreatState()
-    if threatState == "imminent" then
-      return "danger"
-    end
-    if threatState == "event" then
-      return "event"
-    end
-    return "safe"
   end
 
   local function getHudTint()
@@ -1417,6 +1540,9 @@ function M.onExtensionLoaded()
   end
 
   ensureHudState()
+  markHudTrialDirty()
+  ensureHudTrialAppVisible(true)
+  sendHudTrialPayload(true)
 
   Breadcrumbs.init(CFG, S)
   Breadcrumbs.reset()
@@ -1491,6 +1617,29 @@ end
 -- Update-only: NO drawing here (prevents loading hang)
 function M.onUpdate(dtReal, dtSim, dtRaw)
   Breadcrumbs.update(dtSim)
+
+  local dt = tonumber(dtSim) or 0
+  HUD_TRIAL.timeSinceEmit = (HUD_TRIAL.timeSinceEmit or 0) + dt
+  HUD_TRIAL.timeSinceEnsureVisible = (HUD_TRIAL.timeSinceEnsureVisible or 0) + dt
+
+  if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
+    local currentMoney = getCareerMoney()
+    if currentMoney ~= nil then
+      local prevMoney = tonumber(S.hudWallet) or 0
+      if math.floor(prevMoney) ~= math.floor(currentMoney) then
+        S.hudWallet = currentMoney
+        markHudTrialDirty()
+      end
+    end
+  end
+
+  if HUD_TRIAL.timeSinceEnsureVisible >= HUD_TRIAL.ensureVisibleInterval then
+    ensureHudTrialAppVisible(false)
+  end
+
+  if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
+    sendHudTrialPayload(false)
+  end
 
   if EMP and EMP.onUpdate then
     EMP.onUpdate(dtReal, dtSim, dtRaw)
