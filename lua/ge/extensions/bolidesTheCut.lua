@@ -764,6 +764,31 @@ local function buildHudTrialPayload()
   }
 end
 
+local function isHudTrialAppAvailable(apps)
+  if not apps or type(apps.getAvailableApps) ~= "function" then
+    return true
+  end
+
+  local ok, available = pcall(apps.getAvailableApps)
+  if not ok or type(available) ~= "table" then
+    return true
+  end
+
+  for _, entry in ipairs(available) do
+    if entry == HUD_TRIAL.appName then
+      return true
+    end
+    if type(entry) == "table" then
+      local name = entry.name or entry.appName or entry.id
+      if name == HUD_TRIAL.appName then
+        return true
+      end
+    end
+  end
+
+  return false
+end
+
 local function ensureHudTrialAppVisible(force)
   HUD_TRIAL.timeSinceEnsureVisible = force and math.huge or HUD_TRIAL.timeSinceEnsureVisible
   if not force and HUD_TRIAL.timeSinceEnsureVisible < HUD_TRIAL.ensureVisibleInterval then
@@ -772,6 +797,15 @@ local function ensureHudTrialAppVisible(force)
 
   local apps = ui_messagesTasksAppContainers
   if not apps then return false end
+  if type(apps.getMessagesTasksAppContainerMounted) == "function" then
+    local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
+    if ok and mounted == false then
+      return false
+    end
+  end
+  if not isHudTrialAppAvailable(apps) then
+    return false
+  end
 
   local visible = nil
   if type(apps.getAppVisibility) == "function" then
