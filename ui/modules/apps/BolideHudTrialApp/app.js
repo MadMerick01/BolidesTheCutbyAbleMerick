@@ -28,6 +28,19 @@
           var lastWeaponSignature = {};
 
           scope.hudTrial = angular.copy(defaults);
+          scope.weaponButtonHover = {
+            id: null,
+            active: false
+          };
+
+          function updateWeaponButtonHoverState() {
+            if (!(window.bngApi && bngApi.engineLua)) {
+              return;
+            }
+            var shouldBlock = scope.weaponButtonHover.active
+              && scope.hudTrial.equippedWeapon === scope.weaponButtonHover.id;
+            bngApi.engineLua("extensions.bolidesTheCut.setHudWeaponButtonHover(" + (shouldBlock ? "true" : "false") + ")");
+          }
 
           function weaponImage(id, ammo, hasWeapon) {
             var safeId = id === 'emp' ? 'emp' : 'pistol';
@@ -78,6 +91,7 @@
             scope.hudTrial.wallet = (payload.wallet === 0 || payload.wallet) ? payload.wallet : defaults.wallet;
             scope.hudTrial.weapons = buildWeaponDisplay(payload.weapons || defaults.weapons);
             scope.hudTrial.equippedWeapon = payload.equippedWeapon || null;
+            updateWeaponButtonHoverState();
             scope.hudTrial.weapons.forEach(function (weapon) {
               if (!weapon.animate) {
                 return;
@@ -99,6 +113,12 @@
             if (window.bngApi && bngApi.engineLua) {
               bngApi.engineLua("extensions.bolidesTheCut.toggleHudWeapon('" + weaponId + "')");
             }
+          };
+
+          scope.setEquipButtonHover = function (weaponId, isHovering) {
+            scope.weaponButtonHover.id = weaponId || null;
+            scope.weaponButtonHover.active = !!isHovering;
+            updateWeaponButtonHoverState();
           };
 
           if (window.bngApi && bngApi.engineLua) {

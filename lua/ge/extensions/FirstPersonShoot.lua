@@ -28,6 +28,7 @@ local callbacks = {
   getPlayerVeh = nil,
   onShot = nil,
   onAimChanged = nil,
+  isInputBlocked = nil,
 }
 
 local function _now()
@@ -353,6 +354,7 @@ function M.init(opts)
   callbacks.getPlayerVeh = opts.getPlayerVeh
   callbacks.onShot = opts.onShot
   callbacks.onAimChanged = opts.onAimChanged
+  callbacks.isInputBlocked = opts.isInputBlocked
 
   if opts.config and type(opts.config) == "table" then
     for k, v in pairs(opts.config) do
@@ -416,6 +418,10 @@ function M.onDraw()
 
   local io = imgui.GetIO and imgui.GetIO() or nil
   if io and io.WantCaptureMouse then
+    return
+  end
+
+  if callbacks.isInputBlocked and callbacks.isInputBlocked() then
     return
   end
 
