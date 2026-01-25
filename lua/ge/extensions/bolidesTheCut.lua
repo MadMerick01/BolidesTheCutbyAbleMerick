@@ -1492,10 +1492,34 @@ local function drawGui()
 
     if S.uiShowDebug then
       imgui.Spacing()
-      if imgui.Button("Add +5 ammo (Rifled Slugs + EMP)", imgui.ImVec2(-1, 0)) then
+      if imgui.Button("Add pistol (no ammo)", imgui.ImVec2(-1, 0)) then
         applyHudInventoryDelta({
-          { id = "beretta1301", name = "Beretta 1301", ammoLabel = "Rifled Slugs", ammoDelta = 5 },
-          { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = 5 },
+          { id = "pistol", name = "Pistol", ammoLabel = "Ammo", ammoDelta = 0 },
+        })
+      end
+      if imgui.Button("Add EMP device (no ammo)", imgui.ImVec2(-1, 0)) then
+        applyHudInventoryDelta({
+          { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = 0 },
+        })
+      end
+      if imgui.Button("Add +1 pistol ammo", imgui.ImVec2(-1, 0)) then
+        applyHudInventoryDelta({
+          { id = "pistol", name = "Pistol", ammoLabel = "Ammo", ammoDelta = 1 },
+        })
+      end
+      if imgui.Button("Add +1 EMP ammo", imgui.ImVec2(-1, 0)) then
+        applyHudInventoryDelta({
+          { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = 1 },
+        })
+      end
+      if imgui.Button("Deduct -1 pistol ammo", imgui.ImVec2(-1, 0)) then
+        applyHudInventoryDelta({
+          { id = "pistol", name = "Pistol", ammoLabel = "Ammo", ammoDelta = -1 },
+        })
+      end
+      if imgui.Button("Deduct -1 EMP ammo", imgui.ImVec2(-1, 0)) then
+        applyHudInventoryDelta({
+          { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = -1 },
         })
       end
 
