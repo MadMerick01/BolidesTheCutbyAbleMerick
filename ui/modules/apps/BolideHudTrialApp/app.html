@@ -206,6 +206,8 @@
           class="bolide-hud-trial__equip-button"
           ng-class="{'is-equipped': hudTrial.equippedWeapon === weapon.id}"
           ng-click="toggleEquip(weapon.id)"
+          ng-mouseenter="setEquipButtonHover(weapon.id, true)"
+          ng-mouseleave="setEquipButtonHover(weapon.id, false)"
           type="button"
         >
           {{hudTrial.equippedWeapon === weapon.id ? 'Unequip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol') : 'Equip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol')}}

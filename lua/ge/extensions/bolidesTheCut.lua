@@ -89,6 +89,7 @@ local S = {
   hudShotgunMessage = "Aim carefully",
   hudShotgunHitPoint = "Raycast hit: --",
   hudEquippedWeapon = nil,
+  hudWeaponButtonHover = false,
   towingBlocked = false,
   recoveryPromptWasActive = nil,
 
@@ -948,6 +949,10 @@ local function toggleHudWeapon(id)
   return true
 end
 
+local function setHudWeaponButtonHover(isHovering)
+  S.hudWeaponButtonHover = isHovering and true or false
+end
+
 local function triggerHudEmp()
   local w = getHudWeaponById("emp")
   local ammo = w and tonumber(w.ammo) or 0
@@ -975,6 +980,10 @@ local function handleEquippedEmpInput()
 
   local io = imgui.GetIO and imgui.GetIO() or nil
   if io and io.WantCaptureMouse then
+    return
+  end
+
+  if S.hudWeaponButtonHover then
     return
   end
 
@@ -1841,6 +1850,9 @@ function M.onExtensionLoaded()
         return consumeHudAmmo("pistol", amount or 1)
       end,
       getPlayerVeh = getPlayerVeh,
+      isInputBlocked = function()
+        return S.hudWeaponButtonHover
+      end,
       onShot = function(ok, info, hitPos)
         S.hudShotgunHitPoint = formatHitPoint(hitPos)
         if ok then
@@ -2013,5 +2025,6 @@ end
 
 M.Audio = Audio
 M.toggleHudWeapon = toggleHudWeapon
+M.setHudWeaponButtonHover = setHudWeaponButtonHover
 
 return M
