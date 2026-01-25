@@ -15,7 +15,7 @@ The player shotgun implementation in this repo uses:
    - It fires when `ui_imgui.IsMouseClicked(0)` returns true.
 3. **Damage application** through the shared damage helper.
    - It calls `BulletDamage.trigger({ ..., applyDamage = true })` (explicitly set in the shotgun code).
-   - `BulletDamage` applies extra effects and calls `BulletHit.trigger(...)` when `applyDamage` is true.
+   - `BulletDamage` applies extra effects when `applyDamage` is true.
 
 Implication: if the VR controller pointer drives the mouse cursor/ray, and the VR trigger maps to mouse button 0, the existing shotgun path should work with no engine-level VR API required.
 
