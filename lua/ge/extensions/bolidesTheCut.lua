@@ -88,6 +88,8 @@ local S = {
   hudDangerReason = nil,
   hudShotgunMessage = "Aim carefully",
   hudShotgunHitPoint = "Raycast hit: --",
+  towingBlocked = false,
+  recoveryPromptWasActive = nil,
 
   uiShowWeapons = false,
   uiShowAbout = false,
@@ -602,6 +604,85 @@ local HUD_TRIAL = {
   lastPayloadKey = nil,
 }
 
+local TOWING_BLOCK_MESSAGE = "Towing disabled during active threat."
+
+local function addTowBlockMessage(instruction)
+  if not instruction or instruction == "" then
+    return TOWING_BLOCK_MESSAGE
+  end
+  if string.find(instruction, TOWING_BLOCK_MESSAGE, 1, true) then
+    return instruction
+  end
+  return string.format("%s\n%s", instruction, TOWING_BLOCK_MESSAGE)
+end
+
+local function removeTowBlockMessage(instruction)
+  if not instruction or instruction == "" then
+    return instruction
+  end
+  if instruction == TOWING_BLOCK_MESSAGE then
+    return ""
+  end
+  local cleaned = string.gsub(instruction, "\n" .. TOWING_BLOCK_MESSAGE, "")
+  return cleaned
+end
+
+local function isRecoveryPromptActive()
+  if not (core_recoveryPrompt and core_recoveryPrompt.isActive) then
+    return nil
+  end
+  local ok, active = pcall(core_recoveryPrompt.isActive)
+  if ok then
+    return active == true
+  end
+  return nil
+end
+
+local function setRecoveryPromptActive(active)
+  if not core_recoveryPrompt then
+    return false
+  end
+  if core_recoveryPrompt.setActive then
+    local ok = pcall(core_recoveryPrompt.setActive, active)
+    return ok
+  end
+  if core_recoveryPrompt.setEverythingActive then
+    local ok = pcall(core_recoveryPrompt.setEverythingActive, active)
+    return ok
+  end
+  return false
+end
+
+local function setTowingBlocked(blocked)
+  if blocked and not S.towingBlocked then
+    S.towingBlocked = true
+    S.recoveryPromptWasActive = isRecoveryPromptActive()
+    setRecoveryPromptActive(false)
+    if S.hudInstruction then
+      S.hudInstruction = addTowBlockMessage(S.hudInstruction)
+    else
+      S.hudInstruction = TOWING_BLOCK_MESSAGE
+    end
+    markHudTrialDirty()
+    return
+  end
+
+  if not blocked and S.towingBlocked then
+    if S.recoveryPromptWasActive == nil or S.recoveryPromptWasActive == true then
+      setRecoveryPromptActive(true)
+    end
+    S.towingBlocked = false
+    S.recoveryPromptWasActive = nil
+    if S.hudInstruction then
+      S.hudInstruction = removeTowBlockMessage(S.hudInstruction)
+      if S.hudInstruction == "" then
+        S.hudInstruction = nil
+      end
+    end
+    markHudTrialDirty()
+  end
+end
+
 local function hudTrialPayloadKey(payload)
   return table.concat({
     tostring(payload.title or ""),
@@ -767,7 +848,13 @@ function M.setNewHudState(payload)
     S.hudStatus = tostring(payload.status)
   end
   if payload.instruction then
-    S.hudInstruction = tostring(payload.instruction)
+    local instruction = tostring(payload.instruction)
+    if S.towingBlocked then
+      instruction = addTowBlockMessage(instruction)
+    else
+      instruction = removeTowBlockMessage(instruction)
+    end
+    S.hudInstruction = instruction
   end
   if payload.dangerReason then
     S.hudDangerReason = tostring(payload.dangerReason)
@@ -1640,6 +1727,9 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
     sendHudTrialPayload(false)
   end
+
+  local threatLevel = getHudThreatLevel()
+  setTowingBlocked(threatLevel == "event" or threatLevel == "danger")
 
   if EMP and EMP.onUpdate then
     EMP.onUpdate(dtReal, dtSim, dtRaw)

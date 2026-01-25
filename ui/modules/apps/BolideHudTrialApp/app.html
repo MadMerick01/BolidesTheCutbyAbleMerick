@@ -25,19 +25,6 @@
       backdrop-filter: blur(2px);
     }
 
-    .bolide-hud-trial__banner {
-      width: 100%;
-      height: auto;
-      display: block;
-      margin: 0 0 10px;
-      border-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow:
-        0 6px 18px rgba(0, 0, 0, 0.35),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-      object-fit: cover;
-    }
-
     .bolide-hud-trial.threat-event .bolide-hud-trial__panel {
       background: linear-gradient(180deg, rgba(74, 56, 16, 0.94), rgba(41, 28, 6, 0.94));
       border-left-color: rgba(233, 177, 74, 0.9);
@@ -52,18 +39,10 @@
       border-left-color: rgba(92, 215, 138, 0.9);
     }
 
-    .bolide-hud-trial__title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      color: #f2d680;
-      margin-bottom: 2px;
-      text-transform: uppercase;
-    }
-
-    .bolide-hud-trial__tagline {
-      font-size: 13px;
-      color: rgba(192, 226, 255, 0.9);
+    .bolide-hud-trial__banner {
+      width: 100%;
+      height: auto;
+      display: block;
       margin-bottom: 10px;
     }
 
@@ -130,11 +109,8 @@
     <img
       class="bolide-hud-trial__banner"
       src="/art/ui/bolides_the_cut/bolidesBanner1.svg"
-      alt="Bolides: The Cut banner"
+      alt="Bolides The Cut"
     />
-
-    <div class="bolide-hud-trial__title">{{hudTrial.title}}</div>
-    <div class="bolide-hud-trial__tagline">{{hudTrial.tagline}}</div>
 
     <div class="bolide-hud-trial__grid">
       <div class="bolide-hud-trial__block">
@@ -152,7 +128,7 @@
       </div>
 
       <div class="bolide-hud-trial__block">
-        <div class="bolide-hud-trial__label">Wallet / MP</div>
+        <div class="bolide-hud-trial__label">Wallet</div>
         <div class="bolide-hud-trial__wallet-value">${{hudTrial.wallet | number:0}}</div>
       </div>
     </div>
