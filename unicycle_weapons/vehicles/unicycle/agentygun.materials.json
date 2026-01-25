@@ -1,0 +1,27 @@
+{
+  "agentygun_bullet" : {
+    "name" : "agentygun_bullet",
+    "class" : "Material",
+    "mapTo" : "agentygun_bullet",
+    "persistentId" : "0d94b756-b9b1-49c7-b9aa-828f92a255a5",
+    "Stages": [
+      {
+        "baseColorMap": "vehicles/unicycle/agentygun_bullet_b.color.png",
+		"baseColorFactor": [ 0.5, 0.5, 0.5, 1 ],
+        "metallicMap": "vehicles/unicycle/agentygun_bullet_m.color.png",
+		"metallicFactor": 0.75,
+        "roughnessMap": "vehicles/unicycle/agentygun_bullet_r.color.png",
+		"clearCoatFactor": 5,
+        "useAnisotropic": true
+      },
+      {},
+      {}
+    ],
+    "alphaRef" : 0,
+    "dynamicCubemap" : true,
+    "materialTag0" : "beamng",
+    "materialTag1" : "object",
+    "order_simset": 0,
+    "version": 1.5
+  }
+}

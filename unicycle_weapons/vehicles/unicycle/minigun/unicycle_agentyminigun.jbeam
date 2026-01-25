@@ -1,0 +1,544 @@
+{
+"unicycle_minigun": {
+    "information":{
+        "authors":"AgentY",
+        "name":"Minigun (Adjustable)",
+        "value":10000,
+    },
+    "slotType" : "unicycle_gun",
+    "slots": [
+        ["type", "default", "description"],
+        ["agentygun_combat_ammo","unicycle_agentygun_ammo_100_infinite", "Ammo"],
+        ["unicycle_crosshair","unicycle_crosshair", "Crosshair"],
+    ],
+    "flexbodies":[
+        ["mesh", "[group]:", "nonFlexMaterials"],
+	["unicycle_minigun",    ["agentygun_gun"]],
+    ],
+    "variables": [
+        ["name",                           "type",  "unit",      "category", "default", "min", "max", "title",                           "description"                                                                                                 ],
+        ["$agentygun_fire_rate",           "range", "bullets/s", "Gun",      12,        5,      12,  "Fire Rate",                       "Amount of bullets fired per second"                                                        , {"stepDis":1}   ],
+	["$agentygun_bulletExtraEnergy",   "range", "x",         "Gun",      2.9,       0.5,    2.9,  "Additional Energy Multiplier",    "Extra energy for each bullet. Higher energy will need more sprning precompression to shoot", {"stepDis":0.1} ],
+	["$agentygun_springPrecompression","range", "x",         "Gun",      2.6,         2,      2.9,    "Launching Spring Precompression", "Affects the gun shoot strength. Low = good for close targets, high = good for far away"    , {"stepDis":0.1} ],
+    ],
+    "props": [
+       ["func", "mesh", "idRef:", "idX:", "idY:", "baseRotation", "rotation", "translation", "min", "max", "offset", "multiplier"],
+       ["shootnum", "unicycle_minigun_barrel", "agentygun4l", "agentygun4r", "agentygun1",  {"x":-93, "y":0, "z":0}, {"x":0, "y":90, "z":0} , {"x":0, "y":0, "z":0}, -10000000, 10000000, 0, 1, {"baseTranslation":{"x":0.022,"y":1.1,"z":0.026}}],
+    ],
+    "nodes": [
+        ["id", "posX", "posY", "posZ"],
+
+	//--GUN BASE--
+	{"collision":false},
+        {"frictionCoef":0.7},
+        {"nodeMaterial":"|NM_METAL"},
+        {"nodeWeight":3},
+        {"group":"agentygun_base"},
+
+	//roof bars connectors
+	{"selfCollision":false},
+	["agentygunbase1",  0.00,-0.45, 0],
+	["agentygunbase2l", 0.45, 0.45, 0],
+	["agentygunbase2r",-0.45, 0.45, 0],
+
+	//rotation axis and supports
+	{"selfCollision":false},
+	["agentygunbase3",  0.0, 0, 0.20],
+	{"collision":false},
+	["agentygunbase4l", 0.1, 0, 0.20],
+	["agentygunbase4r",-0.1, 0, 0.20],
+	
+	//pro aiming supports yes
+	["aimsupport",  0.0, -0.70, 0.7],
+
+	//flexbody help
+	["agentygunbase5",  0, 0.225, 0.1],
+
+
+	//--50 CAL GUN--
+        {"collision":false},
+        {"frictionCoef":0.7},
+        {"nodeMaterial":"|NM_METAL"},
+        {"nodeWeight":1},
+        {"group":"agentygun_gun"},
+
+	//center nodes for shooting mechanism and particles + front collision
+	{"selfCollision":false},
+        ["agentygun1", 0,-1.20, 0.29, {"nodeWeight":2.8}],
+        ["agentygun2", 0,-1.0, 0.29, {"group":""}],
+	{"selfCollision":true},
+        ["agentygun3", 0, 0.40, 0.29, {"nodeWeight":2,"group":""}], 
+        
+	//rear outer gun shape
+	["agentygun4l", 0.08, 0.25, 0.21],
+	["agentygun4r",-0.08, 0.25, 0.21],
+	["agentygun5l", 0.08, 0.25, 0.36],
+	["agentygun5r",-0.08, 0.25, 0.36],
+
+	{"group":""},
+    ],
+    "beams": [
+        ["id1:", "id2:"],
+	{"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0}, 
+
+	//--GUN BASE--
+	{"beamSpring":2001000,"beamDamp":200},
+        {"beamDeform":3000000,"beamStrength":"FLT_MAX"},
+	
+	//uniform structure
+	["agentygunbase1","agentygunbase2l"],
+	["agentygunbase1","agentygunbase2r"],
+	["agentygunbase1","agentygunbase3"],
+	["agentygunbase1","agentygunbase4l"],
+	["agentygunbase1","agentygunbase4r"],
+	["agentygunbase1","agentygunbase5"],
+
+	["agentygunbase2l","agentygunbase2r"],
+	["agentygunbase2l","agentygunbase3"],
+	["agentygunbase2l","agentygunbase4l"],
+	["agentygunbase2l","agentygunbase4r"],
+	["agentygunbase2l","agentygunbase5"],
+
+	["agentygunbase2r","agentygunbase3"],
+	["agentygunbase2r","agentygunbase4l"],
+	["agentygunbase2r","agentygunbase4r"],
+	["agentygunbase2r","agentygunbase5"],
+
+	["agentygunbase3","agentygunbase4l"],
+	["agentygunbase3","agentygunbase4r"],
+	["agentygunbase3","agentygunbase5"],
+	
+	["agentygunbase4l","agentygunbase4r"],
+	["agentygunbase4l","agentygunbase5"],
+
+	["agentygunbase4r","agentygunbase5"],
+
+	//attach to roof bars
+        {"beamSpring":50100,"beamDamp":80},
+        {"beamDeform":500000,"beamStrength":77000},
+
+	//front
+        {"breakGroup":"agentygun_base_f"},
+	["agentygunbase1","b3"],
+	["agentygunbase1","b5"],
+	["agentygunbase3","b1"],
+	["agentygunbase3","b3"],
+	["agentygunbase3","b5"],
+	
+	["agentygunbase1","b4"],
+	["agentygunbase1","b6"],
+	["agentygunbase3","b2"],
+	["agentygunbase3","b4"],
+	["agentygunbase3","b6"],
+	
+        {"beamSpring":50000,"beamDamp":200},
+	//aimsupport
+	["aimsupport","b6"],
+	["aimsupport","b4"],
+	["aimsupport","b1"],
+	
+        {"beamSpring":5000,"beamDamp":80},
+
+
+	//rear left
+	{"breakGroup":"agentygun_base_rl"},
+	["agentygunbase2l","b11"],
+	["agentygunbase2l","b15"],
+	["agentygunbase3","b7"],
+	["agentygunbase3","b15"],
+	
+	["agentygunbase2l","b12"],
+	["agentygunbase2l","b16"],
+	["agentygunbase3","b8"],
+	["agentygunbase3","b16"],
+
+	//rear right
+	{"breakGroup":"agentygun_base_rr"},
+	["agentygunbase2r","b13"],
+	["agentygunbase2r","b15"],
+	["agentygunbase3","b13"],
+	["agentygunbase3","b9"],
+	
+	["agentygunbase2r","b14"],
+	["agentygunbase2r","b16"],
+	["agentygunbase3","b14"],
+	["agentygunbase3","b10"],
+
+	{"breakGroup":""},
+	{"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0}, 
+
+
+        //--50 CAL GUN--
+        {"beamSpring":1001000,"beamDamp":20},
+        {"beamDeform":450000,"beamStrength":"FLT_MAX"},
+
+	//rear uniform structure
+        ["agentygun4l","agentygun4r"],
+	["agentygun5l","agentygun5r"],
+	["agentygun4l","agentygun5r"],
+	["agentygun5l","agentygun4r"],
+	["agentygun4l","agentygun5l"],
+	["agentygun4r","agentygun5r"],
+	
+	//heavy nodes for shooting mechanism and structural strengthening
+
+	//front
+	["agentygun1","agentygun4l"],
+	["agentygun1","agentygun4r"],
+	["agentygun1","agentygun5l"],
+	["agentygun1","agentygun5r"],
+
+	//rear
+	["agentygun3","agentygun4l"],
+	["agentygun3","agentygun4r"],
+	["agentygun3","agentygun5l"],
+	["agentygun3","agentygun5r"],
+
+	//extra collision
+        ["agentygun2","agentygun4l"],
+	["agentygun2","agentygun4r"],
+	["agentygun2","agentygun5l"],
+	["agentygun2","agentygun5r"],
+          
+	//mid
+	["agentygun2","agentygun1"],
+	["agentygun2","agentygun3"],
+	["agentygun1","agentygun3"],
+
+	//attach to base
+	{"beamDeform":10000,"beamStrength":1001000},
+	{"breakGroup":"agentygun_gun"},
+
+	{"beamSpring":2001000,"beamDamp":100},
+
+	["agentygun4l","agentygunbase4l", {"name":"agentygun_broken"}],
+	["agentygun4r","agentygunbase4l"],
+	["agentygun5l","agentygunbase4l"],
+	["agentygun5r","agentygunbase4l"],
+	
+	["agentygun4l","agentygunbase4r"],
+	["agentygun4r","agentygunbase4r"],
+	["agentygun5l","agentygunbase4r"],
+	["agentygun5r","agentygunbase4r"],
+
+	["agentygun1","agentygunbase4l"],
+	["agentygun1","agentygunbase4r"],
+	["agentygun3","agentygunbase4l"],
+	["agentygun3","agentygunbase4r"],
+
+	//rear damper + mesh breaker
+	{"beamSpring":0,"beamDamp":10},
+	["agentygun4l","agentygunbase5"],
+	["agentygun4r","agentygunbase5"],
+	["agentygun5l","agentygunbase5"],
+	["agentygun5r","agentygunbase5"],
+
+	//front heavy damper
+	{"beamSpring":0,"beamDamp":300},
+
+	
+	["agentygun1","b4"],
+	["agentygun1","b6"],
+	["agentygun1","b1"],
+
+	{"breakGroup":""},
+
+	{"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0}, 	 
+    ],
+    "hydros": [
+        ["id1:","id2:"],
+        {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+	//rotator vertical
+	{"beamSpring":10000,"beamDamp":20},
+        {"beamDeform":"FLT_MAX","beamStrength":1001000},
+	["agentygun1", "aimsupport", {"inputSource":"agentygun_lifter","inLimit":0.48,"outLimit":1.52	,"inRate":1,"outRate":1,"inputFactor":-1.0, "breakGroup":"agentygun_gun"}],
+    	{"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+    ],
+    "rails": {
+	//shooting mechanism
+        "rail_fire":{"links:":["agentygun1", "agentygun3"], "looped":false, "capped":false},
+    },
+    "slidenodes": [
+        ["id:", "railName", "attached", "fixToRail", "tolerance", "spring", "strength", "capStrength"],
+	//fix gun base to roof rails to reduce wobbliness
+        ["agentygunbase1", "b2", true, true, 0.3, 2001000, 77000, 77000, {"breakGroup":"agentygun_base_f"}],
+        ["agentygunbase2r","b16", true, true, 0.3, 2001000, 77000, 77000, {"breakGroup":"agentygun_base_rr"}],
+        ["agentygunbase2l","b16", true, true, 0.3, 2001000, 77000, 77000, {"breakGroup":"agentygun_base_rl"}],
+    ],
+    "agentygun_unicycle":{
+	"agentygun_magsize": 10000,
+	"agentygun_reloadtime": 0,
+    },
+},
+"unicycle_holyshid": {
+    "information":{
+        "authors":"AgentY",
+        "name":"The Holy S***",
+        "value":1000000,
+    },
+    "slotType" : "unicycle_gun",
+    "slots": [
+        ["type", "default", "description"],
+        ["agentygun_combat_ammo","unicycle_agentygun_ammo_100_infinite", "Ammo"],
+        ["unicycle_crosshair","unicycle_crosshair", "Crosshair"],
+    ],
+    "flexbodies":[
+        ["mesh", "[group]:", "nonFlexMaterials"],
+	["unicycle_minigun",    ["agentygun_gun"]],
+    ],
+    "variables": [
+        ["name",                           "type",  "unit",      "category", "default", "min", "max", "title",                           "description"                                                                                                 ],
+        ["$agentygun_fire_rate",           "range", "bullets/s", "Gun",      19,        15,      19,  "Fire Rate",                       "Amount of bullets fired per second"                                                        , {"stepDis":1}   ],
+	["$agentygun_bulletExtraEnergy",   "range", "x",         "Gun",      170,       10,    170,  "Additional Energy Multiplier",    "Extra energy for each bullet. Higher energy will need more sprning precompression to shoot", {"stepDis":0.1} ],
+	["$agentygun_springPrecompression","range", "x",         "Gun",      2.6,         2,      2.6,    "Launching Spring Precompression", "Affects the gun shoot strength. Low = good for close targets, high = good for far away"    , {"stepDis":0.1} ],
+    ],
+    "props": [
+       ["func", "mesh", "idRef:", "idX:", "idY:", "baseRotation", "rotation", "translation", "min", "max", "offset", "multiplier"],
+       ["shootnum", "unicycle_minigun_barrel", "agentygun4l", "agentygun4r", "agentygun1",  {"x":-93, "y":0, "z":0}, {"x":0, "y":90, "z":0} , {"x":0, "y":0, "z":0}, -10000000, 10000000, 0, 1, {"baseTranslation":{"x":0.022,"y":1.1,"z":0.026}}],
+    ],
+    "nodes": [
+        ["id", "posX", "posY", "posZ"],
+
+	//--GUN BASE--
+	{"collision":false},
+        {"frictionCoef":0.7},
+        {"nodeMaterial":"|NM_METAL"},
+        {"nodeWeight":3},
+        {"group":"agentygun_base"},
+
+	//roof bars connectors
+	{"selfCollision":false},
+	["agentygunbase1",  0.00,-0.45, 0],
+	["agentygunbase2l", 0.45, 0.45, 0],
+	["agentygunbase2r",-0.45, 0.45, 0],
+
+	//rotation axis and supports
+	{"selfCollision":false},
+	["agentygunbase3",  0.0, 0, 0.20],
+	{"collision":false},
+	["agentygunbase4l", 0.1, 0, 0.20],
+	["agentygunbase4r",-0.1, 0, 0.20],
+	
+	//pro aiming supports yes
+	["aimsupport",  0.0, -0.70, 0.7],
+
+	//flexbody help
+	["agentygunbase5",  0, 0.225, 0.1],
+
+
+	//--50 CAL GUN--
+        {"collision":false},
+        {"frictionCoef":0.7},
+        {"nodeMaterial":"|NM_METAL"},
+        {"nodeWeight":1},
+        {"group":"agentygun_gun"},
+
+	//center nodes for shooting mechanism and particles + front collision
+	{"selfCollision":false},
+        ["agentygun1", 0,-1.20, 0.29, {"nodeWeight":2.8}],
+        ["agentygun2", 0,-1.0, 0.29, {"group":""}],
+	{"selfCollision":true},
+        ["agentygun3", 0, 0.40, 0.29, {"nodeWeight":2,"group":""}], 
+        
+	//rear outer gun shape
+	["agentygun4l", 0.08, 0.25, 0.21],
+	["agentygun4r",-0.08, 0.25, 0.21],
+	["agentygun5l", 0.08, 0.25, 0.36],
+	["agentygun5r",-0.08, 0.25, 0.36],
+
+	{"group":""},
+    ],
+    "beams": [
+        ["id1:", "id2:"],
+	{"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0}, 
+
+	//--GUN BASE--
+	{"beamSpring":2001000,"beamDamp":200},
+        {"beamDeform":3000000,"beamStrength":"FLT_MAX"},
+	
+	//uniform structure
+	["agentygunbase1","agentygunbase2l"],
+	["agentygunbase1","agentygunbase2r"],
+	["agentygunbase1","agentygunbase3"],
+	["agentygunbase1","agentygunbase4l"],
+	["agentygunbase1","agentygunbase4r"],
+	["agentygunbase1","agentygunbase5"],
+
+	["agentygunbase2l","agentygunbase2r"],
+	["agentygunbase2l","agentygunbase3"],
+	["agentygunbase2l","agentygunbase4l"],
+	["agentygunbase2l","agentygunbase4r"],
+	["agentygunbase2l","agentygunbase5"],
+
+	["agentygunbase2r","agentygunbase3"],
+	["agentygunbase2r","agentygunbase4l"],
+	["agentygunbase2r","agentygunbase4r"],
+	["agentygunbase2r","agentygunbase5"],
+
+	["agentygunbase3","agentygunbase4l"],
+	["agentygunbase3","agentygunbase4r"],
+	["agentygunbase3","agentygunbase5"],
+	
+	["agentygunbase4l","agentygunbase4r"],
+	["agentygunbase4l","agentygunbase5"],
+
+	["agentygunbase4r","agentygunbase5"],
+
+	//attach to roof bars
+        {"beamSpring":50100,"beamDamp":80},
+        {"beamDeform":500000,"beamStrength":77000},
+
+	//front
+        {"breakGroup":"agentygun_base_f"},
+	["agentygunbase1","b3"],
+	["agentygunbase1","b5"],
+	["agentygunbase3","b1"],
+	["agentygunbase3","b3"],
+	["agentygunbase3","b5"],
+	
+	["agentygunbase1","b4"],
+	["agentygunbase1","b6"],
+	["agentygunbase3","b2"],
+	["agentygunbase3","b4"],
+	["agentygunbase3","b6"],
+	
+        {"beamSpring":50000,"beamDamp":200},
+	//aimsupport
+	["aimsupport","b6"],
+	["aimsupport","b4"],
+	["aimsupport","b1"],
+	
+        {"beamSpring":5000,"beamDamp":80},
+
+
+	//rear left
+	{"breakGroup":"agentygun_base_rl"},
+	["agentygunbase2l","b11"],
+	["agentygunbase2l","b15"],
+	["agentygunbase3","b7"],
+	["agentygunbase3","b15"],
+	
+	["agentygunbase2l","b12"],
+	["agentygunbase2l","b16"],
+	["agentygunbase3","b8"],
+	["agentygunbase3","b16"],
+
+	//rear right
+	{"breakGroup":"agentygun_base_rr"},
+	["agentygunbase2r","b13"],
+	["agentygunbase2r","b15"],
+	["agentygunbase3","b13"],
+	["agentygunbase3","b9"],
+	
+	["agentygunbase2r","b14"],
+	["agentygunbase2r","b16"],
+	["agentygunbase3","b14"],
+	["agentygunbase3","b10"],
+
+	{"breakGroup":""},
+	{"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0}, 
+
+
+        //--50 CAL GUN--
+        {"beamSpring":1001000,"beamDamp":20},
+        {"beamDeform":450000,"beamStrength":"FLT_MAX"},
+
+	//rear uniform structure
+        ["agentygun4l","agentygun4r"],
+	["agentygun5l","agentygun5r"],
+	["agentygun4l","agentygun5r"],
+	["agentygun5l","agentygun4r"],
+	["agentygun4l","agentygun5l"],
+	["agentygun4r","agentygun5r"],
+	
+	//heavy nodes for shooting mechanism and structural strengthening
+
+	//front
+	["agentygun1","agentygun4l"],
+	["agentygun1","agentygun4r"],
+	["agentygun1","agentygun5l"],
+	["agentygun1","agentygun5r"],
+
+	//rear
+	["agentygun3","agentygun4l"],
+	["agentygun3","agentygun4r"],
+	["agentygun3","agentygun5l"],
+	["agentygun3","agentygun5r"],
+
+	//extra collision
+        ["agentygun2","agentygun4l"],
+	["agentygun2","agentygun4r"],
+	["agentygun2","agentygun5l"],
+	["agentygun2","agentygun5r"],
+          
+	//mid
+	["agentygun2","agentygun1"],
+	["agentygun2","agentygun3"],
+	["agentygun1","agentygun3"],
+
+	//attach to base
+	{"beamDeform":10000,"beamStrength":1001000},
+	{"breakGroup":"agentygun_gun"},
+
+	{"beamSpring":2001000,"beamDamp":100},
+
+	["agentygun4l","agentygunbase4l", {"name":"agentygun_broken"}],
+	["agentygun4r","agentygunbase4l"],
+	["agentygun5l","agentygunbase4l"],
+	["agentygun5r","agentygunbase4l"],
+	
+	["agentygun4l","agentygunbase4r"],
+	["agentygun4r","agentygunbase4r"],
+	["agentygun5l","agentygunbase4r"],
+	["agentygun5r","agentygunbase4r"],
+
+	["agentygun1","agentygunbase4l"],
+	["agentygun1","agentygunbase4r"],
+	["agentygun3","agentygunbase4l"],
+	["agentygun3","agentygunbase4r"],
+
+	//rear damper + mesh breaker
+	{"beamSpring":0,"beamDamp":10},
+	["agentygun4l","agentygunbase5"],
+	["agentygun4r","agentygunbase5"],
+	["agentygun5l","agentygunbase5"],
+	["agentygun5r","agentygunbase5"],
+
+	//front heavy damper
+	{"beamSpring":0,"beamDamp":300},
+
+	
+	["agentygun1","b4"],
+	["agentygun1","b6"],
+	["agentygun1","b1"],
+
+	{"breakGroup":""},
+
+	{"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0}, 	 
+    ],
+    "hydros": [
+        ["id1:","id2:"],
+        {"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+	//rotator vertical
+	{"beamSpring":10000,"beamDamp":20},
+        {"beamDeform":"FLT_MAX","beamStrength":1001000},
+	["agentygun1", "aimsupport", {"inputSource":"agentygun_lifter","inLimit":0.48,"outLimit":1.52	,"inRate":1,"outRate":1,"inputFactor":-1.0, "breakGroup":"agentygun_gun"}],
+    	{"beamPrecompression":1, "beamType":"|NORMAL", "beamLongBound":1.0, "beamShortBound":1.0},
+    ],
+    "rails": {
+	//shooting mechanism
+        "rail_fire":{"links:":["agentygun1", "agentygun3"], "looped":false, "capped":false},
+    },
+    "slidenodes": [
+        ["id:", "railName", "attached", "fixToRail", "tolerance", "spring", "strength", "capStrength"],
+	//fix gun base to roof rails to reduce wobbliness
+        ["agentygunbase1", "b2", true, true, 0.3, 2001000, 77000, 77000, {"breakGroup":"agentygun_base_f"}],
+        ["agentygunbase2r","b16", true, true, 0.3, 2001000, 77000, 77000, {"breakGroup":"agentygun_base_rr"}],
+        ["agentygunbase2l","b16", true, true, 0.3, 2001000, 77000, 77000, {"breakGroup":"agentygun_base_rl"}],
+    ],
+    "agentygun_unicycle":{
+	"agentygun_magsize": 10000,
+	"agentygun_reloadtime": 0,
+    },
+},
+}

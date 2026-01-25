@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 3.2.0 commit date:2022-06-08, commit time:10:22, hash:e05e1e369187</authoring_tool>
+    </contributor>
+    <created>2022-08-19T22:36:56</created>
+    <modified>2022-08-19T22:36:56</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="unicycle_crosshair-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.64 0.64 0.64 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images/>
+  <library_materials>
+    <material id="unicycle_crosshair-material" name="unicycle_crosshair">
+      <instance_effect url="#unicycle_crosshair-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="Cube_008-mesh" name="Cube.008">
+      <mesh>
+        <source id="Cube_008-mesh-positions">
+          <float_array id="Cube_008-mesh-positions-array" count="48">0.005136549 -0.9130834 0.4484379 0.005136549 -0.9130834 0.4455705 0.01765328 -0.9130834 0.4484379 0.01765328 -0.9130834 0.4455705 0.00143361 -0.9130834 0.4521408 -0.00143361 -0.9130834 0.4521408 0.00143361 -0.9130834 0.4646576 -0.00143361 -0.9130834 0.4646576 -0.005136549 -0.9130834 0.4484379 -0.005136549 -0.9130834 0.4455705 -0.01765328 -0.9130834 0.4484379 -0.01765328 -0.9130834 0.4455705 0.00143361 -0.9130834 0.4418677 -0.00143361 -0.9130834 0.4418677 0.00143361 -0.9130834 0.4293508 -0.00143361 -0.9130834 0.4293508</float_array>
+          <technique_common>
+            <accessor source="#Cube_008-mesh-positions-array" count="16" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Cube_008-mesh-normals">
+          <float_array id="Cube_008-mesh-normals-array" count="3">0 1 0</float_array>
+          <technique_common>
+            <accessor source="#Cube_008-mesh-normals-array" count="1" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Cube_008-mesh-map-0">
+          <float_array id="Cube_008-mesh-map-0-array" count="48">0.625 0.5 0.375 0.5 0.375 0.5 0.625 0.25 0.625 0.5 0.625 0.5 0.375 0.25 0.625 0.25 0.625 0.25 0.375 0.5 0.375 0.25 0.375 0.25 0.625 0.5 0.625 0.5 0.375 0.5 0.625 0.25 0.625 0.25 0.625 0.5 0.375 0.25 0.375 0.25 0.625 0.25 0.375 0.5 0.375 0.5 0.375 0.25</float_array>
+          <technique_common>
+            <accessor source="#Cube_008-mesh-map-0-array" count="24" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Cube_008-mesh-vertices">
+          <input semantic="POSITION" source="#Cube_008-mesh-positions"/>
+        </vertices>
+        <triangles material="unicycle_crosshair-material" count="8">
+          <input semantic="VERTEX" source="#Cube_008-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Cube_008-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#Cube_008-mesh-map-0" offset="2" set="0"/>
+          <p>0 0 0 3 0 1 1 0 2 5 0 3 6 0 4 4 0 5 9 0 6 10 0 7 8 0 8 12 0 9 15 0 10 13 0 11 0 0 12 2 0 13 3 0 14 5 0 15 7 0 16 6 0 17 9 0 18 11 0 19 10 0 20 12 0 21 14 0 22 15 0 23</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="shooterguy_crosshair" name="shooterguy_crosshair" type="NODE">
+        <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
+        <instance_geometry url="#Cube_008-mesh" name="shooterguy_crosshair">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="unicycle_crosshair-material" target="#unicycle_crosshair-material">
+                <bind_vertex_input semantic="Cube_008-mesh-map-0" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

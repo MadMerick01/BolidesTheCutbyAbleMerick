@@ -1,0 +1,175 @@
+{
+"unicycle_debug_combat": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Weapons Mod (Debug Meshes)",
+    },
+    "slotType" : "unicycle_meshes",
+    "slots": [
+        ["type", "default", "description"],
+        ["unicycle_tooltype","unicycle_tool_gun", "Weapon Type"],
+        ["unicycle_weapons_ragdoll","unicycle_weapons_ragdoll_yes", "Player ragdoll after collision"],
+		["unicycle_weapons_superhuman","", "Superhuman mode"],
+    ],
+    "flexbodies": [
+        ["mesh", "[group]:"],
+        ["debug_ball", ["unicycle_ball"]],
+        ["debug_body", ["unicycle_body"]],
+    ],
+},
+"unicycle_combat": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Weapons Mod (Invisible)",
+    },
+    "slotType" : "unicycle_meshes",
+    "slots": [
+        ["type", "default", "description"],
+        ["unicycle_tooltype","unicycle_tool_gun", "Weapon Type"],
+        ["unicycle_weapons_ragdoll","unicycle_weapons_ragdoll_yes", "Player ragdoll after collision"],
+		["unicycle_weapons_superhuman","", "Superhuman mode"],
+    ],
+},
+"unicycle_snowman_combat": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Weapons Mod (Snowman)",
+    },
+    "slotType" : "unicycle_meshes",
+    "slots": [
+        ["type", "default", "description"],
+        ["unicycle_tooltype_snowman","unicycle_tool_gun_snowman", "Weapon Type"],
+        ["unicycle_weapons_ragdoll","unicycle_weapons_ragdoll_yes", "Player ragdoll after collision"],
+        ["unicycle_weapons_superhuman","", "Superhuman mode"],
+    ],
+    "flexbodies": [
+        ["mesh", "[group]:"],
+        ["snowman_ball", ["unicycle_ball"]],
+        //["snowman_body_combat", ["unicycle_body"]],
+        ["snowman_body_gun_armL", ["unicycle_body"]],
+    ],
+    "props": [
+       ["func", "mesh", "idRef:", "idX:", "idY:", "baseRotation", "rotation", "translation", "min", "max", "offset", "multiplier"],
+       ["unicycle_body", "snowman_body_combat", "r1", "b15", "r2",  {"x":0, "y":0, "z":-90}, {"x":0, "y":0, "z":1} , {"x":0, "y":0, "z":0}, -360, 360, 0, 1,],
+    ],
+},
+"unicycle_crosshair": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Crosshair",
+    },
+    "slotType" : "unicycle_crosshair",
+    "flexbodies": [
+        ["mesh", "[group]:"],
+		//["shooterguy_crosshair",    ["agentygun_gun"], {"pos":{"x": 0.0, "y":0.0, "z":0.832}, "rot":{"x":0, "y":0, "z":0},    "scale":{"x":1, "y":1, "z":1}}],
+    ],
+    "props": [
+       ["func", "mesh", "idRef:", "idX:", "idY:", "baseRotation", "rotation", "translation", "min", "max", "offset", "multiplier"],
+       ["agentygun_gun", "shooterguy_crosshair", "agentygun4l", "agentygun4r", "agentygun1",  {"x":-90, "y":0, "z":0}, {"x":0, "y":0, "z":0} , {"x":0, "y":0, "z":0}, 0, 0, 0, 1, {"baseTranslation":{"x":0.063,"y":0.28,"z":"$=$agentygun_springPrecompression*0.01+-0.763"}}],
+    ],
+},
+"unicycle_crosshair_pistol": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Pistol Crosshair",
+    },
+    "slotType" : "unicycle_crosshair_pistol",
+    "flexbodies": [
+        ["mesh", "[group]:"],
+		//["shooterguy_crosshair",    ["agentygun_gun"], {"pos":{"x": 0.0, "y":0.0, "z":0.832}, "rot":{"x":0, "y":0, "z":0},    "scale":{"x":1, "y":1, "z":1}}],
+    ],
+    "props": [
+       ["func", "mesh", "idRef:", "idX:", "idY:", "baseRotation", "rotation", "translation", "min", "max", "offset", "multiplier"],
+       ["agentygun_gun", "shooterguy_crosshair", "agentygun4l", "agentygun4r", "agentygun1",  {"x":-90, "y":0, "z":0}, {"x":0, "y":0, "z":0} , {"x":0, "y":0, "z":0}, 0, 0, 0, 1, {"baseTranslation":{"x":0.062,"y":0.28,"z":"$=$agentygun_springPrecompression*0.01+-0.724"}}],
+    ],
+},
+"unicycle_crosshair_bazooka": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Bazooka Crosshair",
+    },
+    "slotType" : "unicycle_crosshair_bazooka",
+    "flexbodies": [
+        ["mesh", "[group]:"],
+		//["shooterguy_crosshair",    ["agentygun_gun"], {"pos":{"x": 0.0, "y":0.0, "z":0.832}, "rot":{"x":0, "y":0, "z":0},    "scale":{"x":1, "y":1, "z":1}}],
+    ],
+    "props": [
+       ["func", "mesh", "idRef:", "idX:", "idY:", "baseRotation", "rotation", "translation", "min", "max", "offset", "multiplier"],
+       ["agentygun_gun", "shooterguy_crosshair", "agentygun4l", "agentygun4r", "agentygun1",  {"x":-90, "y":0, "z":0}, {"x":0, "y":0, "z":0} , {"x":0, "y":0, "z":0}, 0, 0, 0, 1, {"baseTranslation":{"x":0.062,"y":0.28,"z":"$=$agentygun_springPrecompression*0.01+-0.732"}}],
+    ],
+},
+"unicycle_tool_tool_snowman": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Tools",
+    },
+    "slotType" : "unicycle_tooltype_snowman",
+    "slots": [
+        ["type", "default", "description"],
+        ["unicycle_weapon","unicycle_crowbar", "Weapon"],
+    ],
+    "flexbodies": [
+        ["mesh", "[group]:"],
+        ["snowman_body_combat_armR", ["unicycle_weapon"]],
+        ["snowman_body_combat_armL", ["unicycle_body"]],
+    ],
+},
+"unicycle_tool_gun_snowman": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Guns",
+    },
+    "slotType" : "unicycle_tooltype_snowman",
+    "slots": [
+        ["type", "default", "description"],
+        ["unicycle_gun","unicycle_gun_pistol", "Gun", {"nodeMove":{"x":0.0,"y":0.0,"z":0.71}}],
+    ],
+    "flexbodies": [
+        ["mesh", "[group]:"],
+        ["snowman_body_gun_armR", ["agentygun_gun"]],
+        ["snowman_body_combat_armL", ["unicycle_body"]],
+    ],
+}
+"unicycle_tool_tool": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Tools",
+    },
+    "slotType" : "unicycle_tooltype",
+    "slots": [
+        ["type", "default", "description"],
+        ["unicycle_weapon","unicycle_crowbar", "Weapon"],
+    ],
+},
+"unicycle_tool_gun": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Guns",
+    },
+    "slotType" : "unicycle_tooltype",
+    "slots": [
+        ["type", "default", "description"],
+        ["unicycle_gun","unicycle_gun_pistol", "Gun", {"nodeMove":{"x":0.0,"y":0.0,"z":0.71}}],
+    ],
+},
+"unicycle_weapons_superhuman_yes": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Enabled",
+    },
+    "slotType" : "unicycle_weapons_superhuman",
+	"playerController":{
+	"unicycle_weapons_superhuman": "true",
+    },
+},
+"unicycle_weapons_ragdoll_yes": {
+    "information":{
+        "authors":"AwesomeCarl",
+        "name":"Enabled",
+    },
+    "slotType" : "unicycle_weapons_ragdoll",
+	"playerController":{
+	"unicycle_weapons_ragdoll": "true",
+    },
+}
+}

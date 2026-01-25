@@ -1,0 +1,275 @@
+{
+  "unicycle_akm": {
+    "name": "unicycle_akm",
+    "mapTo": "unicycle_akm",
+    "class": "Material",
+    "persistentId": "7a018676-e142-46f2-b02c-76e24497ca81",
+    "Stages": [
+      {
+        "baseColorMap": "/vehicles/unicycle/textures/akm_b.color.png",
+        "metallicFactor": 1,
+        "metallicMap": "/vehicles/unicycle/textures/akm_m.data.png",
+        "normalMap": "/vehicles/unicycle/textures/akm_n.normal.png",
+        "roughnessMap": "/vehicles/unicycle/textures/akm_r.data.png"
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  },
+  "unicycle_awp": {
+    "name": "unicycle_awp",
+    "mapTo": "unicycle_awp",
+    "class": "Material",
+    "persistentId": "3ba103fe-19d1-4e57-a19a-be9397c69ce2",
+    "Stages": [
+      {
+        "ambientOcclusionMap": "/vehicles/unicycle/textures/sniperAO.data.png",
+        "baseColorMap": "/vehicles/unicycle/textures/sniperColor.color.png",
+        "metallicFactor": 1,
+        "metallicMap": "/vehicles/unicycle/textures/sniperMetallic.data.png",
+        "normalMap": "/vehicles/unicycle/textures/sniperNormal.normal.png",
+        "roughnessMap": "/vehicles/unicycle/textures/sniperRoughness.data.png"
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  },
+  "unicycle_bazooka": {
+    "name": "unicycle_bazooka",
+    "mapTo": "unicycle_bazooka",
+    "class": "Material",
+    "persistentId": "e9964dd0-f0f4-45e8-8379-96a3fd13e549",
+    "Stages": [
+      {
+        "ambientOcclusionMap": "/vehicles/unicycle/minigun/bazooka_ao.data.png",
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorMap": "/vehicles/unicycle/minigun/bazooka_b.color.png",
+        "metallicFactor": 1,
+        "metallicMap": "/vehicles/unicycle/minigun/bazooka_m.data.png",
+        "normalMap": "/vehicles/unicycle/minigun/bazooka_n.normal.png",
+        "roughnessMap": "/vehicles/unicycle/minigun/bazooka_r.data.png"
+      },
+      {},
+      {},
+      {}
+    ],
+    "version": 1.5
+  },
+  "unicycle_crosshair": {
+    "name": "unicycle_crosshair",
+    "mapTo": "unicycle_crosshair",
+    "class": "Material",
+    "persistentId": "064bda38-b7cc-42b0-b0cb-6da17d99eed2",
+    "Stages": [
+      {
+        "emissive": true,
+        "specular": [
+          1,
+          0.999989986,
+          0.999989986,
+          1
+        ]
+      },
+      {},
+      {},
+      {}
+    ],
+    "castShadows": false,
+    "translucent": true,
+    "translucentBlendOp": "Add"
+  },
+  "unicycle_crowbar": {
+    "name": "unicycle_crowbar",
+    "mapTo": "unicycle_crowbar",
+    "class": "material",
+    "persistentId": "487ca462-49e5-47b2-a77a-aa9073d90994",
+    "Stages": [
+      {
+        "baseColorFactor": [
+          1,
+          0,
+          0,
+          1
+        ],
+        "metallicFactor": 0.202000007,
+        "roughnessFactor": 0.300000012
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  },
+  "unicycle_crowbar2": {
+    "name": "unicycle_crowbar2",
+    "mapTo": "unicycle_crowbar2",
+    "class": "Material",
+    "persistentId": "487f86e3-506e-4bee-a412-8289fbb168e4",
+    "Stages": [
+      {
+        "baseColorFactor": [
+          0.940768003,
+          0.94075799,
+          0.94075799,
+          1
+        ],
+        "metallicFactor": 1,
+        "roughnessFactor": 0.354999989
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  },
+  "unicycle_knife": {
+    "name": "unicycle_knife",
+    "mapTo": "unicycle_knife",
+    "class": "Material",
+    "persistentId": "e08587ad-ee9b-4fe6-b798-5df07b24a21d",
+    "Stages": [
+      {
+        "baseColorFactor": [
+          0.136195004,
+          0.136194006,
+          0.136194006,
+          1
+        ],
+        "roughnessFactor": 0.545000017
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  },
+  "unicycle_minigun": {
+    "name": "unicycle_minigun",
+    "mapTo": "unicycle_minigun",
+    "class": "Material",
+    "persistentId": "dcaa0b4e-a65b-4e13-9e71-783fa6f4809a",
+    "Stages": [
+      {
+        "baseColorFactor": [
+          0.999989986,
+          0.999989986,
+          1,
+          1
+        ],
+        "baseColorMap": "/vehicles/unicycle/minigun/m134_b.color.png",
+        "metallicFactor": 1,
+        "metallicMap": "/vehicles/unicycle/minigun/m134_m.data.png",
+        "normalMap": "/vehicles/unicycle/minigun/m134_n.normal.png",
+        "roughnessMap": "/vehicles/unicycle/minigun/m134_r.data.png"
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  },
+  "unicycle_pistol": {
+    "name": "unicycle_pistol",
+    "mapTo": "unicycle_pistol",
+    "class": "Material",
+    "persistentId": "b9df06eb-d40e-491d-aa38-c847dfe84b6e",
+    "Stages": [
+      {
+        "ambientOcclusionMap": "/vehicles/unicycle/textures/pistolAO.data.png",
+        "baseColorMap": "/vehicles/unicycle/textures/pistolcolor.color.png",
+        "metallicFactor": 1,
+        "metallicMap": "/vehicles/unicycle/textures/pistolMetallic.data.png",
+        "normalMap": "/vehicles/unicycle/textures/pistolNormal.normal.png",
+        "roughnessMap": "/vehicles/unicycle/textures/pistolSmoothness.data.png"
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  },
+  "unicycle_tom": {
+    "name": "unicycle_tom",
+    "mapTo": "unicycle_tom",
+    "class": "Material",
+    "persistentId": "3d082450-1fef-4283-b095-d91cbf88fa91",
+    "Stages": [
+      {
+        "ambientOcclusionMapUseUV": 1,
+        "baseColorMap": "/vehicles/unicycle/textures/tommy_b.color.png",
+        "metallicFactor": 1,
+        "metallicMap": "/vehicles/unicycle/textures/tommy_ao.data.png",
+        "normalMap": "/vehicles/unicycle/textures/tommy_n.normal.png",
+        "roughnessMap": "/vehicles/unicycle/textures/tommy_r.data.png"
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  },
+  "unicycle_tom_mag": {
+    "name": "unicycle_tom_mag",
+    "mapTo": "unicycle_tom_mag",
+    "class": "Material",
+    "persistentId": "201eeef6-0342-405a-a862-cd8b5264d6a0",
+    "Stages": [
+      {
+        "baseColorMap": "/vehicles/unicycle/textures/tommyb_b.color.png",
+        "metallicFactor": 1,
+        "metallicMap": "/vehicles/unicycle/textures/tommyb_m.data.png",
+        "normalMap": "/vehicles/unicycle/textures/tommyb_n.normal.png",
+        "roughnessMap": "/vehicles/unicycle/textures/tommyb_r.data.png"
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  },
+  "unicycle_uzi": {
+    "name": "unicycle_uzi",
+    "mapTo": "unicycle_uzi",
+    "class": "Material",
+    "persistentId": "108a03e7-2ff6-4696-aa6d-da44deacc3d5",
+    "Stages": [
+      {
+        "ambientOcclusionMap": "/vehicles/unicycle/textures/uzi_ao.data.png",
+        "baseColorFactor": [
+          1,
+          0.999989986,
+          0.999989986,
+          1
+        ],
+        "baseColorMap": "/vehicles/unicycle/textures/uzi_b.color.png",
+        "metallicFactor": 1,
+        "metallicMap": "/vehicles/unicycle/textures/uzi_m.data.png",
+        "normalMap": "/vehicles/unicycle/textures/uzi_n.normal.png",
+        "roughnessMap": "/vehicles/unicycle/textures/uzi_r.data.png"
+      },
+      {},
+      {},
+      {}
+    ],
+    "dynamicCubemap": true,
+    "version": 1.5
+  }
+}

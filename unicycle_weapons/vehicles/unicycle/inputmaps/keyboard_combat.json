@@ -1,0 +1,21 @@
+{
+  "bindings":[
+    {
+      "action":"agentygun_liftUp",
+      "control":"e"
+    },
+    {
+      "action":"agentygun_lowerDown",
+      "control":"q"
+    }
+    {
+      "action":"agentygun_reload",
+      "control":"r"
+    }
+  ],
+  "devicetype":"keyboard",
+  "guid":"{6F1D2B61-D5A0-11CF-BFC7-444553540000}",
+  "name":"Keyboard",
+  "version":1,
+  "vidpid":"6F1D2B61"
+}
