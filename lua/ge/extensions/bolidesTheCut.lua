@@ -697,21 +697,7 @@ local function setVehicleRecoveryBlocked(blocked)
 end
 
 local function setTowingBlocked(blocked)
-  if blocked and not S.towingBlocked then
-    S.towingBlocked = true
-    S.recoveryPromptWasActive = isRecoveryPromptActive()
-    setRecoveryPromptActive(false)
-    setVehicleRecoveryBlocked(true)
-    if S.hudInstruction then
-      S.hudInstruction = addTowBlockMessage(S.hudInstruction)
-    else
-      S.hudInstruction = TOWING_BLOCK_MESSAGE
-    end
-    markHudTrialDirty()
-    return
-  end
-
-  if not blocked and S.towingBlocked then
+  if S.towingBlocked then
     if S.recoveryPromptWasActive == nil or S.recoveryPromptWasActive == true then
       setRecoveryPromptActive(true)
     end
