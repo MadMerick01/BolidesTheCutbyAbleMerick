@@ -3,8 +3,6 @@
 
 local M = {}
 
-local BulletHit = require("lua/ge/extensions/events/BulletHit")
-
 local DEFAULT = {
   accuracyRadius = 2.0,
   approachDistance = 50.0,
@@ -242,20 +240,6 @@ function M.trigger(args)
     cfg.explosionDirectionInversionCoef
   )
   info.impactQueued = _queue(targetVeh, cmd) and true or false
-
-  if cfg.applyDamage and BulletHit and BulletHit.trigger then
-    local damageArgs = { playerId = targetVeh:getID() }
-    if type(args.damageArgs) == "table" then
-      for k, v in pairs(args.damageArgs) do
-        damageArgs[k] = v
-      end
-    end
-    local ok, damageInfo = BulletHit.trigger(damageArgs)
-    if not ok then
-      return false, "damage failed: " .. tostring(damageInfo)
-    end
-    info.damage = damageInfo
-  end
 
   return true, info
 end
