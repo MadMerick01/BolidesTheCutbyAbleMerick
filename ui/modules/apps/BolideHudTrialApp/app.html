@@ -98,6 +98,28 @@
       box-sizing: border-box;
     }
 
+    .bolide-hud-trial__ammo-img--wiggle {
+      animation: bolideHudAmmoWiggle 0.32s ease-in-out;
+    }
+
+    @keyframes bolideHudAmmoWiggle {
+      0% {
+        transform: rotate(0deg);
+      }
+      25% {
+        transform: rotate(2deg);
+      }
+      50% {
+        transform: rotate(-2deg);
+      }
+      75% {
+        transform: rotate(1deg);
+      }
+      100% {
+        transform: rotate(0deg);
+      }
+    }
+
     .bolide-hud-trial__danger-reason {
       margin-top: 6px;
       font-size: 12px;
@@ -136,13 +158,10 @@
     <div class="bolide-hud-trial__ammo">
       <img
         class="bolide-hud-trial__ammo-img"
-        src="/art/ui/bolides_the_cut/emp3ammo.svg"
-        alt="EMP ammo"
-      />
-      <img
-        class="bolide-hud-trial__ammo-img"
-        src="/art/ui/bolides_the_cut/pistol4ammo.svg"
-        alt="Pistol ammo"
+        ng-repeat="weapon in hudTrial.weapons"
+        ng-class="{'bolide-hud-trial__ammo-img--wiggle': weapon.animate}"
+        ng-src="{{weapon.src}}"
+        alt="{{weapon.alt}}"
       />
     </div>
   </div>

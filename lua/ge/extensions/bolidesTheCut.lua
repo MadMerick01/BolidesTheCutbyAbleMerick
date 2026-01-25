@@ -406,6 +406,11 @@ local DEFAULT_HUD_WEAPONS = {
   { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammo = 0 },
 }
 
+local HUD_WEAPON_AMMO_LIMITS = {
+  pistol = 6,
+  emp = 5,
+}
+
 local HIDDEN_HUD_WEAPON_IDS = {
   ammo_slug_ap = true,
   ammo_slug_tracking = true,
@@ -444,11 +449,16 @@ local function sanitizeWeaponEntry(entry)
   end
   local defaultName = id == "pistol" and "Pistol" or id
   local defaultLabel = id == "pistol" and "Ammo" or "Ammo"
+  local ammoLimit = HUD_WEAPON_AMMO_LIMITS[id]
+  local ammo = math.max(0, tonumber(entry.ammo or 0) or 0)
+  if ammoLimit then
+    ammo = math.min(ammo, ammoLimit)
+  end
   return {
     id = id,
     name = tostring(entry.name or defaultName),
     ammoLabel = tostring(entry.ammoLabel or defaultLabel),
-    ammo = math.max(0, tonumber(entry.ammo or 0) or 0),
+    ammo = ammo,
   }
 end
 
@@ -719,6 +729,14 @@ local function setTowingBlocked(blocked)
 end
 
 local function hudTrialPayloadKey(payload)
+  local weaponsKey = ""
+  if type(payload.weapons) == "table" then
+    local parts = {}
+    for _, w in ipairs(payload.weapons) do
+      parts[#parts + 1] = string.format("%s:%s", tostring(w.id or ""), tostring(w.ammo or ""))
+    end
+    weaponsKey = table.concat(parts, ",")
+  end
   return table.concat({
     tostring(payload.title or ""),
     tostring(payload.tagline or ""),
@@ -727,6 +745,7 @@ local function hudTrialPayloadKey(payload)
     tostring(payload.threat or ""),
     tostring(payload.dangerReason or ""),
     tostring(payload.wallet or ""),
+    weaponsKey,
   }, "|")
 end
 
@@ -741,6 +760,7 @@ local function buildHudTrialPayload()
     threat = getHudThreatLevel(),
     dangerReason = S.hudDangerReason or "",
     wallet = math.floor(walletAmount),
+    weapons = cloneWeapons(S.hudWeapons),
   }
 end
 
@@ -864,7 +884,12 @@ local function applyHudInventoryDelta(inventoryDelta)
         }
         table.insert(S.hudWeapons, existing)
       end
-      existing.ammo = math.max(0, (tonumber(existing.ammo) or 0) + ammoDelta)
+      local nextAmmo = math.max(0, (tonumber(existing.ammo) or 0) + ammoDelta)
+      local limit = HUD_WEAPON_AMMO_LIMITS[id]
+      if limit then
+        nextAmmo = math.min(nextAmmo, limit)
+      end
+      existing.ammo = nextAmmo
     end
     ::continue::
   end
