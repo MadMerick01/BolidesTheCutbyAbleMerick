@@ -653,11 +653,45 @@ local function setRecoveryPromptActive(active)
   return false
 end
 
+local function setVehicleRecoveryBlocked(blocked)
+  local veh = getPlayerVeh()
+  if not veh or not veh.queueLuaCommand then
+    return false
+  end
+
+  local flag = blocked and "true" or "false"
+  local cmd = string.format([[
+    local recovery = extensions.recovery or recovery
+    _G.btcRecoveryBlocked = %s
+    if recovery and not recovery._btcWrapped then
+      recovery._btcWrapped = true
+      recovery._btcRecoverInPlace = recovery.recoverInPlace
+      recovery._btcStartRecovering = recovery.startRecovering
+      recovery.recoverInPlace = function(...)
+        if not _G.btcRecoveryBlocked then
+          return recovery._btcRecoverInPlace(...)
+        end
+      end
+      recovery.startRecovering = function(...)
+        if not _G.btcRecoveryBlocked then
+          return recovery._btcStartRecovering(...)
+        end
+      end
+    end
+    if _G.btcRecoveryBlocked and recovery and recovery.stopRecovering then
+      recovery.stopRecovering()
+    end
+  ]], flag)
+  pcall(function() veh:queueLuaCommand(cmd) end)
+  return true
+end
+
 local function setTowingBlocked(blocked)
   if blocked and not S.towingBlocked then
     S.towingBlocked = true
     S.recoveryPromptWasActive = isRecoveryPromptActive()
     setRecoveryPromptActive(false)
+    setVehicleRecoveryBlocked(true)
     if S.hudInstruction then
       S.hudInstruction = addTowBlockMessage(S.hudInstruction)
     else
@@ -671,6 +705,7 @@ local function setTowingBlocked(blocked)
     if S.recoveryPromptWasActive == nil or S.recoveryPromptWasActive == true then
       setRecoveryPromptActive(true)
     end
+    setVehicleRecoveryBlocked(false)
     S.towingBlocked = false
     S.recoveryPromptWasActive = nil
     if S.hudInstruction then
