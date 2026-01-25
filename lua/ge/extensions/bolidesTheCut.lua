@@ -19,6 +19,8 @@ local FirstPersonShoot = require("lua/ge/extensions/FirstPersonShoot")
 local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
 
+local markHudTrialDirty
+
 -- =========================
 -- Config
 -- =========================
@@ -852,7 +854,7 @@ local function sendHudTrialPayload(force)
   return ok
 end
 
-local function markHudTrialDirty()
+markHudTrialDirty = function()
   HUD_TRIAL.dirty = true
 end
 
