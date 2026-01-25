@@ -17,7 +17,8 @@
             threat: 'safe',
             dangerReason: '',
             wallet: 0,
-            weapons: []
+            weapons: [],
+            equippedWeapon: null
           };
 
           var weaponLimits = {
@@ -76,6 +77,7 @@
             scope.hudTrial.dangerReason = payload.dangerReason || '';
             scope.hudTrial.wallet = (payload.wallet === 0 || payload.wallet) ? payload.wallet : defaults.wallet;
             scope.hudTrial.weapons = buildWeaponDisplay(payload.weapons || defaults.weapons);
+            scope.hudTrial.equippedWeapon = payload.equippedWeapon || null;
             scope.hudTrial.weapons.forEach(function (weapon) {
               if (!weapon.animate) {
                 return;
@@ -89,6 +91,15 @@
           scope.$on('bolideTheCutHudTrialUpdate', function (_event, payload) {
             applyPayload(payload);
           });
+
+          scope.toggleEquip = function (weaponId) {
+            if (!weaponId) {
+              return;
+            }
+            if (window.bngApi && bngApi.engineLua) {
+              bngApi.engineLua("extensions.bolidesTheCut.toggleHudWeapon('" + weaponId + "')");
+            }
+          };
 
           if (window.bngApi && bngApi.engineLua) {
             bngApi.engineLua(
