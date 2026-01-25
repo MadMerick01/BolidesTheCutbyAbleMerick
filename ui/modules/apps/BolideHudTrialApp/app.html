@@ -1,7 +1,8 @@
-<div class="bolide-hud-trial" ng-class="'threat-' + (hudTrial.threat || 'safe')">
+<div class="bolide-hud-trial" ng-class="['threat-' + (hudTrial.threat || 'safe'), popup.active ? 'popup-active' : '']">
   <style>
     .bolide-hud-trial {
       width: 100%;
+      position: relative;
       display: flex;
       justify-content: flex-end;
       padding: 8px 12px;
@@ -24,6 +25,76 @@
       background: linear-gradient(180deg, rgba(16, 42, 28, 0.92), rgba(7, 24, 16, 0.92));
       backdrop-filter: blur(2px);
       pointer-events: auto;
+    }
+
+    .bolide-hud-trial__popup-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+      pointer-events: auto;
+    }
+
+    .bolide-hud-trial__popup-panel {
+      width: min(520px, 88vw);
+      background: rgba(12, 14, 18, 0.92);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        0 14px 36px rgba(0, 0, 0, 0.45),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      padding: 22px 24px;
+      pointer-events: auto;
+    }
+
+    .bolide-hud-trial__popup-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .bolide-hud-trial__popup-body {
+      font-size: 15px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.86);
+      white-space: pre-line;
+    }
+
+    .bolide-hud-trial__popup-status {
+      margin-top: 10px;
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .bolide-hud-trial__popup-actions {
+      margin-top: 18px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .bolide-hud-trial__popup-button {
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #0d1118;
+      background: rgba(255, 255, 255, 0.9);
+      cursor: pointer;
+    }
+
+    .bolide-hud-trial__popup-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
     }
 
     .bolide-hud-trial.threat-event .bolide-hud-trial__panel {
@@ -163,7 +234,7 @@
     }
   </style>
 
-  <div class="bolide-hud-trial__panel">
+  <div class="bolide-hud-trial__panel" ng-if="!popup.active">
     <img
       class="bolide-hud-trial__banner"
       src="/art/ui/bolides_the_cut/bolidesBanner1.svg"
@@ -211,6 +282,26 @@
           type="button"
         >
           {{hudTrial.equippedWeapon === weapon.id ? 'Unequip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol') : 'Equip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol')}}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bolide-hud-trial__popup-overlay" ng-if="popup.active">
+    <div class="bolide-hud-trial__popup-panel">
+      <div class="bolide-hud-trial__popup-title">{{popup.title}}</div>
+      <div class="bolide-hud-trial__popup-body">{{popup.body}}</div>
+      <div class="bolide-hud-trial__popup-status" ng-if="popup.statusLine">
+        {{popup.statusLine}}
+      </div>
+      <div class="bolide-hud-trial__popup-actions">
+        <button
+          class="bolide-hud-trial__popup-button"
+          ng-click="popupContinue()"
+          ng-disabled="!popup.canContinue"
+          type="button"
+        >
+          {{popup.continueLabel}}
         </button>
       </div>
     </div>

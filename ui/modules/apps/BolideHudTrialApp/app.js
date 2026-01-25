@@ -32,6 +32,14 @@
             id: null,
             active: false
           };
+          scope.popup = {
+            active: false,
+            title: '',
+            body: '',
+            continueLabel: 'Continue',
+            canContinue: true,
+            statusLine: ''
+          };
 
           function updateWeaponButtonHoverState() {
             if (!(window.bngApi && bngApi.engineLua)) {
@@ -106,6 +114,16 @@
             applyPayload(payload);
           });
 
+          scope.$on('bolideTheCutPopupUpdate', function (_event, payload) {
+            payload = payload || {};
+            scope.popup.active = payload.active === true;
+            scope.popup.title = payload.title || '';
+            scope.popup.body = payload.body || '';
+            scope.popup.continueLabel = payload.continueLabel || 'Continue';
+            scope.popup.canContinue = payload.canContinue !== false;
+            scope.popup.statusLine = payload.statusLine || '';
+          });
+
           scope.toggleEquip = function (weaponId) {
             if (!weaponId) {
               return;
@@ -119,6 +137,15 @@
             scope.weaponButtonHover.id = weaponId || null;
             scope.weaponButtonHover.active = !!isHovering;
             updateWeaponButtonHoverState();
+          };
+
+          scope.popupContinue = function () {
+            if (!scope.popup.active || !scope.popup.canContinue) {
+              return;
+            }
+            if (window.bngApi && bngApi.engineLua) {
+              bngApi.engineLua("extensions.bolidesTheCut._popupContinue()");
+            }
           };
 
           if (window.bngApi && bngApi.engineLua) {

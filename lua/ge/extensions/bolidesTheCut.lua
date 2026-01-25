@@ -97,6 +97,14 @@ local S = {
 
   uiShowWeapons = false,
   uiShowAbout = false,
+
+  popupQueue = {},
+  popupActive = nil,
+  popupDismissed = false,
+  popupWaitingForPreload = false,
+  popupPreloadEventName = nil,
+  popupPrevTimeScale = nil,
+  popupShownOnce = {},
 }
 
 local UI = {}
@@ -110,6 +118,14 @@ M._missionMsg = {
   onClose = nil,
   onContinue = nil,
   reason = nil,
+}
+
+local POPUP = {
+  eventName = "bolideTheCutPopupUpdate",
+  dirty = true,
+  timeSinceEmit = math.huge,
+  emitInterval = 0.25,
+  lastPayloadKey = nil,
 }
 
 local function missionLog(level, msg)
@@ -198,6 +214,238 @@ local function closeMissionInfoDialogue()
   end
 end
 
+local function popupPayloadKey(payload)
+  return table.concat({
+    tostring(payload.active),
+    tostring(payload.title or ""),
+    tostring(payload.body or ""),
+    tostring(payload.continueLabel or ""),
+    tostring(payload.canContinue),
+    tostring(payload.statusLine or ""),
+  }, "|")
+end
+
+local function buildPopupPayload()
+  if not S.popupActive then
+    return { active = false }
+  end
+  local msg = S.popupActive or {}
+  local canContinue = msg.canContinue ~= false
+  if S.popupDismissed and S.popupWaitingForPreload then
+    canContinue = false
+  end
+  local statusLine = ""
+  if S.popupWaitingForPreload then
+    statusLine = msg.preloadStatus or "Preloading next event..."
+  end
+  return {
+    active = true,
+    title = tostring(msg.title or ""),
+    body = tostring(msg.body or msg.text or ""),
+    continueLabel = tostring(msg.continueLabel or "Continue"),
+    canContinue = canContinue,
+    statusLine = statusLine,
+  }
+end
+
+local function markPopupDirty()
+  POPUP.dirty = true
+end
+
+local function sendPopupPayload(force)
+  local hooks = guihooks
+  if not hooks or type(hooks.trigger) ~= "function" then
+    return false
+  end
+
+  local payload = buildPopupPayload()
+  local key = popupPayloadKey(payload)
+  local changed = key ~= POPUP.lastPayloadKey
+
+  if not force then
+    if POPUP.dirty ~= true and not changed and POPUP.timeSinceEmit < POPUP.emitInterval then
+      return false
+    end
+  end
+
+  local ok = pcall(hooks.trigger, POPUP.eventName, payload)
+  if ok then
+    POPUP.lastPayloadKey = key
+    POPUP.dirty = false
+    POPUP.timeSinceEmit = 0
+  end
+  return ok
+end
+
+local function isPopupPreloadReady()
+  if not S.popupActive or not S.popupWaitingForPreload then
+    return true
+  end
+  if not PreloadEvent then
+    return true
+  end
+  if S.popupPreloadEventName and PreloadEvent.hasPreloaded then
+    local ok, res = pcall(PreloadEvent.hasPreloaded, S.popupPreloadEventName)
+    if ok and res then
+      return true
+    end
+  end
+  if PreloadEvent.getDebugState then
+    local ok, state = pcall(PreloadEvent.getDebugState)
+    if ok and state then
+      if not state.pending then
+        return true
+      end
+      if S.popupPreloadEventName and state.pending ~= S.popupPreloadEventName then
+        return true
+      end
+      if state.preloadInProgress then
+        return false
+      end
+      if state.attemptCount and state.maxAttempts and state.attemptCount >= state.maxAttempts then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+local function finalizePopup(reason)
+  local msg = S.popupActive
+  local prevTimeScale = S.popupPrevTimeScale
+
+  if PreloadEvent and PreloadEvent.setUiGateOverride then
+    pcall(PreloadEvent.setUiGateOverride, false)
+  end
+
+  S.popupActive = nil
+  S.popupDismissed = false
+  S.popupWaitingForPreload = false
+  S.popupPreloadEventName = nil
+  S.popupPrevTimeScale = nil
+
+  if prevTimeScale ~= nil then
+    setTimeScaleSafe(prevTimeScale or 1)
+  end
+
+  markPopupDirty()
+  sendPopupPayload(true)
+
+  if msg then
+    if reason == "continue" and type(msg.onContinue) == "function" then
+      pcall(msg.onContinue)
+    elseif type(msg.onClose) == "function" then
+      pcall(msg.onClose)
+    end
+  end
+
+  if #S.popupQueue > 0 then
+    M._activateNextPopup()
+  end
+end
+
+function M._activateNextPopup()
+  if S.popupActive or #S.popupQueue == 0 then
+    return false
+  end
+
+  local msg = table.remove(S.popupQueue, 1)
+  if not msg then
+    return false
+  end
+
+  if msg.once and msg.id then
+    if S.popupShownOnce[msg.id] then
+      return M._activateNextPopup()
+    end
+    S.popupShownOnce[msg.id] = true
+  end
+
+  S.popupActive = msg
+  S.popupDismissed = false
+  S.popupWaitingForPreload = false
+  S.popupPreloadEventName = nil
+
+  if msg.freeze ~= false then
+    S.popupPrevTimeScale = getTimeScaleSafe()
+    setTimeScaleSafe(0)
+  else
+    S.popupPrevTimeScale = nil
+  end
+
+  if msg.preloadSpec or msg.nextEventName then
+    local ok = false
+    if msg.preloadSpec then
+      ok = M.requestEventPreload(msg.preloadSpec)
+    elseif msg.nextEventName then
+      ok = M.requestEventPreloadByName(msg.nextEventName, msg.preloadOpts)
+    end
+    if ok then
+      S.popupWaitingForPreload = true
+      S.popupPreloadEventName = msg.nextEventName or (msg.preloadSpec and msg.preloadSpec.eventName) or nil
+      if PreloadEvent and PreloadEvent.setUiGateOverride then
+        pcall(PreloadEvent.setUiGateOverride, true)
+      end
+    end
+  end
+
+  ensureHudTrialAppVisible(true)
+  markPopupDirty()
+  sendPopupPayload(true)
+  return true
+end
+
+function M.showPopupMessage(args)
+  args = args or {}
+  local msg = {
+    id = args.id or args.key or args.title or ("popup_" .. tostring(os.clock())),
+    title = args.title or "Notice",
+    body = args.body or args.text or "",
+    continueLabel = args.continueLabel or "Continue",
+    freeze = args.freeze ~= false,
+    once = args.once == true,
+    onClose = args.onClose,
+    onContinue = args.onContinue,
+    preloadSpec = args.preloadSpec,
+    preloadOpts = args.preloadOpts,
+    nextEventName = args.nextEventName or args.nextEvent,
+    preloadStatus = args.preloadStatus,
+    canContinue = args.canContinue,
+  }
+
+  if msg.once and msg.id and S.popupShownOnce[msg.id] then
+    return false
+  end
+
+  table.insert(S.popupQueue, msg)
+  ensureHudTrialAppVisible(true)
+  M._activateNextPopup()
+  return true
+end
+
+function M._popupContinue()
+  if not S.popupActive then
+    return
+  end
+  if S.popupDismissed then
+    return
+  end
+  S.popupDismissed = true
+  if not S.popupWaitingForPreload or isPopupPreloadReady() then
+    finalizePopup("continue")
+    return
+  end
+  markPopupDirty()
+  sendPopupPayload(true)
+end
+
+function M.closePopupMessage(reason)
+  if not S.popupActive then
+    return
+  end
+  finalizePopup(reason or "closed")
+end
+
 local function formatCountdown(seconds)
   local totalSeconds = math.max(0, math.floor((seconds or 0) + 0.5))
   local minutes = math.floor(totalSeconds / 60)
@@ -235,7 +483,7 @@ local function getThreatState()
   return "safe"
 end
 
-function M.showMissionMessage(args)
+local function showLegacyMissionMessage(args)
   args = args or {}
 
   if M._missionMsg.open then
@@ -284,6 +532,18 @@ function M.showMissionMessage(args)
 
   pcall(extensions.missionInfo.openDialogue, content)
   missionLog("I", "Mission message opened.")
+  return true
+end
+
+function M.showMissionMessage(args)
+  local ok = M.showPopupMessage(args)
+  if ok then
+    return true
+  end
+  if args and args.once then
+    return false
+  end
+  return showLegacyMissionMessage(args)
 end
 
 function M._missionContinue()
@@ -314,6 +574,10 @@ function M._missionContinue()
 end
 
 function M.closeMissionMessage(reason)
+  if S.popupActive then
+    finalizePopup(reason or "closed")
+    return
+  end
   if not M._missionMsg.open then
     return
   end
@@ -355,6 +619,7 @@ function M.requestHudTrialSnapshot()
   markHudTrialDirty()
   ensureHudTrialAppVisible(true)
   sendHudTrialPayload(true)
+  sendPopupPayload(true)
   return true
 end
 
@@ -1090,6 +1355,8 @@ local function attachHostApi(host)
   if not host then return end
   host.showMissionMessage = M.showMissionMessage
   host.closeMissionMessage = M.closeMissionMessage
+  host.showPopupMessage = M.showPopupMessage
+  host.closePopupMessage = M.closePopupMessage
   host.setGuiStatusMessage = M.setGuiStatusMessage
   host.setNewHudState = M.setNewHudState
   host.requestHudTrialSnapshot = M.requestHudTrialSnapshot
@@ -1902,6 +2169,7 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   local dt = tonumber(dtSim) or 0
   HUD_TRIAL.timeSinceEmit = (HUD_TRIAL.timeSinceEmit or 0) + dt
   HUD_TRIAL.timeSinceEnsureVisible = (HUD_TRIAL.timeSinceEnsureVisible or 0) + dt
+  POPUP.timeSinceEmit = (POPUP.timeSinceEmit or 0) + dt
 
   if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
     local currentMoney = getCareerMoney()
@@ -1920,6 +2188,24 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
 
   if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
     sendHudTrialPayload(false)
+  end
+
+  if S.popupActive and S.popupWaitingForPreload then
+    if isPopupPreloadReady() then
+      S.popupWaitingForPreload = false
+      if PreloadEvent and PreloadEvent.setUiGateOverride then
+        pcall(PreloadEvent.setUiGateOverride, false)
+      end
+      if S.popupDismissed then
+        finalizePopup("continue")
+      else
+        markPopupDirty()
+      end
+    end
+  end
+
+  if POPUP.dirty or POPUP.timeSinceEmit >= POPUP.emitInterval then
+    sendPopupPayload(false)
   end
 
   local threatLevel = getHudThreatLevel()
