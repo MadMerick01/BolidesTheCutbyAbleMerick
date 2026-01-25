@@ -402,7 +402,7 @@ end
 local INVENTORY_SAVE_PATH = "settings/bolidesTheCut_inventory.json"
 
 local DEFAULT_HUD_WEAPONS = {
-  { id = "beretta1301", name = "Beretta 1301", ammoLabel = "Rifled Slugs", ammo = 0 },
+  { id = "pistol", name = "Pistol", ammoLabel = "Ammo", ammo = 0 },
   { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammo = 0 },
 }
 
@@ -439,11 +439,11 @@ local function sanitizeWeaponEntry(entry)
   if isHudWeaponHidden(id) then
     return nil
   end
-  if id == "beretta92fs" then
-    id = "beretta1301"
+  if id == "beretta92fs" or id == "beretta1301" then
+    id = "pistol"
   end
-  local defaultName = id == "beretta1301" and "Beretta 1301" or id
-  local defaultLabel = id == "beretta1301" and "Rifled Slugs" or "Ammo"
+  local defaultName = id == "pistol" and "Pistol" or id
+  local defaultLabel = id == "pistol" and "Ammo" or "Ammo"
   return {
     id = id,
     name = tostring(entry.name or defaultName),
@@ -1333,16 +1333,16 @@ local function drawGui()
               end
             end
           end
-        elseif w.id == "beretta1301" then
+        elseif w.id == "pistol" then
           local aimEnabled = FirstPersonShoot and FirstPersonShoot.isAimEnabled and FirstPersonShoot.isAimEnabled()
-          local aimLabel = aimEnabled and "Reholster Shotgun" or "Unholster Shotgun"
+          local aimLabel = aimEnabled and "Reholster Pistol" or "Unholster Pistol"
 
           if ammo <= 0 then
             imgui.BeginDisabled()
-            imgui.Button(aimLabel .. "##shotgun_aim")
+            imgui.Button(aimLabel .. "##pistol_aim")
             imgui.EndDisabled()
           else
-            if imgui.Button(aimLabel .. "##shotgun_aim") then
+            if imgui.Button(aimLabel .. "##pistol_aim") then
               FirstPersonShoot.toggleAim()
             end
           end
@@ -1529,7 +1529,7 @@ local function drawGui()
       imgui.Spacing()
       if imgui.Button("Add +5 ammo (Rifled Slugs + EMP)", imgui.ImVec2(-1, 0)) then
         applyHudInventoryDelta({
-          { id = "beretta1301", name = "Beretta 1301", ammoLabel = "Rifled Slugs", ammoDelta = 5 },
+          { id = "pistol", name = "Pistol", ammoLabel = "Ammo", ammoDelta = 5 },
           { id = "emp", name = "EMP Device", ammoLabel = "Charges", ammoDelta = 5 },
         })
       end
@@ -1694,11 +1694,11 @@ function M.onExtensionLoaded()
   if FirstPersonShoot and FirstPersonShoot.init then
     FirstPersonShoot.init({
       getAmmo = function()
-        local w = getHudWeaponById("beretta1301")
+        local w = getHudWeaponById("pistol")
         return w and tonumber(w.ammo) or 0
       end,
       consumeAmmo = function(amount)
-        return consumeHudAmmo("beretta1301", amount or 1)
+        return consumeHudAmmo("pistol", amount or 1)
       end,
       getPlayerVeh = getPlayerVeh,
       onShot = function(ok, info, hitPos)
