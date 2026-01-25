@@ -703,22 +703,22 @@ function M.update(dtSim)
       local rewardNotes = {}
       if math.random() < 0.75 then
         inventoryDelta[#inventoryDelta + 1] = {
-          id = "beretta1301",
-          name = "Beretta 1301",
-          ammoLabel = "Rifled Slugs",
+          id = "pistol",
+          name = "Pistol",
+          ammoLabel = "Ammo",
           ammoDelta = 0,
         }
-        rewardNotes[#rewardNotes + 1] = "You recovered a Beretta 1301 shotgun."
+        rewardNotes[#rewardNotes + 1] = "You recovered a pistol."
       end
       if math.random() < 0.70 then
-        local rifledSlugs = math.random(2, 6)
+        local bonusAmmo = math.random(2, 6)
         inventoryDelta[#inventoryDelta + 1] = {
-          id = "beretta1301",
-          name = "Beretta 1301",
-          ammoLabel = "Rifled Slugs",
-          ammoDelta = rifledSlugs,
+          id = "pistol",
+          name = "Pistol",
+          ammoLabel = "Ammo",
+          ammoDelta = bonusAmmo,
         }
-        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d rifled slugs.", rifledSlugs)
+        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d ammo.", bonusAmmo)
       end
       local status = "Attacker stopped. Loot recovered."
       if #rewardNotes > 0 then
