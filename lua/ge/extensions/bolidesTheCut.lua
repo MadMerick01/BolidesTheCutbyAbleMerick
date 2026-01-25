@@ -88,6 +88,7 @@ local S = {
   hudDangerReason = nil,
   hudShotgunMessage = "Aim carefully",
   hudShotgunHitPoint = "Raycast hit: --",
+  hudEquippedWeapon = nil,
   towingBlocked = false,
   recoveryPromptWasActive = nil,
 
@@ -747,6 +748,7 @@ local function buildHudTrialPayload()
     dangerReason = S.hudDangerReason or "",
     wallet = math.floor(walletAmount),
     weapons = cloneWeapons(S.hudWeapons),
+    equippedWeapon = S.hudEquippedWeapon,
   }
 end
 
@@ -872,6 +874,118 @@ local function consumeHudAmmo(id, amount)
   w.ammo = math.max(0, current - delta)
   saveInventory()
   return true
+end
+
+local function triggerEmpOnNearestVehicle()
+  local playerVeh = getPlayerVeh()
+  local targetVeh, targetDist, targetErr = findNearestVehicleToPlayer()
+  local targetInRange = targetDist ~= nil and targetDist <= 20.0
+  if targetVeh and playerVeh and targetInRange then
+    local ok, reason = EMP.trigger({
+      playerId = targetVeh:getID(),
+      sourceId = playerVeh:getID(),
+      sourcePos = playerVeh:getPosition(),
+      empDurationSec = 10.0,
+      shockDurationSec = 0.5,
+      thrusterKickSpeed = 5.0,
+      forceMultiplier = 0.5,
+      aiDisableDurationSec = 5.0,
+    })
+    if ok then
+      return true
+    end
+    return false, reason
+  end
+
+  return false, targetErr or "out_of_range"
+end
+
+local function setHudEquippedWeapon(id)
+  if id ~= "emp" and id ~= "pistol" then
+    id = nil
+  end
+
+  if id == "pistol" then
+    if FirstPersonShoot and FirstPersonShoot.setAimEnabled then
+      local ok = FirstPersonShoot.setAimEnabled(true)
+      if ok then
+        S.hudEquippedWeapon = "pistol"
+      else
+        if S.hudEquippedWeapon == "pistol" then
+          S.hudEquippedWeapon = nil
+        end
+      end
+    else
+      S.hudEquippedWeapon = "pistol"
+    end
+  elseif id == "emp" then
+    if FirstPersonShoot and FirstPersonShoot.setAimEnabled then
+      FirstPersonShoot.setAimEnabled(false)
+    end
+    S.hudEquippedWeapon = "emp"
+  else
+    if FirstPersonShoot and FirstPersonShoot.setAimEnabled then
+      FirstPersonShoot.setAimEnabled(false)
+    end
+    S.hudEquippedWeapon = nil
+  end
+
+  markHudTrialDirty()
+end
+
+local function toggleHudWeapon(id)
+  local weaponId = tostring(id or "")
+  if weaponId == "" then
+    return false
+  end
+
+  if weaponId == S.hudEquippedWeapon then
+    setHudEquippedWeapon(nil)
+    return true
+  end
+
+  setHudEquippedWeapon(weaponId)
+  return true
+end
+
+local function triggerHudEmp()
+  local w = getHudWeaponById("emp")
+  local ammo = w and tonumber(w.ammo) or 0
+  if ammo <= 0 then
+    return false, "out_of_ammo"
+  end
+
+  local ok, reason = triggerEmpOnNearestVehicle()
+  if ok then
+    consumeHudAmmo("emp", 1)
+    markHudTrialDirty()
+  end
+  return ok, reason
+end
+
+local function handleEquippedEmpInput()
+  if S.hudEquippedWeapon ~= "emp" then
+    return
+  end
+
+  local imgui = ui_imgui
+  if not imgui then
+    return
+  end
+
+  local io = imgui.GetIO and imgui.GetIO() or nil
+  if io and io.WantCaptureMouse then
+    return
+  end
+
+  if imgui.IsMouseClicked and imgui.IsMouseClicked(0) then
+    local ok, reason = triggerHudEmp()
+    if ok then
+      log("I", "BolidesTheCut", "EMP deployed on nearest vehicle (HUD).")
+    else
+      log("W", "BolidesTheCut", "EMP deploy failed (HUD): " .. tostring(reason))
+    end
+  end
 end
 
 local function applyHudInventoryDelta(inventoryDelta)
@@ -1350,31 +1464,12 @@ local function drawGui()
             imgui.EndDisabled()
           else
             if imgui.Button(btnText .. "##" .. tostring(w.id)) then
-              local playerVeh = getPlayerVeh()
-              local targetVeh, targetDist, targetErr = findNearestVehicleToPlayer()
-              local targetInRange = targetDist ~= nil and targetDist <= 20.0
-              if targetVeh and playerVeh and targetInRange then
-                local ok, reason = EMP.trigger({
-                  playerId = targetVeh:getID(),
-                  sourceId = playerVeh:getID(),
-                  sourcePos = playerVeh:getPosition(),
-                  empDurationSec = 10.0,
-                  shockDurationSec = 0.5,
-                  thrusterKickSpeed = 5.0,
-                  forceMultiplier = 0.5,
-                  aiDisableDurationSec = 5.0,
-                })
-                if ok then
-                  w.ammo = math.max(0, ammo - 1)
-                  log("I", "BolidesTheCut", "EMP deployed on nearest vehicle.")
-                else
-                  log("W", "BolidesTheCut", "EMP deploy failed: " .. tostring(reason))
-                end
+              local ok, reason = triggerEmpOnNearestVehicle()
+              if ok then
+                w.ammo = math.max(0, ammo - 1)
+                log("I", "BolidesTheCut", "EMP deployed on nearest vehicle.")
               else
-                log("W", "BolidesTheCut", "EMP deploy blocked (no nearby target or out of range).")
-                if targetErr then
-                  log("W", "BolidesTheCut", "EMP deploy blocked reason: " .. tostring(targetErr))
-                end
+                log("W", "BolidesTheCut", "EMP deploy failed: " .. tostring(reason))
               end
             end
           end
@@ -1769,13 +1864,18 @@ function M.onExtensionLoaded()
       onAimChanged = function(enabled, reason)
         if enabled then
           S.hudShotgunMessage = "Aim and left-click to fire."
+          S.hudEquippedWeapon = "pistol"
         else
           if reason == "not_first_person" then
             S.hudShotgunMessage = "First-person view only."
           elseif reason == "no_ammo" then
             S.hudShotgunMessage = "Out of ammo."
           end
+          if S.hudEquippedWeapon == "pistol" then
+            S.hudEquippedWeapon = nil
+          end
         end
+        markHudTrialDirty()
       end,
     })
   end
@@ -1898,6 +1998,8 @@ function M.onDrawDebug()
   -- safe draw UI
   pcall(drawGui)
 
+  handleEquippedEmpInput()
+
   if FirstPersonShoot and FirstPersonShoot.onDraw then
     pcall(FirstPersonShoot.onDraw)
   end
@@ -1910,5 +2012,6 @@ end
 
 
 M.Audio = Audio
+M.toggleHudWeapon = toggleHudWeapon
 
 return M

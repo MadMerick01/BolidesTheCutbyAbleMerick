@@ -23,6 +23,7 @@
         inset 0 0 0 1px rgba(255, 255, 255, 0.03);
       background: linear-gradient(180deg, rgba(16, 42, 28, 0.92), rgba(7, 24, 16, 0.92));
       backdrop-filter: blur(2px);
+      pointer-events: auto;
     }
 
     .bolide-hud-trial.threat-event .bolide-hud-trial__panel {
@@ -82,6 +83,12 @@
 
     .bolide-hud-trial__ammo {
       margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .bolide-hud-trial__weapon {
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -100,6 +107,35 @@
 
     .bolide-hud-trial__ammo-img--wiggle {
       animation: bolideHudAmmoWiggle 0.32s ease-in-out;
+    }
+
+    .bolide-hud-trial__equip-button {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+      background: rgba(22, 44, 30, 0.85);
+      cursor: pointer;
+    }
+
+    .bolide-hud-trial__equip-button:hover {
+      background: rgba(34, 70, 48, 0.95);
+    }
+
+    .bolide-hud-trial__equip-button.is-equipped {
+      background: rgba(90, 168, 120, 0.95);
+      border-color: rgba(90, 168, 120, 0.95);
+      color: #08160f;
+    }
+
+    .bolide-hud-trial__equip-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     @keyframes bolideHudAmmoWiggle {
@@ -156,13 +192,25 @@
     </div>
 
     <div class="bolide-hud-trial__ammo">
-      <img
-        class="bolide-hud-trial__ammo-img"
+      <div
+        class="bolide-hud-trial__weapon"
         ng-repeat="weapon in hudTrial.weapons"
-        ng-class="{'bolide-hud-trial__ammo-img--wiggle': weapon.animate}"
-        ng-src="{{weapon.src}}"
-        alt="{{weapon.alt}}"
-      />
+      >
+        <img
+          class="bolide-hud-trial__ammo-img"
+          ng-class="{'bolide-hud-trial__ammo-img--wiggle': weapon.animate}"
+          ng-src="{{weapon.src}}"
+          alt="{{weapon.alt}}"
+        />
+        <button
+          class="bolide-hud-trial__equip-button"
+          ng-class="{'is-equipped': hudTrial.equippedWeapon === weapon.id}"
+          ng-click="toggleEquip(weapon.id)"
+          type="button"
+        >
+          {{hudTrial.equippedWeapon === weapon.id ? 'Unequip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol') : 'Equip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol')}}
+        </button>
+      </div>
     </div>
   </div>
 </div>
