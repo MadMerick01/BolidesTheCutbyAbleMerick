@@ -234,14 +234,16 @@ end
 
 local function _cmdEmpStart(empDurationSec)
   -- Store prior states if possible and apply temporary disable effects.
-  -- Uses globals on vehicle lua side (emp_prevIgn, emp_prevWarn) to restore later.
+  -- Uses vehicle-side extension state (extensions.btcEmpState) to restore later.
   return string.format([[
     -- EMP START (vehicle lua)
     do
+      local btcEmpState = extensions and (extensions.btcEmpState or {}) or {}
+      if extensions then extensions.btcEmpState = btcEmpState end
       -- capture previous hazard state if available
       if electrics and electrics.values then
-        emp_prevWarn = electrics.values.warn_signal
-        emp_prevIgn  = electrics.values.ignitionLevel
+        btcEmpState.prevWarn = electrics.values.warn_signal
+        btcEmpState.prevIgn  = electrics.values.ignitionLevel
       end
 
       -- hazards ON (if we can detect they're off)
@@ -309,17 +311,20 @@ local function _cmdEmpEnd()
         return false
       end
 
-      if emp_prevIgn ~= nil then
-        _setIgn(emp_prevIgn)
+      local btcEmpState = extensions and extensions.btcEmpState
+      if btcEmpState and btcEmpState.prevIgn ~= nil then
+        _setIgn(btcEmpState.prevIgn)
       else
         _setIgn(2) -- typical "run" level
       end
-      emp_prevIgn = nil
+      if btcEmpState then
+        btcEmpState.prevIgn = nil
+      end
 
       -- restore hazard state if known
       if electrics then
-        if emp_prevWarn ~= nil and electrics.values and electrics.values.warn_signal ~= nil then
-          if electrics.values.warn_signal ~= emp_prevWarn and electrics.toggle_warn_signal then
+        if btcEmpState and btcEmpState.prevWarn ~= nil and electrics.values and electrics.values.warn_signal ~= nil then
+          if electrics.values.warn_signal ~= btcEmpState.prevWarn and electrics.toggle_warn_signal then
             electrics.toggle_warn_signal()
           end
         elseif electrics.toggle_warn_signal then
@@ -327,7 +332,9 @@ local function _cmdEmpEnd()
           electrics.toggle_warn_signal()
         end
       end
-      emp_prevWarn = nil
+      if btcEmpState then
+        btcEmpState.prevWarn = nil
+      end
     end
   ]]
 end
@@ -336,16 +343,17 @@ local function _cmdAiDisable()
   return [[
     do
       if ai then
-        emp_prevAiMode = emp_prevAiMode or nil
+        local btcEmpState = extensions and (extensions.btcEmpState or {}) or {}
+        if extensions then extensions.btcEmpState = btcEmpState end
         if ai.getState then
           local ok, state = pcall(function() return ai.getState() end)
           if ok and type(state) == "table" and state.mode then
-            emp_prevAiMode = state.mode
+            btcEmpState.prevAiMode = state.mode
           end
         end
-        if emp_prevAiMode == nil and ai.getMode then
+        if btcEmpState.prevAiMode == nil and ai.getMode then
           local ok, mode = pcall(function() return ai.getMode() end)
-          if ok then emp_prevAiMode = mode end
+          if ok then btcEmpState.prevAiMode = mode end
         end
         pcall(function() ai.setMode("disabled") end)
         pcall(function() ai.setMode("none") end)
@@ -358,13 +366,16 @@ local function _cmdAiRestore()
   return [[
     do
       if ai and ai.setMode then
-        local mode = emp_prevAiMode
+        local btcEmpState = extensions and extensions.btcEmpState
+        local mode = btcEmpState and btcEmpState.prevAiMode or nil
         if mode == nil or mode == "" then
           mode = "traffic"
         end
         pcall(function() ai.setMode(mode) end)
       end
-      emp_prevAiMode = nil
+      if extensions and extensions.btcEmpState then
+        extensions.btcEmpState.prevAiMode = nil
+      end
     end
   ]]
 end
