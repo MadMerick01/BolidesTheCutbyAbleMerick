@@ -36,14 +36,14 @@ local CFG = {
   debugButtons = true,
 
   -- Make FKB show A LOT for now (you can tighten later)
-  forwardKnownCheckIntervalSec = 0.10,
+  forwardKnownCheckIntervalSec = 1.0,
   forwardKnownMinAheadMeters = 0.0,
   forwardKnownMaxAheadMeters = 5000.0,
 
   -- Travel / crumb settings (breadcrumbs.lua reads CFG.TRAVEL)
   TRAVEL = {
-    crumbEveryMeters = 1.0,
-    keepMeters = 5200.0,
+    crumbEveryMeters = 5.0,
+    keepMeters = 2500.0,
     teleportResetMeters = 50.0,
   },
 
