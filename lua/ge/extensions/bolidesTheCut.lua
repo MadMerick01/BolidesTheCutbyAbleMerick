@@ -8,7 +8,7 @@
 local M = {}
 
 local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
-local RobberFKB200mEMP = require("lua/ge/extensions/events/RobberEMP")
+local RobberEMP = require("lua/ge/extensions/events/RobberEMP")
 local RobberShotgun = require("lua/ge/extensions/events/RobberShotgun")
 local BoldiePacing = require("lua/ge/extensions/events/BoldiePacing")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
@@ -105,7 +105,7 @@ local S = {
   popupDismissed = false,
   popupWaitingForPreload = false,
   popupPreloadEventName = nil,
-  popupPrevTimeScale = nil,
+  popupPauseState = nil,
   popupShownOnce = {},
 }
 
@@ -116,7 +116,7 @@ local UI = {}
 -- =========================
 M._missionMsg = {
   open = false,
-  prevTimeScale = 1,
+  pauseState = nil,
   onClose = nil,
   onContinue = nil,
   reason = nil,
@@ -174,6 +174,33 @@ local function setTimeScaleSafe(scale)
     end
   end
   return false
+end
+
+local function requestPauseState()
+  if bullettime and bullettime.pushPauseRequest then
+    local ok, token = pcall(bullettime.pushPauseRequest)
+    if ok then
+      return { token = token }
+    end
+  end
+  local prevTimeScale = getTimeScaleSafe()
+  setTimeScaleSafe(0)
+  return { prevTimeScale = prevTimeScale }
+end
+
+local function restorePauseState(state)
+  if not state then
+    return
+  end
+  if state.token ~= nil then
+    if bullettime and bullettime.popPauseRequest then
+      pcall(bullettime.popPauseRequest, state.token)
+    end
+    return
+  end
+  if state.prevTimeScale ~= nil then
+    setTimeScaleSafe(state.prevTimeScale or 1)
+  end
 end
 
 local function ensureMissionInfo()
@@ -314,7 +341,7 @@ end
 
 local function finalizePopup(reason)
   local msg = S.popupActive
-  local prevTimeScale = S.popupPrevTimeScale
+  local pauseState = S.popupPauseState
 
   if PreloadEvent and PreloadEvent.setUiGateOverride then
     pcall(PreloadEvent.setUiGateOverride, false)
@@ -324,11 +351,9 @@ local function finalizePopup(reason)
   S.popupDismissed = false
   S.popupWaitingForPreload = false
   S.popupPreloadEventName = nil
-  S.popupPrevTimeScale = nil
+  S.popupPauseState = nil
 
-  if prevTimeScale ~= nil then
-    setTimeScaleSafe(prevTimeScale or 1)
-  end
+  restorePauseState(pauseState)
 
   markPopupDirty()
   sendPopupPayload(true)
@@ -369,10 +394,9 @@ function M._activateNextPopup()
   S.popupPreloadEventName = nil
 
   if msg.freeze ~= false then
-    S.popupPrevTimeScale = getTimeScaleSafe()
-    setTimeScaleSafe(0)
+    S.popupPauseState = requestPauseState()
   else
-    S.popupPrevTimeScale = nil
+    S.popupPauseState = nil
   end
 
   if msg.preloadSpec or msg.nextEventName then
@@ -472,7 +496,7 @@ local function getThreatState()
     end
   end
 
-  checkEvent(RobberFKB200mEMP, CFG.threatDistanceRobber)
+  checkEvent(RobberEMP, CFG.threatDistanceRobber)
   checkEvent(RobberShotgun, CFG.threatDistanceRobber)
   checkEvent(FireAttack, CFG.threatDistanceFireAttack)
 
@@ -513,10 +537,9 @@ local function showLegacyMissionMessage(args)
   M._missionMsg.onContinue = args.onContinue
 
   if freeze then
-    M._missionMsg.prevTimeScale = getTimeScaleSafe()
-    setTimeScaleSafe(0)
+    M._missionMsg.pauseState = requestPauseState()
   else
-    M._missionMsg.prevTimeScale = nil
+    M._missionMsg.pauseState = nil
   end
 
   local content = {
@@ -555,9 +578,8 @@ function M._missionContinue()
 
   closeMissionInfoDialogue()
 
-  if M._missionMsg.prevTimeScale ~= nil then
-    setTimeScaleSafe(M._missionMsg.prevTimeScale or 1)
-  end
+  restorePauseState(M._missionMsg.pauseState)
+  M._missionMsg.pauseState = nil
 
   M._missionMsg.open = false
 
@@ -587,9 +609,8 @@ function M.closeMissionMessage(reason)
   M._missionMsg.reason = reason
   closeMissionInfoDialogue()
 
-  if M._missionMsg.prevTimeScale ~= nil then
-    setTimeScaleSafe(M._missionMsg.prevTimeScale or 1)
-  end
+  restorePauseState(M._missionMsg.pauseState)
+  M._missionMsg.pauseState = nil
 
   M._missionMsg.open = false
   M._missionMsg.onClose = nil
@@ -1889,20 +1910,20 @@ local function drawGui()
       end
 
       if imgui.Button("RobberEMP", imgui.ImVec2(-1, 0)) then
-        RobberFKB200mEMP.triggerManual()
+        RobberEMP.triggerManual()
       end
 
       if imgui.Button("End RobberEMP", imgui.ImVec2(-1, 0)) then
-        RobberFKB200mEMP.endEvent()
+        RobberEMP.endEvent()
       end
 
-      local st = RobberFKB200mEMP.status and RobberFKB200mEMP.status() or ""
+      local st = RobberEMP.status and RobberEMP.status() or ""
       if st and st ~= "" then
-        imgui.TextWrapped("RobberFKB200mEMP: " .. st)
+        imgui.TextWrapped("RobberEMP: " .. st)
       end
-      local spawnMethod = RobberFKB200mEMP.getSpawnMethod and RobberFKB200mEMP.getSpawnMethod() or ""
+      local spawnMethod = RobberEMP.getSpawnMethod and RobberEMP.getSpawnMethod() or ""
       if spawnMethod and spawnMethod ~= "" then
-        imgui.TextWrapped("RobberFKB200mEMP spawn method: " .. spawnMethod)
+        imgui.TextWrapped("RobberEMP spawn method: " .. spawnMethod)
       end
 
       if imgui.Button("RobberShotgun event (spawn @ FKB 200m)", imgui.ImVec2(-1, 0)) then
@@ -1985,8 +2006,8 @@ local function drawGui()
       imgui.Text(string.format("Forward dist: %.0f m", totalFwd or 0))
 
       imgui.Spacing()
-      imgui.Text("RobberFKB200mEMP money/debug:")
-      local robberDebug = RobberFKB200mEMP.getDebugState and RobberFKB200mEMP.getDebugState() or nil
+      imgui.Text("RobberEMP money/debug:")
+      local robberDebug = RobberEMP.getDebugState and RobberEMP.getDebugState() or nil
       if robberDebug then
         local activeText = robberDebug.careerActive and "yes" or "no"
         imgui.Text(string.format("Career active: %s", activeText))
@@ -2002,7 +2023,7 @@ local function drawGui()
         imgui.Text(string.format("Success triggered: %s", tostring(robberDebug.successTriggered)))
         imgui.Text(string.format("Phase: %s", tostring(robberDebug.phase)))
       else
-        imgui.Text("RobberFKB200mEMP debug unavailable.")
+        imgui.Text("RobberEMP debug unavailable.")
       end
 
       imgui.Spacing()
@@ -2091,8 +2112,8 @@ function M.onExtensionLoaded()
   Breadcrumbs.reset()
 
   -- init events
-  if RobberFKB200mEMP and RobberFKB200mEMP.init then
-    RobberFKB200mEMP.init(CFG, EVENT_HOST)
+  if RobberEMP and RobberEMP.init then
+    RobberEMP.init(CFG, EVENT_HOST)
   end
   if RobberShotgun and RobberShotgun.init then
     RobberShotgun.init(CFG, EVENT_HOST)
@@ -2102,7 +2123,7 @@ function M.onExtensionLoaded()
   end
   if BoldiePacing and BoldiePacing.init then
     BoldiePacing.init(CFG, EVENT_HOST, {
-      RobberFKB200mEMP = RobberFKB200mEMP,
+      RobberEMP = RobberEMP,
       RobberShotgun = RobberShotgun,
     }, function(nextName, opts)
       return M.requestEventPreloadByName(nextName, opts)
@@ -2222,8 +2243,8 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
     FirstPersonShoot.onUpdate(dtSim)
   end
 
-  if RobberFKB200mEMP and RobberFKB200mEMP.update then
-    RobberFKB200mEMP.update(dtSim)
+  if RobberEMP and RobberEMP.update then
+    RobberEMP.update(dtSim)
   end
   if RobberShotgun and RobberShotgun.update then
     RobberShotgun.update(dtSim)
@@ -2249,8 +2270,8 @@ end
 function M.requestEventPreloadByName(name, opts)
   if not name then return false end
   local spec = nil
-  if name == "RobberFKB200mEMP" and RobberFKB200mEMP and RobberFKB200mEMP.getPreloadSpec then
-    spec = RobberFKB200mEMP.getPreloadSpec()
+  if name == "RobberEMP" and RobberEMP and RobberEMP.getPreloadSpec then
+    spec = RobberEMP.getPreloadSpec()
   elseif name == "RobberShotgun" and RobberShotgun and RobberShotgun.getPreloadSpec then
     spec = RobberShotgun.getPreloadSpec()
   end
@@ -2268,8 +2289,8 @@ function M.requestEventPreloadByName(name, opts)
 end
 
 function M.startEvent(name, cfg)
-  if name == "RobberFKB200mEMP" then
-    return RobberFKB200mEMP.triggerManual()
+  if name == "RobberEMP" then
+    return RobberEMP.triggerManual()
   end
   if name == "RobberShotgun" then
     return RobberShotgun.triggerManual()
@@ -2281,8 +2302,8 @@ function M.startEvent(name, cfg)
 end
 
 function M.stopEvent(name)
-  if name == "RobberFKB200mEMP" then
-    RobberFKB200mEMP.endEvent()
+  if name == "RobberEMP" then
+    RobberEMP.endEvent()
     return true
   end
   if name == "RobberShotgun" then
