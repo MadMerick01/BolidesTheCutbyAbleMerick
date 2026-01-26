@@ -21,6 +21,7 @@ local CareerMoney = require("CareerMoney")
 
 local markHudTrialDirty
 local ensureHudTrialAppVisible
+local sendHudTrialPayload
 
 -- =========================
 -- Config
@@ -1089,7 +1090,7 @@ ensureHudTrialAppVisible = function(force)
   return true
 end
 
-local function sendHudTrialPayload(force)
+sendHudTrialPayload = function(force)
   local hooks = guihooks
   if not hooks or type(hooks.trigger) ~= "function" then
     return false
