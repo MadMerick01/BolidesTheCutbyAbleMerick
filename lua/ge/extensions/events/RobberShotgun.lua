@@ -54,6 +54,20 @@ local function log(msg)
   end
 end
 
+local function addCareerMoney(amount)
+  if not amount or amount == 0 then return false end
+  if not career_modules_payment then return false end
+  if amount > 0 then
+    if type(career_modules_payment.reward) == "function" then
+      return career_modules_payment.reward({ money = { amount = amount } }, { label = "Reward" }, true)
+    end
+  end
+  if type(career_modules_payment.pay) == "function" then
+    return career_modules_payment.pay(amount, { label = "Reward" })
+  end
+  return false
+end
+
 local function formatStatusWithDistance(status, distance)
   if not status or status == "" then return status end
   local distMeters = math.floor((distance or 0) + 0.5)
@@ -575,7 +589,7 @@ function M.triggerManual()
   startFollowAI(id)
   setHud(
     "event",
-    "A vehicle is tailing you.",
+    "A vehicle is tailing you",
     "Keep moving. Watch your mirrors.",
     nil
   )
@@ -587,11 +601,11 @@ function M.endEvent(reason)
 
   local status = "Threat cleared."
   if reason == "escape" then
-    status = "Robber got away."
+    status = "All clear"
   elseif reason == "escaped_without_harm" then
-    status = "you escaped without harm"
+    status = "you live to fight another day"
   elseif reason == "caught" then
-    status = "Attacker caught."
+    status = R.hudStatusBase or "You took down the attacker"
   elseif reason == "garage" then
     status = "Threat cleared after towing to garage."
   end
@@ -745,7 +759,7 @@ function M.update(dtSim)
           ammoLabel = "Ammo",
           ammoDelta = 0,
         }
-        rewardNotes[#rewardNotes + 1] = "You recovered a pistol."
+        rewardNotes[#rewardNotes + 1] = "a pistol"
       end
       if math.random() < 0.70 then
         local bonusAmmo = math.random(2, 6)
@@ -755,11 +769,34 @@ function M.update(dtSim)
           ammoLabel = "Ammo",
           ammoDelta = bonusAmmo,
         }
-        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d ammo.", bonusAmmo)
+        rewardNotes[#rewardNotes + 1] = string.format("%d ammo", bonusAmmo)
       end
-      local status = "Attacker stopped. Loot recovered."
+      local cashFound = math.random(50, 1500)
+      addCareerMoney(cashFound)
+      rewardNotes[#rewardNotes + 1] = string.format("$%d", cashFound)
+      local empRewardText = nil
+      if math.random() < 0.5 then
+        empRewardText = "an EMP device"
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "emp",
+          name = "EMP Device",
+          ammoLabel = "Charges",
+          ammoDelta = 0,
+        }
+      else
+        local empCharges = math.random(1, 3)
+        empRewardText = string.format("%d EMP charges", empCharges)
+        inventoryDelta[#inventoryDelta + 1] = {
+          id = "emp",
+          name = "EMP Device",
+          ammoLabel = "Charges",
+          ammoDelta = empCharges,
+        }
+      end
+      rewardNotes[#rewardNotes + 1] = empRewardText
+      local status = "You took down the attacker"
       if #rewardNotes > 0 then
-        status = status .. " " .. table.concat(rewardNotes, " ")
+        status = status .. " (and found " .. table.concat(rewardNotes, " and ") .. ")"
       end
       R.hudStatusBase = status
       pushHudState({
@@ -767,6 +804,7 @@ function M.update(dtSim)
         status = formatStatusWithDistance(status, R.distToPlayer),
         instruction = "Secure the area and continue.",
         dangerReason = nil,
+        moneyDelta = cashFound,
         inventoryDelta = #inventoryDelta > 0 and inventoryDelta or nil,
       })
     end
@@ -800,7 +838,7 @@ function M.update(dtSim)
       R.shotsStarted = true
       setHud(
         "danger",
-        "Shots fired.",
+        "Shots fired, escape",
         "Break line of sight or create distance.",
         "shotsFired"
       )

@@ -945,7 +945,7 @@ function M.triggerManual()
   startFollowAI(id)
   updateHudState({
     threat = "event",
-    status = "A vehicle is closing in on you.",
+    status = "A vehicle is tailing you",
     instruction = "Stay alert and control your speed.",
   })
   return true
@@ -1145,7 +1145,7 @@ function M.update(dtSim)
   if R.robberStationaryTimer >= 30.0 and d >= 500.0 then
     updateHudState({
       threat = "safe",
-      status = "you escaped without harm",
+      status = "you live to fight another day",
       instruction = "carry on with your business",
     })
     local msgArgs = {
@@ -1229,7 +1229,7 @@ function M.update(dtSim)
 
     updateHudState({
       threat = "danger",
-      status = "An EMP device was triggered.",
+      status = "You've been robbed, chase the robber down and stop their vehicle to get it back",
       instruction = "Create distance or disable the robber.",
       dangerReason = "emp",
     })
@@ -1274,7 +1274,7 @@ function M.update(dtSim)
     end
     updateHudState({
       threat = "danger",
-      status = robbedText and string.format("You were robbed of $%s.", robbedText) or "You were robbed.",
+      status = "You've been robbed, chase the robber down and stop their vehicle to get it back",
       instruction = "Stop the robber vehicle to recover your money.",
       dangerReason = "robbed",
       moneyDelta = robbedDelta,
@@ -1295,7 +1295,7 @@ function M.update(dtSim)
       log("WARN: Mission message system not available for robbery alert.")
     end
 
-    R.guiBaseMessage = "the robber took half your money"
+    R.guiBaseMessage = "You've been robbed, chase the robber down and stop their vehicle to get it back"
     R.hideDistance = false
     updateGuiDistanceMessage(d)
     -- Keep audio behavior: chase2 at flee moment
@@ -1343,7 +1343,7 @@ function M.update(dtSim)
       local inventoryDelta = {}
       local rewardNotes = {}
       if math.random() < 0.5 then
-        empRewardText = "You obtained the EMP device."
+        empRewardText = "an EMP device"
         inventoryDelta[#inventoryDelta + 1] = {
           id = "emp",
           name = "EMP Device",
@@ -1352,7 +1352,7 @@ function M.update(dtSim)
         }
       else
         local empCharges = math.random(1, 3)
-        empRewardText = "You gained EMP charges."
+        empRewardText = string.format("%d EMP charges", empCharges)
         empInstruction = "You may deploy the EMP now."
         inventoryDelta[#inventoryDelta + 1] = {
           id = "emp",
@@ -1362,7 +1362,7 @@ function M.update(dtSim)
         }
       end
       if math.random() < 0.3 then
-        rewardNotes[#rewardNotes + 1] = "You recovered a pistol."
+        rewardNotes[#rewardNotes + 1] = "a pistol"
         inventoryDelta[#inventoryDelta + 1] = {
           id = "pistol",
           name = "Pistol",
@@ -1379,14 +1379,23 @@ function M.update(dtSim)
           ammoLabel = "Ammo",
           ammoDelta = bonusAmmo,
         }
-        rewardNotes[#rewardNotes + 1] = string.format("You recovered %d ammo.", bonusAmmo)
+        rewardNotes[#rewardNotes + 1] = string.format("%d ammo", bonusAmmo)
       end
-      local statusMessage = "You recovered your money and found additional loot."
+      local statusMessage = "You got your money back"
+      local foundNotes = {}
+      if R.cashFound and R.cashFound > 0 then
+        foundNotes[#foundNotes + 1] = string.format("$%d", R.cashFound)
+      end
       if empRewardText then
-        statusMessage = statusMessage .. " " .. empRewardText
+        foundNotes[#foundNotes + 1] = empRewardText
       end
       if #rewardNotes > 0 then
-        statusMessage = statusMessage .. " " .. table.concat(rewardNotes, " ")
+        for _, note in ipairs(rewardNotes) do
+          foundNotes[#foundNotes + 1] = note
+        end
+      end
+      if #foundNotes > 0 then
+        statusMessage = statusMessage .. " (and found " .. table.concat(foundNotes, " and ") .. ")"
       end
       updateHudState({
         threat = "safe",
@@ -1427,9 +1436,19 @@ function M.update(dtSim)
     R.hideDistance = true
     R.postSuccessMessageAt = now
     updateGuiDistanceMessage(d)
+    local robbedText = nil
+    if R.robbedAmount and R.robbedAmount > 0 then
+      if CareerMoney and CareerMoney.fmt then
+        robbedText = CareerMoney.fmt(R.robbedAmount)
+      else
+        robbedText = string.format("%d", math.floor(R.robbedAmount))
+      end
+    end
     updateHudState({
       threat = "safe",
-      status = "The robber has escaped.",
+      status = robbedText
+        and string.format("The robber escaped with your money, you lost $%s", robbedText)
+        or "The robber escaped with your money",
       instruction = "Stay alert and control your speed.",
     })
     M.endEvent({ keepGuiMessage = true, keepHudState = true })

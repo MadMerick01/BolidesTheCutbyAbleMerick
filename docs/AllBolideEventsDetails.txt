@@ -1,5 +1,17 @@
 Bolide Events
 
+NOTE: Do not alter this document. Treat it as the source of truth and align all event implementations to the details listed below.
+
+Common fields to track for every event (include in each event entry):
+-Trigger/activation conditions (distance, timing, prerequisites, cooldown)
+-Spawn details (vehicle, config, spawn method, spawn position)
+-Phase transitions (what moves Start -> Middle -> End, with thresholds)
+-HUD status/instruction text (exact strings)
+-Pause/mission message text (exact strings, active or not)
+-Audio cues or effects
+-Rewards/penalties (money delta, inventory items, charges/ammo)
+-End outcomes and cleanup behavior (despawn, next-event chaining)
+
 1. RobberEMP
 	Start
 	-what = the robber vehicle spawns and starts to move in on the player
