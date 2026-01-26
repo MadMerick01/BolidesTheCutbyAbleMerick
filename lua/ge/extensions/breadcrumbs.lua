@@ -24,7 +24,7 @@ local TRAVEL = {
 -- =========================
 local debugBreadcrumbMarkers = false
 
-local FORWARD_DEBUG_SPACINGS = { 10, 50, 100, 200, 300 }
+local FORWARD_DEBUG_SPACINGS = { 200, 300 }
 local BACK_BREADCRUMB_METERS = { 10, 100, 200, 300 }
 
 local DEBUG_LABEL_OFFSET = vec3(0, 0, 1.5)
