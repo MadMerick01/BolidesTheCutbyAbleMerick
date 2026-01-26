@@ -29,6 +29,7 @@ local R = {
   waitTimer = 0,
   closeTimer = 0,
   robberSlowTimer = 0,
+  robberStationaryTimer = 0,
   successTriggered = false,
   successDespawnAt = nil,
   guiBaseMessage = nil,
@@ -916,6 +917,7 @@ function M.triggerManual()
   R.waitTimer = 0
   R.closeTimer = 0
   R.robberSlowTimer = 0
+  R.robberStationaryTimer = 0
   R.successTriggered = false
   R.successDespawnAt = nil
   R.guiBaseMessage = "??????"
@@ -986,6 +988,7 @@ function M.endEvent(opts)
   R.waitTimer = 0
   R.closeTimer = 0
   R.robberSlowTimer = 0
+  R.robberStationaryTimer = 0
   R.successTriggered = false
   R.successDespawnAt = nil
   R.guiBaseMessage = nil
@@ -1076,6 +1079,7 @@ function M.update(dtSim)
     R.downhillActive = false
     R.hideDistance = false
     R.postSuccessMessageAt = nil
+    R.robberStationaryTimer = 0
     setGuiStatusMessage(nil)
     updateHudState({
       threat = "safe",
@@ -1141,6 +1145,34 @@ function M.update(dtSim)
     if ok and speed then
       robberSpeedKph = speed * 3.6
     end
+  end
+
+  if robberSpeedKph and robberSpeedKph <= 1.0 then
+    R.robberStationaryTimer = R.robberStationaryTimer + (dtSim or 0)
+  else
+    R.robberStationaryTimer = 0
+  end
+
+  if R.robberStationaryTimer >= 30.0 and d >= 500.0 then
+    updateHudState({
+      threat = "safe",
+      status = "you escaped without harm",
+      instruction = "carry on with your business",
+    })
+    local msgArgs = {
+      title = "NOTICE",
+      text = "The unknown vehicle appears to have lost interest, carry on",
+      freeze = true,
+      continueLabel = "Continue",
+      nextEventName = "RobberShotgun",
+    }
+    if Host and Host.showMissionMessage then
+      Host.showMissionMessage(msgArgs)
+    elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.showMissionMessage then
+      extensions.bolidesTheCut.showMissionMessage(msgArgs)
+    end
+    M.endEvent({ keepHudState = true })
+    return
   end
 
   -- Anti-teleport snapback (first 2 seconds after spawn)
