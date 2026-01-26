@@ -36,6 +36,7 @@ local R = {
   successDespawnAt = nil,
   closeTimer = 0,
   robberSlowTimer = 0,
+  robberStationaryTimer = 0,
 }
 
 local ROBBER_MODEL = "roamer"
@@ -99,6 +100,7 @@ local function resetRuntime()
   R.successDespawnAt = nil
   R.closeTimer = 0
   R.robberSlowTimer = 0
+  R.robberStationaryTimer = 0
 end
 
 local function chooseFkbPos(spacing, maxAgeSec)
@@ -580,15 +582,21 @@ function M.endEvent(reason)
   local status = "Threat cleared."
   if reason == "escape" then
     status = "Robber got away."
+  elseif reason == "escaped_without_harm" then
+    status = "you escaped without harm"
   elseif reason == "caught" then
     status = "Attacker caught."
   elseif reason == "garage" then
     status = "Threat cleared after towing to garage."
   end
+  local instruction = "Resume route."
+  if reason == "escaped_without_harm" then
+    instruction = "carry on with your business"
+  end
   setHud(
     "safe",
     status,
-    "Resume route.",
+    instruction,
     nil
   )
 
@@ -643,11 +651,6 @@ function M.update(dtSim)
   refreshHudStatusDistance()
   local now = os.clock()
 
-  if d >= 800.0 then
-    M.endEvent("escape")
-    return
-  end
-
   local robberSpeedKph = nil
   if robber.getVelocity then
     local vel = robber:getVelocity()
@@ -659,6 +662,34 @@ function M.update(dtSim)
     if ok and speed then
       robberSpeedKph = speed * 3.6
     end
+  end
+
+  if robberSpeedKph and robberSpeedKph <= 1.0 then
+    R.robberStationaryTimer = R.robberStationaryTimer + (dtSim or 0)
+  else
+    R.robberStationaryTimer = 0
+  end
+
+  if R.robberStationaryTimer >= 30.0 and d >= 500.0 then
+    local msgArgs = {
+      title = "NOTICE",
+      text = "The unknown vehicle appears to have lost interest, carry on",
+      freeze = true,
+      continueLabel = "Continue",
+      nextEventName = "RobberFKB200mEMP",
+    }
+    if Host and Host.showMissionMessage then
+      Host.showMissionMessage(msgArgs)
+    elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.showMissionMessage then
+      extensions.bolidesTheCut.showMissionMessage(msgArgs)
+    end
+    M.endEvent("escaped_without_harm")
+    return
+  end
+
+  if d >= 800.0 then
+    M.endEvent("escape")
+    return
   end
 
   if R.spawnPos and R.spawnClock and (now - R.spawnClock) <= 2.0 and not R.spawnSnapped then
