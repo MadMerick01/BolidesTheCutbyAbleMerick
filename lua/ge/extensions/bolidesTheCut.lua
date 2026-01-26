@@ -1046,12 +1046,12 @@ end
 
 local function isHudTrialAppAvailable(apps)
   if not apps or type(apps.getAvailableApps) ~= "function" then
-    return true
+    return false
   end
 
   local ok, available = pcall(apps.getAvailableApps)
   if not ok or type(available) ~= "table" then
-    return true
+    return false
   end
 
   for _, entry in ipairs(available) do
