@@ -246,6 +246,13 @@ local function attemptLightweightPreload(opts)
     return nil, "back breadcrumb 300m unavailable"
   end
   local spawnPos = backPos + vec3(0, 0, 0.8)
+  local playerPos = playerVeh:getPosition()
+  if not playerPos then
+    return nil, "no player position"
+  end
+  if (spawnPos - playerPos):length() < 200 then
+    return nil, "spawn too close"
+  end
 
   local placement = makePlacementTowardPlayer(playerVeh, spawnPos)
   if not placement then
