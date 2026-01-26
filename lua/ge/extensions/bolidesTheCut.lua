@@ -20,6 +20,7 @@ local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
 
 local markHudTrialDirty
+local ensureHudTrialAppVisible
 
 -- =========================
 -- Config
@@ -1045,7 +1046,7 @@ local function isHudTrialAppAvailable(apps)
   return false
 end
 
-local function ensureHudTrialAppVisible(force)
+ensureHudTrialAppVisible = function(force)
   HUD_TRIAL.timeSinceEnsureVisible = force and math.huge or HUD_TRIAL.timeSinceEnsureVisible
   if not force and HUD_TRIAL.timeSinceEnsureVisible < HUD_TRIAL.ensureVisibleInterval then
     return false
