@@ -875,6 +875,7 @@ end
 
 local HUD_TRIAL = {
   appName = "BolideHudTrialApp",
+  containerName = "messagesTasks",
   eventName = "bolideTheCutHudTrialUpdate",
   dirty = true,
   timeSinceEmit = math.huge,
@@ -1056,7 +1057,7 @@ ensureHudTrialAppVisible = function(force)
   local apps = ui_messagesTasksAppContainers
   if not apps then return false end
   if type(apps.getMessagesTasksAppContainerMounted) == "function" then
-    local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
+    local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted, HUD_TRIAL.containerName)
     if ok and mounted == false then
       return false
     end
