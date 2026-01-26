@@ -27,76 +27,6 @@
       pointer-events: auto;
     }
 
-    .bolide-hud-trial__popup-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      box-sizing: border-box;
-      pointer-events: auto;
-    }
-
-    .bolide-hud-trial__popup-panel {
-      width: min(520px, 88vw);
-      background: rgba(12, 14, 18, 0.92);
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow:
-        0 14px 36px rgba(0, 0, 0, 0.45),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-      padding: 22px 24px;
-      pointer-events: auto;
-    }
-
-    .bolide-hud-trial__popup-title {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-    }
-
-    .bolide-hud-trial__popup-body {
-      font-size: 15px;
-      line-height: 1.5;
-      color: rgba(255, 255, 255, 0.86);
-      white-space: pre-line;
-    }
-
-    .bolide-hud-trial__popup-status {
-      margin-top: 10px;
-      font-size: 12px;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    .bolide-hud-trial__popup-actions {
-      margin-top: 18px;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .bolide-hud-trial__popup-button {
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #0d1118;
-      background: rgba(255, 255, 255, 0.9);
-      cursor: pointer;
-    }
-
-    .bolide-hud-trial__popup-button:disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-
     .bolide-hud-trial.threat-event .bolide-hud-trial__panel {
       background: linear-gradient(180deg, rgba(74, 56, 16, 0.94), rgba(41, 28, 6, 0.94));
       border-left-color: rgba(233, 177, 74, 0.9);
@@ -116,6 +46,66 @@
       height: auto;
       display: block;
       margin-bottom: 10px;
+    }
+
+    .bolide-hud-trial__alert {
+      margin: 6px 0 12px;
+      padding: 12px 12px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-left-width: 4px;
+      border-left-color: rgba(255, 208, 120, 0.9);
+      background: linear-gradient(160deg, rgba(18, 20, 26, 0.98), rgba(46, 30, 12, 0.92));
+      box-shadow:
+        0 8px 18px rgba(0, 0, 0, 0.4),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    .bolide-hud-trial__alert-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .bolide-hud-trial__alert-body {
+      font-size: 14px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.86);
+      white-space: pre-line;
+    }
+
+    .bolide-hud-trial__alert-status {
+      margin-top: 8px;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .bolide-hud-trial__alert-actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .bolide-hud-trial__alert-button {
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      padding: 7px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #0c0f14;
+      background: rgba(255, 255, 255, 0.94);
+      cursor: pointer;
+    }
+
+    .bolide-hud-trial__alert-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
     }
 
     .bolide-hud-trial__grid {
@@ -234,12 +224,30 @@
     }
   </style>
 
-  <div class="bolide-hud-trial__panel" ng-if="!popup.active">
+  <div class="bolide-hud-trial__panel">
     <img
       class="bolide-hud-trial__banner"
       src="/art/ui/bolides_the_cut/bolidesBanner1.svg"
       alt="Bolides The Cut"
     />
+
+    <div class="bolide-hud-trial__alert" ng-if="popup.active">
+      <div class="bolide-hud-trial__alert-title">{{popup.title}}</div>
+      <div class="bolide-hud-trial__alert-body">{{popup.body}}</div>
+      <div class="bolide-hud-trial__alert-status" ng-if="popup.statusLine">
+        {{popup.statusLine}}
+      </div>
+      <div class="bolide-hud-trial__alert-actions">
+        <button
+          class="bolide-hud-trial__alert-button"
+          ng-click="popupContinue()"
+          ng-disabled="!popup.canContinue"
+          type="button"
+        >
+          {{popup.continueLabel}}
+        </button>
+      </div>
+    </div>
 
     <div class="bolide-hud-trial__grid">
       <div class="bolide-hud-trial__block">
@@ -282,26 +290,6 @@
           type="button"
         >
           {{hudTrial.equippedWeapon === weapon.id ? 'Unequip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol') : 'Equip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol')}}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div class="bolide-hud-trial__popup-overlay" ng-if="popup.active">
-    <div class="bolide-hud-trial__popup-panel">
-      <div class="bolide-hud-trial__popup-title">{{popup.title}}</div>
-      <div class="bolide-hud-trial__popup-body">{{popup.body}}</div>
-      <div class="bolide-hud-trial__popup-status" ng-if="popup.statusLine">
-        {{popup.statusLine}}
-      </div>
-      <div class="bolide-hud-trial__popup-actions">
-        <button
-          class="bolide-hud-trial__popup-button"
-          ng-click="popupContinue()"
-          ng-disabled="!popup.canContinue"
-          type="button"
-        >
-          {{popup.continueLabel}}
         </button>
       </div>
     </div>
