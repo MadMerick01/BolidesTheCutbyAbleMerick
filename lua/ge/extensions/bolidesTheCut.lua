@@ -58,6 +58,11 @@ local CFG = {
   sfxGunshotPoolSize = 6,
   sfxGunshotVol = 12.0,
   sfxGunshotPitch = 1.0,
+  sfxPlayerGunshotFile = "/art/sound/bolides/PlayerGunShot.wav",
+  sfxPlayerGunshotName = "bolidesPlayerGunshot",
+  sfxPlayerGunshotPoolSize = 6,
+  sfxPlayerGunshotVol = 12.0,
+  sfxPlayerGunshotPitch = 1.0,
 
   -- GUI threat coloring
   threatDistanceRobber = 50.0,
@@ -1608,6 +1613,23 @@ function Audio.playGunshot(v)
   }
   Audio.ensurePooledSources(v, source)
   Audio.playPooledFile(v, CFG.sfxGunshotName, CFG.sfxGunshotVol, CFG.sfxGunshotPitch, CFG.sfxGunshotFile)
+end
+
+function Audio.playPlayerGunshot(v)
+  if not CFG.audioEnabled then return end
+  local source = {
+    file = CFG.sfxPlayerGunshotFile,
+    name = CFG.sfxPlayerGunshotName,
+    count = CFG.sfxPlayerGunshotPoolSize,
+  }
+  Audio.ensurePooledSources(v, source)
+  Audio.playPooledFile(
+    v,
+    CFG.sfxPlayerGunshotName,
+    CFG.sfxPlayerGunshotVol,
+    CFG.sfxPlayerGunshotPitch,
+    CFG.sfxPlayerGunshotFile
+  )
 end
 
 function Audio.stopId(v, name)

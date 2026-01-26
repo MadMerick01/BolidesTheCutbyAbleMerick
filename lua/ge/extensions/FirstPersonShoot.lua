@@ -205,8 +205,12 @@ local function _playShotAudio()
     return
   end
   local audio = extensions.bolidesTheCut.Audio
+  local playerVeh = callbacks.getPlayerVeh and callbacks.getPlayerVeh() or nil
+  if audio.playPlayerGunshot then
+    audio.playPlayerGunshot(playerVeh)
+    return
+  end
   if audio.playGunshot then
-    local playerVeh = callbacks.getPlayerVeh and callbacks.getPlayerVeh() or nil
     audio.playGunshot(playerVeh)
   end
 end
