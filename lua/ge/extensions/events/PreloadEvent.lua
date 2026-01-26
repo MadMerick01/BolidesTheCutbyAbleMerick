@@ -130,6 +130,38 @@ local function parsePlacement(res)
   return nil
 end
 
+local function getBackBreadcrumbPos(meters)
+  if not Host or not Host.Breadcrumbs or not Host.Breadcrumbs.getBack then
+    return nil
+  end
+  local _, backCrumbPos = Host.Breadcrumbs.getBack()
+  if not backCrumbPos then
+    return nil
+  end
+  return backCrumbPos[meters]
+end
+
+local function makePlacementTowardPlayer(playerVeh, spawnPos)
+  if not (playerVeh and spawnPos) then
+    return nil
+  end
+  local playerPos = playerVeh:getPosition()
+  if not playerPos then
+    return { pos = spawnPos }
+  end
+  local dir = playerPos - spawnPos
+  dir.z = 0
+  if dir:length() < 1e-6 then
+    dir = vec3(0, 1, 0)
+  end
+  dir = dir:normalized()
+  local rot = quat(0, 0, 0, 1)
+  if quatFromDir then
+    rot = quatFromDir(dir, vec3(0, 0, 1))
+  end
+  return { pos = spawnPos, rot = rot }
+end
+
 local function tryPickSpawnPoint(playerVeh, distance, tolerance)
   if not spawn or not spawn.pickSpawnPoint then
     return nil
@@ -209,13 +241,13 @@ local function attemptLightweightPreload(opts)
     return nil, "missing model"
   end
 
-  local distance = tonumber(opts.distance) or 500
-  local tolerance = tonumber(opts.tolerance) or 150
-
-  local placement = tryPickSpawnPoint(playerVeh, distance, tolerance)
-  if not placement then
-    placement = tryRelativePlacement(playerVeh, distance)
+  local backPos = getBackBreadcrumbPos(300)
+  if not backPos then
+    return nil, "back breadcrumb 300m unavailable"
   end
+  local spawnPos = backPos + vec3(0, 0, 0.8)
+
+  local placement = makePlacementTowardPlayer(playerVeh, spawnPos)
   if not placement then
     return nil, "no spawn placement"
   end
@@ -240,10 +272,10 @@ local function attemptLightweightPreload(opts)
   return {
     veh = veh,
     vehId = veh:getId(),
-    placed = placement and placement.pos and "spawnModule" or "teleport",
+    placed = "backBreadcrumb300m",
     direction = nil,
-    distanceTarget = distance,
-    tolerance = tolerance,
+    distanceTarget = nil,
+    tolerance = nil,
   }, nil
 end
 

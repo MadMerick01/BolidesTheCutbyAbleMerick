@@ -1,5 +1,5 @@
--- lua/ge/extensions/events/robber1FKB200.lua
--- Robber1FKB200: manual spawn at ForwardKnownBreadcrumb(200m)
+-- lua/ge/extensions/events/RobberEMP.lua
+-- RobberEMP: manual spawn at BackwardsBreadcrumb(300m)
 -- Behavior:
 --   1) Spawn and FOLLOW player with limit settings (max 20kph).
 --   2) When within 25m, fire EMP (engine off + brakes lock 10s + combined shockwave 0.5s).
@@ -71,35 +71,24 @@ local ROBBER_CONFIG = "robber_light.pc"
 local function log(msg)
   R.status = msg or ""
   if Host and Host.postLine then
-    Host.postLine("ROBBER1FKB200", R.status)
+    Host.postLine("RobberEMP", R.status)
   else
-    print("[Robber1FKB200] " .. tostring(R.status))
+    print("[RobberEMP] " .. tostring(R.status))
   end
 end
 
-local function chooseFkbPos(spacing, maxAgeSec)
-  maxAgeSec = maxAgeSec or 10.0
-  if not Host or not Host.Breadcrumbs or not Host.Breadcrumbs.getForwardKnown then
+local function chooseBackBreadcrumbPos(meters)
+  if not Host or not Host.Breadcrumbs or not Host.Breadcrumbs.getBack then
     return nil, "no breadcrumbs"
   end
 
-  local cache = select(1, Host.Breadcrumbs.getForwardKnown())
-  local e = cache and cache[spacing]
-  if not e then return nil, "no entry" end
-
-  if e.available and e.pos then
-    return e.pos, "live"
+  local _, backCrumbPos = Host.Breadcrumbs.getBack()
+  local pos = backCrumbPos and backCrumbPos[meters]
+  if not pos then
+    return nil, "not ready"
   end
 
-  if e.lastGoodPos and e.lastGoodT then
-    local age = (os.clock() - e.lastGoodT)
-    if age <= maxAgeSec then
-      return e.lastGoodPos, "cached"
-    end
-    return nil, "cached too old"
-  end
-
-  return nil, "not ready"
+  return pos, "back"
 end
 
 local function makeSpawnTransform(playerVeh, spawnPos)
@@ -860,7 +849,7 @@ end
 
 function M.getPreloadSpec()
   return {
-    eventName = "RobberFKB200mEMP",
+    eventName = "RobberEMP",
     model = ROBBER_MODEL,
     config = ROBBER_CONFIG,
     prewarmAudio = function(playerVeh)
@@ -885,21 +874,21 @@ function M.triggerManual()
     return false
   end
 
-  local fkbPos, mode = chooseFkbPos(200, 10.0)
-  if not fkbPos then
-    log("BLOCKED: FKB 200m not available (no stable cached point).")
+  local backPos, mode = chooseBackBreadcrumbPos(300)
+  if not backPos then
+    log("BLOCKED: Back breadcrumb 300m not available.")
     return false
   end
 
   R.spawnMode = mode
-  R.spawnPos = fkbPos + vec3(0, 0, 0.8)
+  R.spawnPos = backPos + vec3(0, 0, 0.8)
   R.spawnMethod = nil
-  log("Using FKB 200 (" .. tostring(mode) .. ")")
+  log("Using back breadcrumb 300 (" .. tostring(mode) .. ")")
 
   local tf = makeSpawnTransform(pv, R.spawnPos)
   local id = nil
   if PreloadEvent and PreloadEvent.consume then
-    id = PreloadEvent.consume("RobberFKB200mEMP", tf)
+    id = PreloadEvent.consume("RobberEMP", tf)
     if id then
       R.spawnMethod = "PreloadEvent"
     end

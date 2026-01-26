@@ -682,7 +682,7 @@ function M.update(dtSim)
       text = "The unknown vehicle appears to have lost interest, carry on",
       freeze = true,
       continueLabel = "Continue",
-      nextEventName = "RobberFKB200mEMP",
+      nextEventName = "RobberEMP",
     }
     if Host and Host.showMissionMessage then
       Host.showMissionMessage(msgArgs)
