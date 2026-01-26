@@ -41,6 +41,9 @@ local R = {
 
 local ROBBER_MODEL = "roamer"
 local ROBBER_CONFIG = "robber_light.pc"
+local ROBBER_SHOT_FORCE_MULTIPLIER = 0.35
+local ROBBER_SHOT_EXPLOSION_FORCE = 30.0
+local ROBBER_SHOT_EXPLOSION_RADIUS = 1.0
 
 local function log(msg)
   R.status = msg or ""
@@ -467,6 +470,9 @@ local function triggerShot(playerVeh, robberVeh)
     targetId = playerVeh:getID(),
     sourceId = robberVeh:getID(),
     accuracyRadius = 3.0,
+    impactForceMultiplier = ROBBER_SHOT_FORCE_MULTIPLIER,
+    explosionForce = ROBBER_SHOT_EXPLOSION_FORCE,
+    explosionRadius = ROBBER_SHOT_EXPLOSION_RADIUS,
     applyDamage = false,
   })
 
