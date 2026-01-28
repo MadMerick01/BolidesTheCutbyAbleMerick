@@ -1,0 +1,78 @@
+Bolide Events
+
+NOTE: Do not alter this document. Treat it as the source of truth and align all event implementations to the details listed below.
+
+Common fields to track for every event (include in each event entry):
+-Trigger/activation conditions (distance, timing, prerequisites, cooldown)
+-Spawn details (vehicle, config, spawn method, spawn position)
+-Phase transitions (what moves Start -> Middle -> End, with thresholds)
+-HUD status/instruction text (exact strings)
+-Pause/mission message text (exact strings, active or not)
+-Audio cues or effects
+-Rewards/penalties (money delta, inventory items, charges/ammo)
+-End outcomes and cleanup behavior (despawn, next-event chaining)
+
+1. RobberEMP
+	Start
+	-what = the robber vehicle spawns and starts to move in on the player
+	-Status message = A vehicle is tailing you
+	-Pause message (not active)
+	-colour = yellow
+
+	Middle
+	-what = the robber comes into range and deploys the EMP (and takes some of the players money)
+	-status message = You've been robbed, chase the robber down and stop their vehicle to get it back
+	-Pause message (not active)
+	-colour = red
+
+	End1
+	-what = the player escapes to range before the robber can rob
+	-status message = you live to fight another day
+	-Pause message (active) message = you live to fight another day
+	-colour = green
+
+	End2
+	-what = the player catches the robber and gets their money back and possible extra money or device and/or ammo
+	-status message = You got your money back (and found x and/or y and/or z) (x = money, y = EMP or Pistol, z = charges or ammo)  
+	-Pause message (active) message = You got your money back (and found x and/or y and/or z) (x = money, y = EMP or Pistol, z = charges or ammo)
+	-colour = green
+
+	End3
+	-what - the robber escapes to range
+	-status message = The robber escaped with your money, you lost x (where x is dollars lost)
+	-Pause message (active) message = The robber escaped with your money, you lost x (where x is dollars lost)
+	-colour = green
+
+
+2. RobberShotgun
+	Start
+	-what = the robberShotgun vehicle spawns and starts to move in on the player
+	-Status message = A vehicle is tailing you
+	-Pause message (not active)
+	-colour = yellow
+
+	Middle2
+	-what = the robberShotgun comes into range and shoots at the player
+	-status message = Shots fired, escape
+	-Pause message (not active)
+	-colour = red
+
+	End1
+	-what = the player escapes to range before the robberShotgun can shoot
+	-status message = you live to fight another day
+	-Pause message (active) message = you live to fight another day
+	-colour = green
+
+	End2
+	-what = the player catches the robberShotgun and possible extra money or device and/or ammo
+	-status message = You took down the attacker (and found x and/or y and/or z) (x = money, y = EMP or Pistol, z = charges or ammo) 
+	-Pause message (active ) message = You took down the attacker (and found x and/or y and/or z) (x = money, y = EMP or Pistol, z = charges or ammo)  
+	-colour = green
+
+	End3
+	-what - the robberShotgun escapes to range
+	-status message = All clear
+	-Pause message (active) message = All clear
+	-colour = green
+	
+	
