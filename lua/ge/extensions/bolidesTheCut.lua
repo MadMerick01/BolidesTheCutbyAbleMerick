@@ -221,7 +221,9 @@ end
 
 function M.toggleHudAbout()
   S.uiShowAbout = not S.uiShowAbout
-  handleAboutIntroAudio(S.uiShowAbout)
+  if type(handleAboutIntroAudio) == "function" then
+    handleAboutIntroAudio(S.uiShowAbout)
+  end
 end
 
 local function ensureMissionInfo()
@@ -1740,7 +1742,9 @@ local function drawGui()
     imgui.Spacing()
     if imgui.Button("About") then
       S.uiShowAbout = not S.uiShowAbout
-      handleAboutIntroAudio(S.uiShowAbout)
+      if type(handleAboutIntroAudio) == "function" then
+        handleAboutIntroAudio(S.uiShowAbout)
+      end
     end
 
     imgui.SameLine()
