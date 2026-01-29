@@ -22,6 +22,7 @@ local CareerMoney = require("CareerMoney")
 local markHudTrialDirty
 local ensureHudTrialAppVisible
 local sendHudTrialPayload
+local handleAboutIntroAudio
 
 -- =========================
 -- Config
@@ -1676,7 +1677,7 @@ function Audio.stopId(v, name)
   v:queueLuaCommand(cmd)
 end
 
-local function handleAboutIntroAudio(showing)
+handleAboutIntroAudio = function(showing)
   local v = getPlayerVeh()
   if not v then return end
   Audio.ensureIntro(v)
