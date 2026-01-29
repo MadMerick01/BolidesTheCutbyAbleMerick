@@ -99,6 +99,7 @@ local S = {
   hudShotgunHitPoint = "Raycast hit: --",
   hudEquippedWeapon = nil,
   hudWeaponButtonHover = false,
+  hudPauseState = nil,
   towingBlocked = false,
   recoveryPromptWasActive = nil,
 
@@ -206,6 +207,21 @@ local function restorePauseState(state)
   if state.prevTimeScale ~= nil then
     setTimeScaleSafe(state.prevTimeScale or 1)
   end
+end
+
+function M.toggleHudPause()
+  if S.hudPauseState then
+    restorePauseState(S.hudPauseState)
+    S.hudPauseState = nil
+  else
+    S.hudPauseState = requestPauseState()
+  end
+  markHudTrialDirty()
+end
+
+function M.toggleHudAbout()
+  S.uiShowAbout = not S.uiShowAbout
+  handleAboutIntroAudio(S.uiShowAbout)
 end
 
 local function ensureMissionInfo()
@@ -1029,6 +1045,7 @@ local function hudTrialPayloadKey(payload)
     tostring(payload.threat or ""),
     tostring(payload.dangerReason or ""),
     tostring(payload.wallet or ""),
+    tostring(payload.paused or ""),
     weaponsKey,
   }, "|")
 end
@@ -1046,6 +1063,7 @@ local function buildHudTrialPayload()
     wallet = math.floor(walletAmount),
     weapons = cloneWeapons(S.hudWeapons),
     equippedWeapon = S.hudEquippedWeapon,
+    paused = S.hudPauseState ~= nil,
   }
 end
 
