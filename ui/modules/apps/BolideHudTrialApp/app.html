@@ -149,6 +149,49 @@
       gap: 6px;
     }
 
+    .bolide-hud-trial__actions {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .bolide-hud-trial__action-button {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 7px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #ffffff;
+      background: rgba(22, 44, 30, 0.85);
+      cursor: pointer;
+    }
+
+    .bolide-hud-trial__action-button:hover {
+      background: rgba(34, 70, 48, 0.95);
+    }
+
+    .bolide-hud-trial__action-button--pause {
+      background: rgba(24, 36, 64, 0.9);
+      border-color: rgba(120, 165, 255, 0.35);
+    }
+
+    .bolide-hud-trial__action-button--pause:hover {
+      background: rgba(34, 52, 92, 0.95);
+    }
+
+    .bolide-hud-trial__action-button--about {
+      background: rgba(62, 26, 24, 0.9);
+      border-color: rgba(255, 165, 120, 0.35);
+    }
+
+    .bolide-hud-trial__action-button--about:hover {
+      background: rgba(86, 40, 34, 0.95);
+    }
+
     .bolide-hud-trial__weapon {
       display: flex;
       flex-direction: column;
@@ -292,6 +335,23 @@
           {{hudTrial.equippedWeapon === weapon.id ? 'Unequip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol') : 'Equip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol')}}
         </button>
       </div>
+    </div>
+
+    <div class="bolide-hud-trial__actions">
+      <button
+        class="bolide-hud-trial__action-button bolide-hud-trial__action-button--pause"
+        ng-click="togglePause()"
+        type="button"
+      >
+        {{hudTrial.paused ? 'Unpause' : 'Pause'}}
+      </button>
+      <button
+        class="bolide-hud-trial__action-button bolide-hud-trial__action-button--about"
+        ng-click="toggleAbout()"
+        type="button"
+      >
+        About
+      </button>
     </div>
   </div>
 </div>
