@@ -100,6 +100,7 @@ local S = {
   hudEquippedWeapon = nil,
   hudWeaponButtonHover = false,
   hudPauseState = nil,
+  hudPauseActive = false,
   towingBlocked = false,
   recoveryPromptWasActive = nil,
 
@@ -209,13 +210,34 @@ local function restorePauseState(state)
   end
 end
 
+local function getHudPauseActive()
+  if bullettime and bullettime.getPause then
+    -- API dump ref: docs/beamng-api/raw/api_dump_0.38.json
+    local ok, paused = pcall(bullettime.getPause)
+    if ok then
+      return paused == true
+    end
+  end
+  return S.hudPauseState ~= nil
+end
+
 function M.toggleHudPause()
+  if bullettime and bullettime.togglePause then
+    -- API dump ref: docs/beamng-api/raw/api_dump_0.38.json
+    pcall(bullettime.togglePause)
+    S.hudPauseState = nil
+    S.hudPauseActive = getHudPauseActive()
+    markHudTrialDirty()
+    return
+  end
+
   if S.hudPauseState then
     restorePauseState(S.hudPauseState)
     S.hudPauseState = nil
   else
     S.hudPauseState = requestPauseState()
   end
+  S.hudPauseActive = getHudPauseActive()
   markHudTrialDirty()
 end
 
@@ -1065,7 +1087,7 @@ local function buildHudTrialPayload()
     wallet = math.floor(walletAmount),
     weapons = cloneWeapons(S.hudWeapons),
     equippedWeapon = S.hudEquippedWeapon,
-    paused = S.hudPauseState ~= nil,
+    paused = getHudPauseActive(),
   }
 end
 
@@ -2252,6 +2274,12 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
 
   if HUD_TRIAL.timeSinceEnsureVisible >= HUD_TRIAL.ensureVisibleInterval then
     ensureHudTrialAppVisible(false)
+  end
+
+  local hudPaused = getHudPauseActive()
+  if hudPaused ~= S.hudPauseActive then
+    S.hudPauseActive = hudPaused
+    markHudTrialDirty()
   end
 
   if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
