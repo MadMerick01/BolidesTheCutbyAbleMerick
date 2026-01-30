@@ -1116,6 +1116,33 @@ local function isHudTrialAppAvailable(apps)
   return false
 end
 
+local function isMessagesTasksContainerMounted(apps)
+  if not apps or type(apps.getMessagesTasksAppContainerMounted) ~= "function" then
+    return true
+  end
+
+  local containerName = HUD_TRIAL.containerName
+  if containerName == nil or containerName == "" then
+    local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
+    if ok and type(mounted) == "boolean" then
+      return mounted
+    end
+    return true
+  end
+
+  local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted, containerName)
+  if ok and type(mounted) == "boolean" then
+    return mounted
+  end
+
+  ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
+  if ok and type(mounted) == "boolean" then
+    return mounted
+  end
+
+  return true
+end
+
 ensureHudTrialAppVisible = function(force)
   HUD_TRIAL.timeSinceEnsureVisible = force and math.huge or HUD_TRIAL.timeSinceEnsureVisible
   if not force and HUD_TRIAL.timeSinceEnsureVisible < HUD_TRIAL.ensureVisibleInterval then
@@ -1124,11 +1151,8 @@ ensureHudTrialAppVisible = function(force)
 
   local apps = ui_messagesTasksAppContainers
   if not apps then return false end
-  if type(apps.getMessagesTasksAppContainerMounted) == "function" then
-    local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted, HUD_TRIAL.containerName)
-    if ok and mounted == false then
-      return false
-    end
+  if not isMessagesTasksContainerMounted(apps) then
+    return false
   end
   if not isHudTrialAppAvailable(apps) then
     return false
