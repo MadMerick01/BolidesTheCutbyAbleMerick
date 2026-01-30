@@ -1024,10 +1024,14 @@ function M.endEvent(opts)
   if type(id) == "number" then
     local v = getObjById(id)
     if v then
-      if v.queueLuaCommand then
-        pcall(function() v:queueLuaCommand("input.event('brake', 0, 1)") end)
+      if PreloadEvent and PreloadEvent.stash then
+        local ok = pcall(PreloadEvent.stash, "RobberEMP", id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
+        if not ok then
+          pcall(function() v:delete() end)
+        end
+      else
+        pcall(function() v:delete() end)
       end
-      pcall(function() v:delete() end)
     end
   end
 

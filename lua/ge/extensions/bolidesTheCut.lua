@@ -222,6 +222,18 @@ local function getHudPauseActive()
   return S.hudPauseState ~= nil
 end
 
+local function getRobberPreloaded()
+  if not PreloadEvent or not PreloadEvent.hasPreloaded then
+    return false
+  end
+  local ok, res = pcall(PreloadEvent.hasPreloaded, "RobberEMP")
+  if ok and res then
+    return true
+  end
+  ok, res = pcall(PreloadEvent.hasPreloaded, "RobberShotgun")
+  return ok and res or false
+end
+
 function M.toggleHudPause()
   if bullettime and bullettime.togglePause then
     -- API dump ref: docs/beamng-api/raw/api_dump_0.38.json
@@ -239,6 +251,39 @@ function M.toggleHudPause()
     S.hudPauseState = requestPauseState()
   end
   S.hudPauseActive = getHudPauseActive()
+  markHudTrialDirty()
+end
+
+function M.preloadRobberFromHud()
+  if not getHudPauseActive() then
+    S.hudPauseState = requestPauseState()
+    S.hudPauseActive = getHudPauseActive()
+  end
+
+  local hasRobber = false
+  if RobberEMP and RobberEMP.getRobberVehicleId then
+    hasRobber = type(RobberEMP.getRobberVehicleId()) == "number"
+  end
+  if not hasRobber and RobberShotgun and RobberShotgun.getRobberVehicleId then
+    hasRobber = type(RobberShotgun.getRobberVehicleId()) == "number"
+  end
+
+  if hasRobber or getRobberPreloaded() then
+    markHudTrialDirty()
+    return
+  end
+
+  if PreloadEvent and PreloadEvent.setUiGateOverride then
+    pcall(PreloadEvent.setUiGateOverride, true)
+  end
+
+  if RobberEMP and RobberEMP.getPreloadSpec then
+    local spec = RobberEMP.getPreloadSpec()
+    if spec and PreloadEvent and PreloadEvent.request then
+      pcall(PreloadEvent.request, spec)
+    end
+  end
+
   markHudTrialDirty()
 end
 
@@ -1071,6 +1116,7 @@ local function hudTrialPayloadKey(payload)
     tostring(payload.dangerReason or ""),
     tostring(payload.wallet or ""),
     tostring(payload.paused or ""),
+    tostring(payload.preloaded or ""),
     weaponsKey,
   }, "|")
 end
@@ -1089,6 +1135,7 @@ local function buildHudTrialPayload()
     weapons = cloneWeapons(S.hudWeapons),
     equippedWeapon = S.hudEquippedWeapon,
     paused = getHudPauseActive(),
+    preloaded = getRobberPreloaded(),
   }
 end
 

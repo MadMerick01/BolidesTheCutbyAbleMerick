@@ -565,7 +565,10 @@ function M.triggerManual()
   local tf = makeSpawnTransform(pv, R.spawnPos)
   local id = nil
   if PreloadEvent and PreloadEvent.consume then
-    id = PreloadEvent.consume("RobberShotgun", tf)
+    id = PreloadEvent.consume("RobberEMP", tf)
+    if not id then
+      id = PreloadEvent.consume("RobberShotgun", tf)
+    end
     if id then
       R.spawnMethod = "PreloadEvent"
     end
@@ -626,10 +629,14 @@ function M.endEvent(reason)
   if type(id) == "number" then
     local v = getObjById(id)
     if v then
-      if v.queueLuaCommand then
-        pcall(function() v:queueLuaCommand("input.event('brake', 0, 1)") end)
+      if PreloadEvent and PreloadEvent.stash then
+        local ok = pcall(PreloadEvent.stash, "RobberEMP", id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
+        if not ok then
+          pcall(function() v:delete() end)
+        end
+      else
+        pcall(function() v:delete() end)
       end
-      pcall(function() v:delete() end)
     end
   end
 
