@@ -174,13 +174,19 @@
       background: rgba(34, 70, 48, 0.95);
     }
 
-    .bolide-hud-trial__action-button--pause {
+    .bolide-hud-trial__action-button--preload {
       background: rgba(24, 36, 64, 0.9);
       border-color: rgba(120, 165, 255, 0.35);
     }
 
-    .bolide-hud-trial__action-button--pause:hover {
+    .bolide-hud-trial__action-button--preload:hover {
       background: rgba(34, 52, 92, 0.95);
+    }
+
+    .bolide-hud-trial__action-button--preload.is-preloaded {
+      background: rgba(58, 132, 78, 0.95);
+      border-color: rgba(90, 200, 130, 0.85);
+      color: #08160f;
     }
 
     .bolide-hud-trial__action-button--about {
@@ -339,11 +345,12 @@
 
     <div class="bolide-hud-trial__actions">
       <button
-        class="bolide-hud-trial__action-button bolide-hud-trial__action-button--pause"
-        ng-click="togglePause()"
+        class="bolide-hud-trial__action-button bolide-hud-trial__action-button--preload"
+        ng-class="{'is-preloaded': hudTrial.preloaded}"
+        ng-click="preloadRobber()"
         type="button"
       >
-        {{hudTrial.paused ? 'Unpause' : 'Pause'}}
+        Preload
       </button>
       <button
         class="bolide-hud-trial__action-button bolide-hud-trial__action-button--about"

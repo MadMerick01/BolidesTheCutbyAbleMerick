@@ -19,7 +19,8 @@
             wallet: 0,
             weapons: [],
             equippedWeapon: null,
-            paused: false
+            paused: false,
+            preloaded: false
           };
 
           var weaponLimits = {
@@ -101,6 +102,7 @@
             scope.hudTrial.weapons = buildWeaponDisplay(payload.weapons || defaults.weapons);
             scope.hudTrial.equippedWeapon = payload.equippedWeapon || null;
             scope.hudTrial.paused = payload.paused === true;
+            scope.hudTrial.preloaded = payload.preloaded === true;
             updateWeaponButtonHoverState();
             scope.hudTrial.weapons.forEach(function (weapon) {
               if (!weapon.animate) {
@@ -150,9 +152,9 @@
             }
           };
 
-          scope.togglePause = function () {
+          scope.preloadRobber = function () {
             if (window.bngApi && bngApi.engineLua) {
-              bngApi.engineLua("extensions.bolidesTheCut.toggleHudPause()");
+              bngApi.engineLua("extensions.bolidesTheCut.preloadRobberFromHud()");
             }
           };
 
