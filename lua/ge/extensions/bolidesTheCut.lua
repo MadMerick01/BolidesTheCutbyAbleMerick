@@ -62,7 +62,7 @@ local CFG = {
   sfxPlayerGunshotFile = "/art/sound/bolides/PlayerGunShot.wav",
   sfxPlayerGunshotName = "bolidesPlayerGunshot",
   sfxPlayerGunshotPoolSize = 6,
-  sfxPlayerGunshotVol = 24.0,
+  sfxPlayerGunshotVol = 12.0,
   sfxPlayerGunshotPitch = 1.0,
 
   -- GUI threat coloring
