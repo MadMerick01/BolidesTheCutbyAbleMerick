@@ -20,6 +20,7 @@ local S = {
   windowStart = nil,
   windowSeconds = nil,
   minDelay = nil,
+  stashPending = nil,
 }
 
 local function log(msg)
@@ -287,23 +288,22 @@ local function attemptLightweightPreload(opts)
 end
 
 local function getHiddenPlacement(playerVeh, distance)
+  if not playerVeh then
+    return nil, nil
+  end
   local backPos = getBackBreadcrumbPos(distance or 300)
-  if backPos then
-    local spawnPos = backPos + vec3(0, 0, 0.8)
-    return makePlacementTowardPlayer(playerVeh, spawnPos), "backBreadcrumb"
+  if not backPos then
+    return nil, nil
   end
-
-  local placement = tryPickSpawnPoint(playerVeh, distance or 300, 50)
-  if placement then
-    return placement, "spawnPick"
+  local spawnPos = backPos + vec3(0, 0, 0.8)
+  local playerPos = playerVeh:getPosition()
+  if not playerPos then
+    return nil, nil
   end
-
-  placement = tryRelativePlacement(playerVeh, distance or 300)
-  if placement then
-    return placement, "relativePlacement"
+  if (spawnPos - playerPos):length() <= 200 then
+    return nil, nil
   end
-
-  return nil, nil
+  return makePlacementTowardPlayer(playerVeh, spawnPos), "backBreadcrumb"
 end
 
 local function ensurePrewarmAudio(opts)
@@ -401,6 +401,7 @@ function M.clear()
   S.windowStart = nil
   S.windowSeconds = nil
   S.minDelay = nil
+  S.stashPending = nil
 end
 
 function M.hasPreloaded(eventName)
@@ -474,25 +475,67 @@ function M.stash(eventName, vehId, opts)
   local placement, placed = getHiddenPlacement(playerVeh, (opts and opts.distance) or 300)
   if placement then
     safeTeleportVehicle(veh, placement.pos, placement.rot)
+    disableVehicleAI(veh)
+    setVehicleIdle(veh)
+
+    S.preloaded = {
+      vehId = vehId,
+      eventName = eventName or "RobberEMP",
+      model = opts and opts.model or nil,
+      config = opts and opts.config or nil,
+      placed = placed or "stash",
+      createdAt = os.clock(),
+    }
+    S.pending = nil
+    S.preloadInProgress = false
+    S.stashPending = nil
+    return true
   end
 
   disableVehicleAI(veh)
   setVehicleIdle(veh)
 
-  S.preloaded = {
+  S.preloaded = nil
+  S.pending = nil
+  S.preloadInProgress = false
+  S.stashPending = {
     vehId = vehId,
     eventName = eventName or "RobberEMP",
     model = opts and opts.model or nil,
     config = opts and opts.config or nil,
-    placed = placed or "stash",
-    createdAt = os.clock(),
   }
-  S.pending = nil
-  S.preloadInProgress = false
-  return true
+  return false
 end
 
 function M.update(dtSim)
+  if S.stashPending then
+    local pending = S.stashPending
+    local veh = getObjById(pending.vehId)
+    if not veh then
+      S.stashPending = nil
+    else
+      local playerVeh = getPlayerVeh()
+      local placement, placed = getHiddenPlacement(playerVeh, 300)
+      if placement then
+        safeTeleportVehicle(veh, placement.pos, placement.rot)
+        disableVehicleAI(veh)
+        setVehicleIdle(veh)
+        S.preloaded = {
+          vehId = pending.vehId,
+          eventName = pending.eventName,
+          model = pending.model,
+          config = pending.config,
+          placed = placed or "stash",
+          createdAt = os.clock(),
+        }
+        S.stashPending = nil
+      else
+        disableVehicleAI(veh)
+        setVehicleIdle(veh)
+      end
+    end
+  end
+
   if not S.pending or S.preloadInProgress then return end
 
   if S.preloaded and not getObjById(S.preloaded.vehId) then
