@@ -115,6 +115,7 @@ local S = {
   popupPreloadEventName = nil,
   popupPauseState = nil,
   popupShownOnce = {},
+  hudPreloadPending = false,
 }
 
 local UI = {}
@@ -258,6 +259,9 @@ function M.preloadRobberFromHud()
   if not getHudPauseActive() then
     S.hudPauseState = requestPauseState()
     S.hudPauseActive = getHudPauseActive()
+    S.hudPreloadPending = true
+    markHudTrialDirty()
+    return
   end
 
   local hasRobber = false
@@ -273,13 +277,12 @@ function M.preloadRobberFromHud()
     return
   end
 
-  if PreloadEvent and PreloadEvent.setUiGateOverride then
-    pcall(PreloadEvent.setUiGateOverride, true)
-  end
-
-  if RobberEMP and RobberEMP.getPreloadSpec then
+  if RobberEMP and RobberEMP.getPreloadSpec and PreloadEvent and PreloadEvent.request then
     local spec = RobberEMP.getPreloadSpec()
-    if spec and PreloadEvent and PreloadEvent.request then
+    if spec then
+      if PreloadEvent and PreloadEvent.setUiGateOverride then
+        pcall(PreloadEvent.setUiGateOverride, true)
+      end
       pcall(PreloadEvent.request, spec)
     end
   end
@@ -2352,6 +2355,11 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if hudPaused ~= S.hudPauseActive then
     S.hudPauseActive = hudPaused
     markHudTrialDirty()
+  end
+
+  if S.hudPreloadPending and hudPaused then
+    S.hudPreloadPending = false
+    M.preloadRobberFromHud()
   end
 
   if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
