@@ -700,7 +700,7 @@ function M.update(dtSim)
   if R.robberStationaryTimer >= 30.0 and d >= 500.0 then
     local msgArgs = {
       title = "NOTICE",
-      text = "The unknown vehicle appears to have lost interest, carry on",
+      text = "you live to fight another day",
       freeze = true,
       continueLabel = "Continue",
       nextEventName = "RobberEMP",
@@ -715,6 +715,17 @@ function M.update(dtSim)
   end
 
   if d >= 800.0 then
+    local msgArgs = {
+      title = "NOTICE",
+      text = "All clear",
+      freeze = true,
+      continueLabel = "Continue",
+    }
+    if Host and Host.showMissionMessage then
+      Host.showMissionMessage(msgArgs)
+    elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.showMissionMessage then
+      extensions.bolidesTheCut.showMissionMessage(msgArgs)
+    end
     M.endEvent("escape")
     return
   end
@@ -804,6 +815,17 @@ function M.update(dtSim)
       local status = "You took down the attacker"
       if #rewardNotes > 0 then
         status = status .. " (and found " .. table.concat(rewardNotes, " and ") .. ")"
+      end
+      local msgArgs = {
+        title = "NOTICE",
+        text = status,
+        freeze = true,
+        continueLabel = "Continue",
+      }
+      if Host and Host.showMissionMessage then
+        Host.showMissionMessage(msgArgs)
+      elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.showMissionMessage then
+        extensions.bolidesTheCut.showMissionMessage(msgArgs)
       end
       R.hudStatusBase = status
       pushHudState({

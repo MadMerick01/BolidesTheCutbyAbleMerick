@@ -1154,7 +1154,7 @@ function M.update(dtSim)
     })
     local msgArgs = {
       title = "NOTICE",
-      text = "The unknown vehicle appears to have lost interest, carry on",
+      text = "you live to fight another day",
       freeze = true,
       continueLabel = "Continue",
       nextEventName = "RobberShotgun",
@@ -1284,21 +1284,6 @@ function M.update(dtSim)
       moneyDelta = robbedDelta,
     })
 
-    local msgArgs = {
-      title = "YOU'VE BEEN ROBBED",
-      text = "Chase the robber!\n\nPress Continue to resume.",
-      freeze = true,
-      continueLabel = "Continue",
-    }
-
-    if Host and Host.showMissionMessage then
-      Host.showMissionMessage(msgArgs)
-    elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.showMissionMessage then
-      extensions.bolidesTheCut.showMissionMessage(msgArgs)
-    else
-      log("WARN: Mission message system not available for robbery alert.")
-    end
-
     R.guiBaseMessage = "You've been robbed, chase the robber down and stop their vehicle to get it back"
     R.hideDistance = false
     updateGuiDistanceMessage(d)
@@ -1401,6 +1386,17 @@ function M.update(dtSim)
       if #foundNotes > 0 then
         statusMessage = statusMessage .. " (and found " .. table.concat(foundNotes, " and ") .. ")"
       end
+      local msgArgs = {
+        title = "NOTICE",
+        text = statusMessage,
+        freeze = true,
+        continueLabel = "Continue",
+      }
+      if Host and Host.showMissionMessage then
+        Host.showMissionMessage(msgArgs)
+      elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.showMissionMessage then
+        extensions.bolidesTheCut.showMissionMessage(msgArgs)
+      end
       updateHudState({
         threat = "safe",
         status = statusMessage,
@@ -1455,6 +1451,19 @@ function M.update(dtSim)
         or "The robber escaped with your money",
       instruction = "Stay alert and control your speed.",
     })
+    local msgArgs = {
+      title = "NOTICE",
+      text = robbedText
+        and string.format("The robber escaped with your money, you lost $%s", robbedText)
+        or "The robber escaped with your money",
+      freeze = true,
+      continueLabel = "Continue",
+    }
+    if Host and Host.showMissionMessage then
+      Host.showMissionMessage(msgArgs)
+    elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.showMissionMessage then
+      extensions.bolidesTheCut.showMissionMessage(msgArgs)
+    end
     M.endEvent({ keepGuiMessage = true, keepHudState = true })
     return
   end
