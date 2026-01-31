@@ -142,6 +142,13 @@ local function getBackBreadcrumbPos(meters)
   return backCrumbPos[meters]
 end
 
+local function getFallbackPreloadPos()
+  if not Host or not Host.Breadcrumbs or not Host.Breadcrumbs.getPreloadFallback then
+    return nil
+  end
+  return Host.Breadcrumbs.getPreloadFallback()
+end
+
 local function makePlacementTowardPlayer(playerVeh, spawnPos)
   if not (playerVeh and spawnPos) then
     return nil
@@ -242,17 +249,31 @@ local function attemptLightweightPreload(opts)
     return nil, "missing model"
   end
 
-  local backPos = getBackBreadcrumbPos(300)
-  if not backPos then
-    return nil, "back breadcrumb 300m unavailable"
-  end
-  local spawnPos = backPos + vec3(0, 0, 0.8)
+  local spawnPos = nil
+  local placed = nil
+  local fallbackPos = getFallbackPreloadPos()
   local playerPos = playerVeh:getPosition()
   if not playerPos then
     return nil, "no player position"
   end
-  if (spawnPos - playerPos):length() < 200 then
-    return nil, "spawn too close"
+  if fallbackPos then
+    local candidate = fallbackPos + vec3(0, 0, 0.8)
+    if (candidate - playerPos):length() >= 200 then
+      spawnPos = candidate
+      placed = "fallbackBreadcrumb300m"
+    end
+  end
+
+  if not spawnPos then
+    local backPos = getBackBreadcrumbPos(300)
+    if not backPos then
+      return nil, "back breadcrumb 300m unavailable"
+    end
+    spawnPos = backPos + vec3(0, 0, 0.8)
+    placed = "backBreadcrumb300m"
+    if (spawnPos - playerPos):length() < 200 then
+      return nil, "spawn too close"
+    end
   end
 
   local placement = makePlacementTowardPlayer(playerVeh, spawnPos)
@@ -280,7 +301,7 @@ local function attemptLightweightPreload(opts)
   return {
     veh = veh,
     vehId = veh:getId(),
-    placed = "backBreadcrumb300m",
+    placed = placed,
     direction = nil,
     distanceTarget = nil,
     tolerance = nil,
@@ -291,15 +312,23 @@ local function getHiddenPlacement(playerVeh, distance)
   if not playerVeh then
     return nil, nil
   end
+  local playerPos = playerVeh:getPosition()
+  if not playerPos then
+    return nil, nil
+  end
+  local fallbackPos = getFallbackPreloadPos()
+  if fallbackPos then
+    local candidate = fallbackPos + vec3(0, 0, 0.8)
+    if (candidate - playerPos):length() >= 200 then
+      return makePlacementTowardPlayer(playerVeh, candidate), "fallbackBreadcrumb"
+    end
+  end
+
   local backPos = getBackBreadcrumbPos(distance or 300)
   if not backPos then
     return nil, nil
   end
   local spawnPos = backPos + vec3(0, 0, 0.8)
-  local playerPos = playerVeh:getPosition()
-  if not playerPos then
-    return nil, nil
-  end
   if (spawnPos - playerPos):length() <= 200 then
     return nil, nil
   end
@@ -449,8 +478,9 @@ function M.consume(eventName, transform)
   end
 
   local id = S.preloaded.vehId
-  S.preloaded = nil
   S.pending = nil
+  S.preloaded.placed = "event"
+  S.preloaded.lastUsedAt = os.clock()
   return id
 end
 

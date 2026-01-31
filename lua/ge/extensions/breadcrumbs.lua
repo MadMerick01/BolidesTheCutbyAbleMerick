@@ -107,6 +107,11 @@ local backCrumbPos = {
   [300] = nil,
 }
 
+-- Fallback preload spot (fixed after enough travel)
+local fallbackPreloadPos = nil
+local fallbackPreloadReady = false
+local FALLBACK_PRELOAD_DISTANCE = 600.0
+
 local function findCrumbAtOrBeforeDist(targetDist)
   if #travelCrumbs == 0 then return nil end
   for i = #travelCrumbs, 1, -1 do
@@ -189,6 +194,13 @@ updateBackCrumbPositions = function()
     local target = latestDist - meters
     local c = findCrumbAtOrBeforeDist(target)
     backCrumbPos[meters] = c and c.pos or nil
+  end
+
+  if not fallbackPreloadReady and latestDist >= FALLBACK_PRELOAD_DISTANCE then
+    if backCrumbPos[300] then
+      fallbackPreloadPos = backCrumbPos[300]
+      fallbackPreloadReady = true
+    end
   end
 end
 
@@ -532,6 +544,9 @@ function M.reset()
   backCrumbPos[200] = nil
   backCrumbPos[300] = nil
 
+  fallbackPreloadPos = nil
+  fallbackPreloadReady = false
+
   fkbAnchor = nil
   fkbAnchorBadFrames = 0
   forwardKnownCheckTimer = 0.0
@@ -614,6 +629,10 @@ end
 
 function M.getBack()
   return BACK_BREADCRUMB_METERS, backCrumbPos, isBackBreadcrumbReady
+end
+
+function M.getPreloadFallback()
+  return fallbackPreloadPos
 end
 
 return M
