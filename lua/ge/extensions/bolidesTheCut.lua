@@ -116,6 +116,7 @@ local S = {
   popupPauseState = nil,
   popupShownOnce = {},
   hudPreloadPending = false,
+  preloadIntroShown = false,
 }
 
 local UI = {}
@@ -233,6 +234,25 @@ local function getRobberPreloaded()
   end
   ok, res = pcall(PreloadEvent.hasPreloaded, "RobberShotgun")
   return ok and res or false
+end
+
+local function describePreloadPlacement()
+  if not PreloadEvent or not PreloadEvent.getDebugState then
+    return "Unknown"
+  end
+  local ok, state = pcall(PreloadEvent.getDebugState)
+  if not ok or not state or not state.preloaded then
+    return "Unknown"
+  end
+  local placed = tostring(state.placed or "unknown")
+  local labels = {
+    fixedPreload = "Fixed map preload",
+    fallbackBreadcrumb300m = "Fallback breadcrumb (300m)",
+    fallbackBreadcrumb = "Fallback breadcrumb",
+    backBreadcrumb300m = "Back breadcrumb (300m)",
+    backBreadcrumb = "Back breadcrumb",
+  }
+  return labels[placed] or placed
 end
 
 function M.toggleHudPause()
@@ -531,6 +551,8 @@ function M.showPopupMessage(args)
     nextEventName = args.nextEventName or args.nextEvent,
     preloadStatus = args.preloadStatus,
     canContinue = args.canContinue,
+    preloadSuccessBody = args.preloadSuccessBody,
+    preloadSuccessPlacementLabel = args.preloadSuccessPlacementLabel,
   }
 
   if msg.once and msg.id and S.popupShownOnce[msg.id] then
@@ -540,6 +562,19 @@ function M.showPopupMessage(args)
   table.insert(S.popupQueue, msg)
   ensureHudTrialAppVisible(true)
   M._activateNextPopup()
+  return true
+end
+
+local function updatePopupPreloadSuccessMessage()
+  local msg = S.popupActive
+  if not msg or not msg.preloadSuccessBody then
+    return false
+  end
+  local placement = describePreloadPlacement()
+  local label = msg.preloadSuccessPlacementLabel or "Preload position:"
+  msg.body = string.format("%s\n%s %s", msg.preloadSuccessBody, label, placement)
+  msg.preloadStatus = "Preload complete."
+  msg.canContinue = true
   return true
 end
 
@@ -2267,6 +2302,24 @@ function M.onExtensionLoaded()
       RobberEMP = RobberEMP,
       RobberShotgun = RobberShotgun,
     }, function(nextName, opts)
+      if not S.preloadIntroShown then
+        S.preloadIntroShown = true
+        M.showPopupMessage({
+          id = "preload_intro",
+          title = "Welcome",
+          body = "Welcome to Bolide-the Cut (preloading...)",
+          continueLabel = "Continue",
+          nextEventName = nextName,
+          preloadOpts = opts,
+          preloadStatus = "Preloading next event...",
+          canContinue = false,
+          preloadSuccessBody = "Welcome to Bolide-the Cut (preload successful)",
+          preloadSuccessPlacementLabel = "Preload position:",
+          once = true,
+          freeze = true,
+        })
+        return true
+      end
       return M.requestEventPreloadByName(nextName, opts)
     end)
   end
@@ -2368,6 +2421,7 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
 
   if S.popupActive and S.popupWaitingForPreload then
     if isPopupPreloadReady() then
+      updatePopupPreloadSuccessMessage()
       S.popupWaitingForPreload = false
       if PreloadEvent and PreloadEvent.setUiGateOverride then
         pcall(PreloadEvent.setUiGateOverride, false)
