@@ -58,41 +58,72 @@ end
 
 local makePlacementTowardPlayer
 
+local function normalizeMapId(candidate)
+  if type(candidate) ~= "string" then
+    return nil
+  end
+  local lower = candidate:lower()
+  if lower:find("west_coast_usa", 1, true) then
+    return "west_coast_usa"
+  end
+  if lower:find("west_coast", 1, true) then
+    return "west_coast_usa"
+  end
+  return nil
+end
+
+local function tryAppendMapId(candidates, value)
+  local id = normalizeMapId(value)
+  if id then
+    table.insert(candidates, id)
+  end
+end
+
 local function getMapId()
-  if not map or not map.getMap then
-    return nil
-  end
-  local data = map.getMap()
-  if not data then
-    return nil
-  end
-  local candidates = {
-    data.id,
-    data.levelId,
-    data.levelName,
-    data.name,
-    data.dirname,
-    data.levelDir,
-    data.path,
-  }
-  if data.levelInfo then
-    table.insert(candidates, data.levelInfo.levelName)
-    table.insert(candidates, data.levelInfo.name)
-    table.insert(candidates, data.levelInfo.level)
-    table.insert(candidates, data.levelInfo.id)
-  end
-  for _, candidate in ipairs(candidates) do
-    if type(candidate) == "string" then
-      local lower = candidate:lower()
-      if lower:find("west_coast_usa", 1, true) then
-        return "west_coast_usa"
-      end
-      if lower:find("west_coast", 1, true) then
-        return "west_coast_usa"
+  local candidates = {}
+
+  if map and map.getMap then
+    local ok, data = pcall(map.getMap)
+    if ok and data then
+      tryAppendMapId(candidates, data.id)
+      tryAppendMapId(candidates, data.levelId)
+      tryAppendMapId(candidates, data.levelName)
+      tryAppendMapId(candidates, data.name)
+      tryAppendMapId(candidates, data.dirname)
+      tryAppendMapId(candidates, data.levelDir)
+      tryAppendMapId(candidates, data.path)
+      if data.levelInfo then
+        tryAppendMapId(candidates, data.levelInfo.levelName)
+        tryAppendMapId(candidates, data.levelInfo.name)
+        tryAppendMapId(candidates, data.levelInfo.level)
+        tryAppendMapId(candidates, data.levelInfo.id)
       end
     end
   end
-  return nil
+
+  if be and type(be.getCurrentLevelIdentifier) == "function" then
+    local ok, res = pcall(be.getCurrentLevelIdentifier)
+    if ok then
+      tryAppendMapId(candidates, res)
+    end
+    ok, res = pcall(be.getCurrentLevelIdentifier, be)
+    if ok then
+      tryAppendMapId(candidates, res)
+    end
+  end
+
+  if core_levels and type(core_levels.getLevelName) == "function" then
+    local ok, res = pcall(core_levels.getLevelName)
+    if ok then
+      tryAppendMapId(candidates, res)
+    end
+    ok, res = pcall(core_levels.getLevelName, core_levels)
+    if ok then
+      tryAppendMapId(candidates, res)
+    end
+  end
+
+  return candidates[1]
 end
 
 local function getRobberPreloadPlacement(playerVeh, eventName)
