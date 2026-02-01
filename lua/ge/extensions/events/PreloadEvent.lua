@@ -6,6 +6,14 @@ local M = {}
 local CFG = nil
 local Host = nil
 
+local ROBBER_PRELOAD_LOCATIONS = {
+  west_coast_usa = {
+    mapId = "west_coast_usa",
+    mapName = "West Coast, USA",
+    pos = vec3(839.916, -742.143, 176.276),
+  },
+}
+
 local S = {
   pending = nil,
   preloaded = nil,
@@ -46,6 +54,64 @@ local function getObjById(id)
   if getObjectByID then return getObjectByID(id) end
   if be and be.getObjectByID then return be:getObjectByID(id) end
   return nil
+end
+
+local makePlacementTowardPlayer
+
+local function getMapId()
+  if not map or not map.getMap then
+    return nil
+  end
+  local data = map.getMap()
+  if not data then
+    return nil
+  end
+  local candidates = {
+    data.id,
+    data.levelId,
+    data.levelName,
+    data.name,
+    data.dirname,
+    data.levelDir,
+    data.path,
+  }
+  if data.levelInfo then
+    table.insert(candidates, data.levelInfo.levelName)
+    table.insert(candidates, data.levelInfo.name)
+    table.insert(candidates, data.levelInfo.level)
+    table.insert(candidates, data.levelInfo.id)
+  end
+  for _, candidate in ipairs(candidates) do
+    if type(candidate) == "string" then
+      local lower = candidate:lower()
+      if lower:find("west_coast_usa", 1, true) then
+        return "west_coast_usa"
+      end
+      if lower:find("west_coast", 1, true) then
+        return "west_coast_usa"
+      end
+    end
+  end
+  return nil
+end
+
+local function getRobberPreloadPlacement(playerVeh, eventName)
+  if not (eventName and tostring(eventName):find("Robber")) then
+    return nil, nil
+  end
+  local mapId = getMapId()
+  if not mapId then
+    return nil, nil
+  end
+  local location = ROBBER_PRELOAD_LOCATIONS[mapId]
+  if not (location and location.pos) then
+    return nil, nil
+  end
+  local placement = makePlacementTowardPlayer(playerVeh, location.pos)
+  if not placement then
+    return nil, nil
+  end
+  return placement, "fixedPreload"
 end
 
 local function disableVehicleAI(veh)
@@ -149,7 +215,7 @@ local function getFallbackPreloadPos()
   return Host.Breadcrumbs.getPreloadFallback()
 end
 
-local function makePlacementTowardPlayer(playerVeh, spawnPos)
+makePlacementTowardPlayer = function(playerVeh, spawnPos)
   if not (playerVeh and spawnPos) then
     return nil
   end
@@ -256,7 +322,11 @@ local function attemptLightweightPreload(opts)
   if not playerPos then
     return nil, "no player position"
   end
-  if fallbackPos then
+  local fixedPlacement, fixedPlaced = getRobberPreloadPlacement(playerVeh, opts and opts.eventName)
+  if fixedPlacement then
+    spawnPos = fixedPlacement.pos
+    placed = fixedPlaced
+  elseif fallbackPos then
     local candidate = fallbackPos + vec3(0, 0, 0.8)
     if (candidate - playerPos):length() >= 200 then
       spawnPos = candidate
@@ -276,7 +346,7 @@ local function attemptLightweightPreload(opts)
     end
   end
 
-  local placement = makePlacementTowardPlayer(playerVeh, spawnPos)
+  local placement = fixedPlacement or makePlacementTowardPlayer(playerVeh, spawnPos)
   if not placement then
     return nil, "no spawn placement"
   end
@@ -308,13 +378,17 @@ local function attemptLightweightPreload(opts)
   }, nil
 end
 
-local function getHiddenPlacement(playerVeh, distance)
+local function getHiddenPlacement(playerVeh, distance, eventName)
   if not playerVeh then
     return nil, nil
   end
   local playerPos = playerVeh:getPosition()
   if not playerPos then
     return nil, nil
+  end
+  local fixedPlacement, fixedPlaced = getRobberPreloadPlacement(playerVeh, eventName)
+  if fixedPlacement then
+    return fixedPlacement, fixedPlaced
   end
   local fallbackPos = getFallbackPreloadPos()
   if fallbackPos then
@@ -502,7 +576,7 @@ function M.stash(eventName, vehId, opts)
   end
 
   local playerVeh = getPlayerVeh()
-  local placement, placed = getHiddenPlacement(playerVeh, (opts and opts.distance) or 300)
+  local placement, placed = getHiddenPlacement(playerVeh, (opts and opts.distance) or 300, eventName)
   if placement then
     safeTeleportVehicle(veh, placement.pos, placement.rot)
     disableVehicleAI(veh)
@@ -545,7 +619,7 @@ function M.update(dtSim)
       S.stashPending = nil
     else
       local playerVeh = getPlayerVeh()
-      local placement, placed = getHiddenPlacement(playerVeh, 300)
+      local placement, placed = getHiddenPlacement(playerVeh, 300, pending.eventName)
       if placement then
         safeTeleportVehicle(veh, placement.pos, placement.rot)
         disableVehicleAI(veh)
