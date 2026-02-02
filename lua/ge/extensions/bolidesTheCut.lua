@@ -246,6 +246,7 @@ local function describePreloadPlacement()
   end
   local placed = tostring(state.placed or "unknown")
   local labels = {
+    preloadParking = "Preload parking spot (>=300m)",
     fixedPreload = "Fixed map preload",
     fallbackBreadcrumb300m = "Fallback breadcrumb (300m)",
     fallbackBreadcrumb = "Fallback breadcrumb",
