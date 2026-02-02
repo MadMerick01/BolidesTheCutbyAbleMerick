@@ -153,6 +153,9 @@
           };
 
           scope.preloadRobber = function () {
+            if (scope.hudTrial.preloaded) {
+              return;
+            }
             if (window.bngApi && bngApi.engineLua) {
               bngApi.engineLua("extensions.bolidesTheCut.preloadRobberFromHud()");
             }
