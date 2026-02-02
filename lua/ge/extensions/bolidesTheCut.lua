@@ -14,7 +14,7 @@ local BoldiePacing = require("lua/ge/extensions/events/BoldiePacing")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
-local PreloadEvent = require("lua/ge/extensions/events/PreloadEvent")
+local PreloadEvent = require("lua/ge/extensions/events/PreloadEventNEW")
 local FirstPersonShoot = require("lua/ge/extensions/FirstPersonShoot")
 local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
@@ -2325,6 +2325,12 @@ function M.onExtensionLoaded()
   end
   if PreloadEvent and PreloadEvent.init then
     PreloadEvent.init(CFG, EVENT_HOST)
+    if RobberEMP and RobberEMP.getPreloadSpec and PreloadEvent.request then
+      local spec = RobberEMP.getPreloadSpec()
+      if spec then
+        pcall(PreloadEvent.request, spec)
+      end
+    end
   end
 
   if FirstPersonShoot and FirstPersonShoot.init then
