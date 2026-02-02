@@ -1210,11 +1210,6 @@ local function isMessagesTasksContainerMounted(apps)
     return mounted
   end
 
-  ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
-  if ok and type(mounted) == "boolean" then
-    return mounted
-  end
-
   return true
 end
 
