@@ -1183,7 +1183,12 @@ local function isHudTrialAppAvailable(apps)
     return false
   end
 
-  local ok, available = pcall(apps.getAvailableApps, getHudTrialContainerName())
+  local containerName = HUD_TRIAL.containerName
+  if containerName == nil or containerName == "" then
+    return false
+  end
+
+  local ok, available = pcall(apps.getAvailableApps, containerName)
   if not ok or type(available) ~= "table" then
     return false
   end
@@ -1208,7 +1213,12 @@ local function isMessagesTasksContainerMounted(apps)
     return true
   end
 
-  local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted, getHudTrialContainerName())
+  local containerName = HUD_TRIAL.containerName
+  if containerName == nil or containerName == "" then
+    return true
+  end
+
+  local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted, containerName)
   if ok and type(mounted) == "boolean" then
     return mounted
   end
@@ -1233,7 +1243,12 @@ ensureHudTrialAppVisible = function(force)
 
   local visible = nil
   if type(apps.getAppVisibility) == "function" then
-    local ok, res = pcall(apps.getAppVisibility, HUD_TRIAL.appName, getHudTrialContainerName())
+    local ok, res
+    if HUD_TRIAL.containerName ~= nil and HUD_TRIAL.containerName ~= "" then
+      ok, res = pcall(apps.getAppVisibility, HUD_TRIAL.appName, HUD_TRIAL.containerName)
+    else
+      ok, res = pcall(apps.getAppVisibility, HUD_TRIAL.appName)
+    end
     if ok then
       visible = res == true
     end
@@ -1246,10 +1261,18 @@ ensureHudTrialAppVisible = function(force)
 
   if type(apps.showApp) == "function" then
     -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
-    pcall(apps.showApp, HUD_TRIAL.appName, getHudTrialContainerName())
+    if HUD_TRIAL.containerName ~= nil and HUD_TRIAL.containerName ~= "" then
+      pcall(apps.showApp, HUD_TRIAL.appName, HUD_TRIAL.containerName)
+    else
+      pcall(apps.showApp, HUD_TRIAL.appName)
+    end
   elseif type(apps.setAppVisibility) == "function" then
     -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
-    pcall(apps.setAppVisibility, HUD_TRIAL.appName, true, getHudTrialContainerName())
+    if HUD_TRIAL.containerName ~= nil and HUD_TRIAL.containerName ~= "" then
+      pcall(apps.setAppVisibility, HUD_TRIAL.appName, true, HUD_TRIAL.containerName)
+    else
+      pcall(apps.setAppVisibility, HUD_TRIAL.appName, true)
+    end
   end
 
   HUD_TRIAL.timeSinceEnsureVisible = 0
