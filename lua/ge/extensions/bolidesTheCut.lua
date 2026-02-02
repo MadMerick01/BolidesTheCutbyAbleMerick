@@ -1202,19 +1202,10 @@ local function isMessagesTasksContainerMounted(apps)
 
   local containerName = HUD_TRIAL.containerName
   if containerName == nil or containerName == "" then
-    local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
-    if ok and type(mounted) == "boolean" then
-      return mounted
-    end
     return true
   end
 
   local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted, containerName)
-  if ok and type(mounted) == "boolean" then
-    return mounted
-  end
-
-  ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
   if ok and type(mounted) == "boolean" then
     return mounted
   end
