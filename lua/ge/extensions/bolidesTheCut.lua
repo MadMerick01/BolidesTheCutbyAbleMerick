@@ -1029,6 +1029,14 @@ local HUD_TRIAL = {
   lastPayloadKey = nil,
 }
 
+local function getHudTrialContainerName()
+  if HUD_TRIAL.containerName ~= nil and HUD_TRIAL.containerName ~= "" then
+    return HUD_TRIAL.containerName
+  end
+  HUD_TRIAL.containerName = "messagesTasks"
+  return HUD_TRIAL.containerName
+end
+
 local TOWING_BLOCK_MESSAGE = "Towing disabled during active threat."
 
 local function addTowBlockMessage(instruction)
