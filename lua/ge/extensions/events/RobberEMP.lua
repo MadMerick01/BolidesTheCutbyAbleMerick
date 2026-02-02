@@ -1,5 +1,5 @@
 -- lua/ge/extensions/events/RobberEMP.lua
--- RobberEMP: manual spawn at BackwardsBreadcrumb(300m)
+-- RobberEMP: manual spawn at ForwardKnownBreadcrumb(200m)
 -- Behavior:
 --   1) Spawn and FOLLOW player with limit settings (max 20kph).
 --   2) When within 25m, fire EMP (engine off + brakes lock 10s + combined shockwave 0.5s).
@@ -77,18 +77,29 @@ local function log(msg)
   end
 end
 
-local function chooseBackBreadcrumbPos(meters)
-  if not Host or not Host.Breadcrumbs or not Host.Breadcrumbs.getBack then
+local function chooseFkbPos(spacing, maxAgeSec)
+  maxAgeSec = maxAgeSec or 10.0
+  if not Host or not Host.Breadcrumbs or not Host.Breadcrumbs.getForwardKnown then
     return nil, "no breadcrumbs"
   end
 
-  local _, backCrumbPos = Host.Breadcrumbs.getBack()
-  local pos = backCrumbPos and backCrumbPos[meters]
-  if not pos then
-    return nil, "not ready"
+  local cache = select(1, Host.Breadcrumbs.getForwardKnown())
+  local entry = cache and cache[spacing]
+  if not entry then return nil, "no entry" end
+
+  if entry.available and entry.pos then
+    return entry.pos, "live"
   end
 
-  return pos, "back"
+  if entry.lastGoodPos and entry.lastGoodT then
+    local age = (os.clock() - entry.lastGoodT)
+    if age <= maxAgeSec then
+      return entry.lastGoodPos, "cached"
+    end
+    return nil, "cached too old"
+  end
+
+  return nil, "not ready"
 end
 
 local function makeSpawnTransform(playerVeh, spawnPos)
@@ -874,16 +885,16 @@ function M.triggerManual()
     return false
   end
 
-  local backPos, mode = chooseBackBreadcrumbPos(300)
-  if not backPos then
-    log("BLOCKED: Back breadcrumb 300m not available.")
+  local fkbPos, mode = chooseFkbPos(200, 10.0)
+  if not fkbPos then
+    log("BLOCKED: FKB 200m not available (no stable cached point).")
     return false
   end
 
   R.spawnMode = mode
-  R.spawnPos = backPos + vec3(0, 0, 0.8)
+  R.spawnPos = fkbPos + vec3(0, 0, 0.8)
   R.spawnMethod = nil
-  log("Using back breadcrumb 300 (" .. tostring(mode) .. ")")
+  log("Using FKB 200 (" .. tostring(mode) .. ")")
 
   local tf = makeSpawnTransform(pv, R.spawnPos)
   local id = nil
