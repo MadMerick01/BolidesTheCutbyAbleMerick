@@ -6,7 +6,7 @@ local M = {}
 local CFG = nil
 local Host = nil
 
-local ORIGIN_POS = vec3(839.916, -742.143, 176.276)
+local PreloadParking = require("lua/ge/extensions/events/PreloadParking")
 
 local S = {
   preloaded = nil,
@@ -101,19 +101,41 @@ local function spawnPreloadedVehicle(opts)
     return nil, "vehicle spawn failed"
   end
 
-  safeTeleportVehicle(veh, ORIGIN_POS, quat(0, 0, 0, 1))
+  local placed = nil
+  if gameplay_parking and PreloadParking then
+    local playerVeh = getPlayerVeh()
+    local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
+    local best = PreloadParking.getBestSpot({ playerPos = playerPos })
+    if best and best.spot then
+      local ok, res = pcall(function()
+        return gameplay_parking.moveToParkingSpot(veh:getId(), best.spot, true)
+      end)
+      if ok and res == true then
+        placed = "preloadParking"
+      end
+    end
+  end
+
+  if not placed then
+    veh:delete()
+    return nil, "no preload parking spot available"
+  end
   disableVehicleAI(veh)
   setVehicleIdle(veh)
 
   return {
     veh = veh,
     vehId = veh:getId(),
+    placed = placed,
   }, nil
 end
 
 function M.init(cfg, host)
   CFG = cfg
   Host = host
+  if PreloadParking and PreloadParking.init then
+    PreloadParking.init(cfg, host)
+  end
 end
 
 function M.request(opts)
@@ -153,7 +175,7 @@ function M.request(opts)
     eventName = S.pending.eventName,
     model = S.pending.model,
     config = S.pending.config,
-    placed = "origin",
+    placed = res.placed,
     createdAt = os.clock(),
   }
   S.pending = nil
@@ -233,7 +255,24 @@ function M.stash(eventName, vehId, opts)
     return false
   end
 
-  safeTeleportVehicle(veh, ORIGIN_POS, quat(0, 0, 0, 1))
+  local placed = nil
+  if gameplay_parking and PreloadParking then
+    local playerVeh = getPlayerVeh()
+    local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
+    local best = PreloadParking.getBestSpot({ playerPos = playerPos })
+    if best and best.spot then
+      local ok, res = pcall(function()
+        return gameplay_parking.moveToParkingSpot(veh:getId(), best.spot, true)
+      end)
+      if ok and res == true then
+        placed = "preloadParking"
+      end
+    end
+  end
+
+  if not placed then
+    return false
+  end
   disableVehicleAI(veh)
   setVehicleIdle(veh)
 
@@ -242,7 +281,7 @@ function M.stash(eventName, vehId, opts)
     eventName = eventName or "RobberEMP",
     model = opts and opts.model or nil,
     config = opts and opts.config or nil,
-    placed = "origin",
+    placed = placed,
     createdAt = os.clock(),
   }
   S.pending = nil
