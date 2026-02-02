@@ -1,12 +1,12 @@
 -- PreloadEventNEW.lua
--- Simplified preload: keep robber vehicle parked at (0,0,0) for reuse.
+-- Simplified preload: keep robber vehicle parked at the fixed preload position.
 
 local M = {}
 
 local CFG = nil
 local Host = nil
 
-local ORIGIN_POS = vec3(0, 0, 0)
+local ORIGIN_POS = vec3(839.916, -742.143, 176.276)
 
 local S = {
   preloaded = nil,
