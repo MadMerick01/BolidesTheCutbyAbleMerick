@@ -347,10 +347,11 @@
       <button
         class="bolide-hud-trial__action-button bolide-hud-trial__action-button--preload"
         ng-class="{'is-preloaded': hudTrial.preloaded}"
+        ng-disabled="hudTrial.preloaded"
         ng-click="preloadRobber()"
         type="button"
       >
-        Preload
+        {{hudTrial.preloaded ? 'Preloaded' : 'Preload'}}
       </button>
       <button
         class="bolide-hud-trial__action-button bolide-hud-trial__action-button--about"
