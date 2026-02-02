@@ -8666,7 +8666,7 @@
         "mergeStrat":"last",
         "name":"fileSites",
         "type":"string",
-        "value":"/gameplay/missions/east_coast_usa-fg-precisionParking-3/spots.sites.json"
+        "value":"/levels/east_coast_usa/city.sites.json"
       },
       {
         "index":18,
