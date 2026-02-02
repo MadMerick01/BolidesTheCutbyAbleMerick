@@ -1029,6 +1029,14 @@ local HUD_TRIAL = {
   lastPayloadKey = nil,
 }
 
+local function getHudTrialContainerName()
+  if HUD_TRIAL.containerName ~= nil and HUD_TRIAL.containerName ~= "" then
+    return HUD_TRIAL.containerName
+  end
+  HUD_TRIAL.containerName = "messagesTasks"
+  return HUD_TRIAL.containerName
+end
+
 local TOWING_BLOCK_MESSAGE = "Towing disabled during active threat."
 
 local function addTowBlockMessage(instruction)
@@ -1175,7 +1183,7 @@ local function isHudTrialAppAvailable(apps)
     return false
   end
 
-  local ok, available = pcall(apps.getAvailableApps)
+  local ok, available = pcall(apps.getAvailableApps, getHudTrialContainerName())
   if not ok or type(available) ~= "table" then
     return false
   end
@@ -1200,21 +1208,7 @@ local function isMessagesTasksContainerMounted(apps)
     return true
   end
 
-  local containerName = HUD_TRIAL.containerName
-  if containerName == nil or containerName == "" then
-    local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
-    if ok and type(mounted) == "boolean" then
-      return mounted
-    end
-    return true
-  end
-
-  local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted, containerName)
-  if ok and type(mounted) == "boolean" then
-    return mounted
-  end
-
-  ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
+  local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted, getHudTrialContainerName())
   if ok and type(mounted) == "boolean" then
     return mounted
   end
@@ -1239,7 +1233,7 @@ ensureHudTrialAppVisible = function(force)
 
   local visible = nil
   if type(apps.getAppVisibility) == "function" then
-    local ok, res = pcall(apps.getAppVisibility, HUD_TRIAL.appName)
+    local ok, res = pcall(apps.getAppVisibility, HUD_TRIAL.appName, getHudTrialContainerName())
     if ok then
       visible = res == true
     end
@@ -1252,10 +1246,10 @@ ensureHudTrialAppVisible = function(force)
 
   if type(apps.showApp) == "function" then
     -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
-    pcall(apps.showApp, HUD_TRIAL.appName)
+    pcall(apps.showApp, HUD_TRIAL.appName, getHudTrialContainerName())
   elseif type(apps.setAppVisibility) == "function" then
     -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
-    pcall(apps.setAppVisibility, HUD_TRIAL.appName, true)
+    pcall(apps.setAppVisibility, HUD_TRIAL.appName, true, getHudTrialContainerName())
   end
 
   HUD_TRIAL.timeSinceEnsureVisible = 0
