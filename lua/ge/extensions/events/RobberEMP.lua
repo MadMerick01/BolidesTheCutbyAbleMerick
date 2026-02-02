@@ -77,8 +77,9 @@ local function log(msg)
   end
 end
 
-local function chooseFkbPos(spacing, maxAgeSec)
+local function chooseFkbPos(spacing, maxAgeSec, allowCached)
   maxAgeSec = maxAgeSec or 10.0
+  allowCached = allowCached == true
   if not Host or not Host.Breadcrumbs or not Host.Breadcrumbs.getForwardKnown then
     return nil, "no breadcrumbs"
   end
@@ -91,7 +92,7 @@ local function chooseFkbPos(spacing, maxAgeSec)
     return entry.pos, "live"
   end
 
-  if entry.lastGoodPos and entry.lastGoodT then
+  if allowCached and entry.lastGoodPos and entry.lastGoodT then
     local age = (os.clock() - entry.lastGoodT)
     if age <= maxAgeSec then
       return entry.lastGoodPos, "cached"
@@ -885,7 +886,7 @@ function M.triggerManual()
     return false
   end
 
-  local fkbPos, mode = chooseFkbPos(200, 10.0)
+  local fkbPos, mode = chooseFkbPos(200, 10.0, false)
   if not fkbPos then
     log("BLOCKED: FKB 200m not available (no stable cached point).")
     return false
