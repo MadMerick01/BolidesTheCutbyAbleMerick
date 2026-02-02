@@ -23,6 +23,47 @@ local function log(msg)
   end
 end
 
+local function getDefaultSitesPath()
+  if not getCurrentLevelIdentifier then
+    return nil
+  end
+  local levelId = getCurrentLevelIdentifier() or ""
+  if levelId == "" then
+    return nil
+  end
+  return string.format("/levels/%s/city.sites.json", levelId)
+end
+
+local function ensureSitesLoaded(opts)
+  if not gameplay_parking then
+    return false
+  end
+
+  local ok, spots = pcall(gameplay_parking.getParkingSpots)
+  if ok and type(spots) == "table" then
+    return true
+  end
+
+  local options = opts or {}
+  local sitesFile = options.sitesFile
+    or (CFG and CFG.preloadSitesFile)
+    or getDefaultSitesPath()
+
+  if sitesFile and FS and FS.fileExists and not FS:fileExists(sitesFile) then
+    log("Sites file not found: " .. tostring(sitesFile))
+    return false
+  end
+
+  if sitesFile then
+    pcall(function()
+      gameplay_parking.setSites(sitesFile)
+    end)
+  end
+
+  ok, spots = pcall(gameplay_parking.getParkingSpots)
+  return ok and type(spots) == "table"
+end
+
 local function getPlayerPos()
   if Host and Host.getPlayerVeh then
     local veh = Host.getPlayerVeh()
@@ -39,12 +80,12 @@ local function getPlayerPos()
   return nil
 end
 
-local function tryFindParkingSpots(playerPos, searchRadius)
+local function tryFindParkingSpots(playerPos, searchRadius, opts)
   if not gameplay_parking then
     return nil
   end
 
-  pcall(gameplay_parking.getParkingSpots)
+  ensureSitesLoaded(opts)
 
   local attempts = {
     function()
@@ -73,8 +114,8 @@ local function tryFindParkingSpots(playerPos, searchRadius)
   return nil
 end
 
-local function cacheSpots(playerPos, searchRadius)
-  local spots = tryFindParkingSpots(playerPos, searchRadius)
+local function cacheSpots(playerPos, searchRadius, opts)
+  local spots = tryFindParkingSpots(playerPos, searchRadius, opts)
   if type(spots) ~= "table" then
     return nil
   end
@@ -83,14 +124,14 @@ local function cacheSpots(playerPos, searchRadius)
   return spots
 end
 
-local function getCachedSpots(playerPos, searchRadius, cacheSeconds, forceRefresh)
+local function getCachedSpots(playerPos, searchRadius, cacheSeconds, forceRefresh, opts)
   if forceRefresh or not S.cachedSpots then
-    return cacheSpots(playerPos, searchRadius)
+    return cacheSpots(playerPos, searchRadius, opts)
   end
 
   local ttl = cacheSeconds or CACHE_TTL_SEC
   if ttl > 0 and os.clock() - (S.cacheAt or 0) > ttl then
-    return cacheSpots(playerPos, searchRadius)
+    return cacheSpots(playerPos, searchRadius, opts)
   end
 
   return S.cachedSpots
@@ -144,8 +185,11 @@ function M.getBestSpot(opts)
     or DEFAULT_MIN_DISTANCE
   local cacheSeconds = options.cacheSeconds
   local forceRefresh = options.forceRefresh == true
+  local sitesFile = options.sitesFile
 
-  local spots = getCachedSpots(playerPos, searchRadius, cacheSeconds, forceRefresh)
+  local spots = getCachedSpots(playerPos, searchRadius, cacheSeconds, forceRefresh, {
+    sitesFile = sitesFile,
+  })
   local best, bestDist = pickFarthestSpot(spots, playerPos, minDistance)
   if not best then
     log("No parking spot beyond min distance: " .. tostring(minDistance))
