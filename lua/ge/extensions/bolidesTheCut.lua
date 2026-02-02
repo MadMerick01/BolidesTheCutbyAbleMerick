@@ -277,14 +277,6 @@ function M.toggleHudPause()
 end
 
 function M.preloadRobberFromHud()
-  if not getHudPauseActive() then
-    S.hudPauseState = requestPauseState()
-    S.hudPauseActive = getHudPauseActive()
-    S.hudPreloadPending = true
-    markHudTrialDirty()
-    return
-  end
-
   local hasRobber = false
   if RobberEMP and RobberEMP.getRobberVehicleId then
     hasRobber = type(RobberEMP.getRobberVehicleId()) == "number"
@@ -2415,11 +2407,6 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if hudPaused ~= S.hudPauseActive then
     S.hudPauseActive = hudPaused
     markHudTrialDirty()
-  end
-
-  if S.hudPreloadPending and hudPaused then
-    S.hudPreloadPending = false
-    M.preloadRobberFromHud()
   end
 
   if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
