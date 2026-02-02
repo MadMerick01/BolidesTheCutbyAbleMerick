@@ -9,7 +9,7 @@
 local M = {}
 
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
-local PreloadEvent = require("lua/ge/extensions/events/PreloadEvent")
+local PreloadEvent = require("lua/ge/extensions/events/PreloadEventNEW")
 
 local CFG = nil
 local Host = nil

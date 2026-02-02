@@ -10,7 +10,7 @@ local M = {}
 
 local EMP = require('lua/ge/extensions/events/emp')
 local CareerMoney = require("CareerMoney")
-local PreloadEvent = require("lua/ge/extensions/events/PreloadEvent")
+local PreloadEvent = require("lua/ge/extensions/events/PreloadEventNEW")
 
 local CFG = nil
 local Host = nil
