@@ -6,8 +6,6 @@ local M = {}
 local CFG = nil
 local Host = nil
 
-local PreloadParking = require("lua/ge/extensions/events/PreloadParking")
-
 local S = {
   preloaded = nil,
   pending = nil,
@@ -43,6 +41,40 @@ local function getObjById(id)
   return nil
 end
 
+local function getBreadcrumbs()
+  if Host and Host.Breadcrumbs then
+    return Host.Breadcrumbs
+  end
+  if extensions and extensions.breadcrumbs then
+    return extensions.breadcrumbs
+  end
+  return nil
+end
+
+local function getPreloadSpawnPoint()
+  local breadcrumbs = getBreadcrumbs()
+  if not breadcrumbs or not breadcrumbs.getPreloadSpawnPoint then
+    return nil
+  end
+  return breadcrumbs.getPreloadSpawnPoint()
+end
+
+local function getPreloadDistanceInfo()
+  local spawnPoint = getPreloadSpawnPoint()
+  if not spawnPoint or not spawnPoint.pos then
+    return nil, "not ready"
+  end
+  local playerVeh = getPlayerVeh()
+  local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
+  if not playerPos then
+    return nil, "missing player position"
+  end
+  return {
+    spawnPoint = spawnPoint,
+    distance = playerPos:distance(spawnPoint.pos),
+  }, nil
+end
+
 local function safeTeleportVehicle(veh, pos, rot)
   if not veh then return end
   if pos and rot and veh.setPositionRotation then
@@ -55,6 +87,25 @@ local function safeTeleportVehicle(veh, pos, rot)
   if spawn and spawn.safeTeleport then
     pcall(function() spawn.safeTeleport(veh, veh:getPosition(), veh:getRotation()) end)
   end
+end
+
+local function makeSpawnTransform(spawnPoint, playerPos)
+  if not spawnPoint or not spawnPoint.pos then
+    return nil
+  end
+  local dir = spawnPoint.fwd or (playerPos and (spawnPoint.pos - playerPos)) or vec3(0, 1, 0)
+  dir = vec3(dir.x, dir.y, 0)
+  if dir:length() < 1e-6 then
+    dir = vec3(0, 1, 0)
+  end
+  dir = dir:normalized()
+
+  local rot = quat(0, 0, 0, 1)
+  if quatFromDir then
+    rot = quatFromDir(dir, vec3(0, 0, 1))
+  end
+
+  return { pos = spawnPoint.pos, rot = rot }
 end
 
 local function disableVehicleAI(veh)
@@ -101,25 +152,27 @@ local function spawnPreloadedVehicle(opts)
     return nil, "vehicle spawn failed"
   end
 
-  local placed = nil
-  if gameplay_parking and PreloadParking then
-    local playerVeh = getPlayerVeh()
-    local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
-    local best = PreloadParking.getBestSpot({ playerPos = playerPos })
-    if best and best.spot then
-      local ok, res = pcall(function()
-        return gameplay_parking.moveToParkingSpot(veh:getId(), best.spot, true)
-      end)
-      if ok and res == true then
-        placed = "preloadParking"
-      end
-    end
+  local distanceInfo, distErr = getPreloadDistanceInfo()
+  if not distanceInfo then
+    veh:delete()
+    return nil, distErr or "preload spawn point unavailable"
   end
 
-  if not placed then
+  if (distanceInfo.distance or 0) <= 300.0 then
     veh:delete()
-    return nil, "no preload parking spot available"
+    return nil, "preload spawn point too close"
   end
+
+  local playerVeh = getPlayerVeh()
+  local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
+  local transform = makeSpawnTransform(distanceInfo.spawnPoint, playerPos)
+  if not transform then
+    veh:delete()
+    return nil, "missing preload spawn transform"
+  end
+
+  safeTeleportVehicle(veh, transform.pos, transform.rot)
+  local placed = "breadcrumbPreload"
   disableVehicleAI(veh)
   setVehicleIdle(veh)
 
@@ -133,9 +186,6 @@ end
 function M.init(cfg, host)
   CFG = cfg
   Host = host
-  if PreloadParking and PreloadParking.init then
-    PreloadParking.init(cfg, host)
-  end
 end
 
 function M.request(opts)
@@ -213,6 +263,9 @@ end
 function M.getDebugState()
   local pendingName = S.pending and S.pending.eventName or nil
   local preloadedName = S.preloaded and S.preloaded.eventName or nil
+  local distanceInfo = getPreloadDistanceInfo()
+  local spawnPointDistance = distanceInfo and distanceInfo.distance or nil
+  local spawnPointReady = distanceInfo ~= nil
   return {
     pending = pendingName,
     preloaded = preloadedName,
@@ -220,6 +273,9 @@ function M.getDebugState()
     placed = S.preloaded and S.preloaded.placed or nil,
     preloadInProgress = S.preloadInProgress,
     uiGateOverride = S.uiGateOverride,
+    spawnPointReady = spawnPointReady,
+    spawnPointDistance = spawnPointDistance,
+    spawnPointFarEnough = spawnPointDistance ~= nil and spawnPointDistance > 300.0 or false,
   }
 end
 
@@ -255,24 +311,20 @@ function M.stash(eventName, vehId, opts)
     return false
   end
 
-  local placed = nil
-  if gameplay_parking and PreloadParking then
-    local playerVeh = getPlayerVeh()
-    local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
-    local best = PreloadParking.getBestSpot({ playerPos = playerPos })
-    if best and best.spot then
-      local ok, res = pcall(function()
-        return gameplay_parking.moveToParkingSpot(veh:getId(), best.spot, true)
-      end)
-      if ok and res == true then
-        placed = "preloadParking"
-      end
-    end
-  end
-
-  if not placed then
+  local distanceInfo = getPreloadDistanceInfo()
+  if not distanceInfo then
     return false
   end
+
+  local playerVeh = getPlayerVeh()
+  local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
+  local transform = makeSpawnTransform(distanceInfo.spawnPoint, playerPos)
+  if not transform then
+    return false
+  end
+
+  safeTeleportVehicle(veh, transform.pos, transform.rot)
+  local placed = "breadcrumbPreload"
   disableVehicleAI(veh)
   setVehicleIdle(veh)
 
@@ -287,6 +339,14 @@ function M.stash(eventName, vehId, opts)
   S.pending = nil
   S.preloadInProgress = false
   return true
+end
+
+function M.isPreloadPointAvailable()
+  local distanceInfo = getPreloadDistanceInfo()
+  if not distanceInfo then
+    return false
+  end
+  return (distanceInfo.distance or 0) > 300.0
 end
 
 function M.update(dtSim)

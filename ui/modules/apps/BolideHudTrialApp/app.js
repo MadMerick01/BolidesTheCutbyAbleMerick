@@ -20,7 +20,8 @@
             weapons: [],
             equippedWeapon: null,
             paused: false,
-            preloaded: false
+            preloaded: false,
+            preloadAvailable: false
           };
 
           var weaponLimits = {
@@ -103,6 +104,7 @@
             scope.hudTrial.equippedWeapon = payload.equippedWeapon || null;
             scope.hudTrial.paused = payload.paused === true;
             scope.hudTrial.preloaded = payload.preloaded === true;
+            scope.hudTrial.preloadAvailable = payload.preloadAvailable === true;
             updateWeaponButtonHoverState();
             scope.hudTrial.weapons.forEach(function (weapon) {
               if (!weapon.animate) {
@@ -153,7 +155,7 @@
           };
 
           scope.preloadRobber = function () {
-            if (scope.hudTrial.preloaded) {
+            if (scope.hudTrial.preloaded || !scope.hudTrial.preloadAvailable) {
               return;
             }
             if (window.bngApi && bngApi.engineLua) {
