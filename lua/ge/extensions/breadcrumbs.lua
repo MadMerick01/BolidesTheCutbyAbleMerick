@@ -107,10 +107,17 @@ local backCrumbPos = {
   [300] = nil,
 }
 
--- Fallback preload spot (fixed after enough travel)
-local fallbackPreloadPos = nil
-local fallbackPreloadReady = false
-local FALLBACK_PRELOAD_DISTANCE = 600.0
+local backCrumbDir = {
+  [10]  = nil,
+  [100] = nil,
+  [200] = nil,
+  [300] = nil,
+}
+
+-- Preload spawn point (fixed after enough travel)
+local preloadSpawnPoint = nil
+local preloadSpawnReady = false
+local PRELOAD_SPAWN_DISTANCE = 800.0
 
 local function findCrumbAtOrBeforeDist(targetDist)
   if #travelCrumbs == 0 then return nil end
@@ -194,12 +201,17 @@ updateBackCrumbPositions = function()
     local target = latestDist - meters
     local c = findCrumbAtOrBeforeDist(target)
     backCrumbPos[meters] = c and c.pos or nil
+    backCrumbDir[meters] = c and c.fwd or nil
   end
 
-  if not fallbackPreloadReady and latestDist >= FALLBACK_PRELOAD_DISTANCE then
+  if not preloadSpawnReady and latestDist >= PRELOAD_SPAWN_DISTANCE then
     if backCrumbPos[300] then
-      fallbackPreloadPos = backCrumbPos[300]
-      fallbackPreloadReady = true
+      preloadSpawnPoint = {
+        pos = backCrumbPos[300],
+        fwd = backCrumbDir[300],
+        dist = latestDist,
+      }
+      preloadSpawnReady = true
     end
   end
 end
@@ -544,8 +556,13 @@ function M.reset()
   backCrumbPos[200] = nil
   backCrumbPos[300] = nil
 
-  fallbackPreloadPos = nil
-  fallbackPreloadReady = false
+  backCrumbDir[10] = nil
+  backCrumbDir[100] = nil
+  backCrumbDir[200] = nil
+  backCrumbDir[300] = nil
+
+  preloadSpawnPoint = nil
+  preloadSpawnReady = false
 
   fkbAnchor = nil
   fkbAnchorBadFrames = 0
@@ -631,8 +648,8 @@ function M.getBack()
   return BACK_BREADCRUMB_METERS, backCrumbPos, isBackBreadcrumbReady
 end
 
-function M.getPreloadFallback()
-  return fallbackPreloadPos
+function M.getPreloadSpawnPoint()
+  return preloadSpawnPoint
 end
 
 return M

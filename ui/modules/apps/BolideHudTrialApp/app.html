@@ -183,6 +183,12 @@
       background: rgba(34, 52, 92, 0.95);
     }
 
+    .bolide-hud-trial__action-button--preload.is-preload-available {
+      background: rgba(90, 124, 210, 0.95);
+      border-color: rgba(170, 205, 255, 0.9);
+      color: #0a132a;
+    }
+
     .bolide-hud-trial__action-button--preload.is-preloaded {
       background: rgba(58, 132, 78, 0.95);
       border-color: rgba(90, 200, 130, 0.85);
@@ -346,8 +352,8 @@
     <div class="bolide-hud-trial__actions">
       <button
         class="bolide-hud-trial__action-button bolide-hud-trial__action-button--preload"
-        ng-class="{'is-preloaded': hudTrial.preloaded}"
-        ng-disabled="hudTrial.preloaded"
+        ng-class="{'is-preloaded': hudTrial.preloaded, 'is-preload-available': hudTrial.preloadAvailable && !hudTrial.preloaded}"
+        ng-disabled="hudTrial.preloaded || !hudTrial.preloadAvailable"
         ng-click="preloadRobber()"
         type="button"
       >
