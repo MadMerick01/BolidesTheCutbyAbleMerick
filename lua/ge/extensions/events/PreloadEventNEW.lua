@@ -89,6 +89,22 @@ local function safeTeleportVehicle(veh, pos, rot)
   end
 end
 
+local function teleportWithVerify(veh, pos, rot, opts)
+  if not veh or not pos then return false end
+  opts = opts or {}
+  local retries = tonumber(opts.retries) or 3
+  local maxDist = tonumber(opts.maxDist) or 5.0
+
+  for _ = 1, retries do
+    safeTeleportVehicle(veh, pos, rot)
+    local current = veh.getPosition and veh:getPosition() or nil
+    if current and (current - pos):length() <= maxDist then
+      return true
+    end
+  end
+  return false
+end
+
 local function makeSpawnTransform(spawnPoint, playerPos)
   if not spawnPoint or not spawnPoint.pos then
     return nil
@@ -292,7 +308,11 @@ function M.consume(eventName, transform)
   end
 
   if transform and transform.pos then
-    safeTeleportVehicle(veh, transform.pos, transform.rot)
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0 })
+    if not ok then
+      log("Consume failed: teleport verification failed.")
+      return nil
+    end
   end
 
   local id = S.preloaded.vehId
@@ -323,7 +343,11 @@ function M.stash(eventName, vehId, opts)
     return false
   end
 
-  safeTeleportVehicle(veh, transform.pos, transform.rot)
+  local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0 })
+  if not ok then
+    log("Stash failed: teleport verification failed.")
+    error("PreloadEvent stash teleport verification failed.")
+  end
   local placed = "breadcrumbPreload"
   disableVehicleAI(veh)
   setVehicleIdle(veh)
