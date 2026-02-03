@@ -117,6 +117,7 @@ local backCrumbDir = {
 -- Preload spawn point (fixed after enough travel)
 local preloadSpawnPoint = nil
 local preloadSpawnReady = false
+local preloadSpawnLocked = false
 local PRELOAD_SPAWN_DISTANCE = 800.0
 
 local function findCrumbAtOrBeforeDist(targetDist)
@@ -212,6 +213,7 @@ updateBackCrumbPositions = function()
         dist = latestDist,
       }
       preloadSpawnReady = true
+      preloadSpawnLocked = true
     end
   end
 end
@@ -527,6 +529,11 @@ local function drawBreadcrumbDebugMarkers()
       end
     end
   end
+
+  if preloadSpawnPoint and preloadSpawnPoint.pos then
+    dd:drawSphere(preloadSpawnPoint.pos, 2.0, ColorF(0.8, 0.2, 0.9, 1.0))
+    dd:drawText(preloadSpawnPoint.pos + DEBUG_LABEL_OFFSET, "Preload anchor", DEBUG_TEXT_COLOR)
+  end
 end
 
 -- =========================
@@ -561,8 +568,10 @@ function M.reset()
   backCrumbDir[200] = nil
   backCrumbDir[300] = nil
 
-  preloadSpawnPoint = nil
-  preloadSpawnReady = false
+  if not preloadSpawnLocked then
+    preloadSpawnPoint = nil
+    preloadSpawnReady = false
+  end
 
   fkbAnchor = nil
   fkbAnchorBadFrames = 0
