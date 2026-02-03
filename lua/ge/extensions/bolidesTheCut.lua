@@ -117,6 +117,7 @@ local S = {
   popupShownOnce = {},
   hudPreloadPending = false,
   preloadIntroShown = false,
+  hudPreloadPromptActive = false,
 }
 
 local UI = {}
@@ -246,6 +247,7 @@ local function describePreloadPlacement()
   end
   local placed = tostring(state.placed or "unknown")
   local labels = {
+    breadcrumbPreload = "Breadcrumb preload (300m back @ 800m)",
     preloadParking = "Preload parking spot (>=300m)",
     fixedPreload = "Fixed map preload",
     fallbackBreadcrumb300m = "Fallback breadcrumb (300m)",
@@ -1038,6 +1040,7 @@ local function getHudTrialContainerName()
 end
 
 local TOWING_BLOCK_MESSAGE = "Towing disabled during active threat."
+local PRELOAD_AVAILABLE_MESSAGE = "preload avaiable, pull over and press preload"
 
 local function addTowBlockMessage(instruction)
   if not instruction or instruction == "" then
@@ -1058,6 +1061,28 @@ local function removeTowBlockMessage(instruction)
   end
   local cleaned = string.gsub(instruction, "\n" .. TOWING_BLOCK_MESSAGE, "")
   return cleaned
+end
+
+local function updatePreloadHudPrompt()
+  if not PreloadEvent or not PreloadEvent.isPreloadPointAvailable then
+    return
+  end
+
+  local available = PreloadEvent.isPreloadPointAvailable()
+  if available and not getRobberPreloaded() then
+    if S.hudInstruction ~= PRELOAD_AVAILABLE_MESSAGE then
+      S.hudInstruction = PRELOAD_AVAILABLE_MESSAGE
+      markHudTrialDirty()
+    end
+    S.hudPreloadPromptActive = true
+    return
+  end
+
+  if S.hudPreloadPromptActive and S.hudInstruction == PRELOAD_AVAILABLE_MESSAGE then
+    S.hudInstruction = nil
+    markHudTrialDirty()
+  end
+  S.hudPreloadPromptActive = false
 end
 
 local function isRecoveryPromptActive()
@@ -1156,6 +1181,7 @@ local function hudTrialPayloadKey(payload)
     tostring(payload.wallet or ""),
     tostring(payload.paused or ""),
     tostring(payload.preloaded or ""),
+    tostring(payload.preloadAvailable or ""),
     weaponsKey,
   }, "|")
 end
@@ -1163,6 +1189,7 @@ end
 local function buildHudTrialPayload()
   ensureHudState()
   local walletAmount = tonumber(S.hudWallet) or 0
+  local preloadAvailable = PreloadEvent and PreloadEvent.isPreloadPointAvailable and PreloadEvent.isPreloadPointAvailable() or false
   return {
     title = CFG.windowTitle or "Bolides: The Cut",
     tagline = "You transport value, watch the road",
@@ -1175,6 +1202,7 @@ local function buildHudTrialPayload()
     equippedWeapon = S.hudEquippedWeapon,
     paused = getHudPauseActive(),
     preloaded = getRobberPreloaded(),
+    preloadAvailable = preloadAvailable,
   }
 end
 
@@ -2425,6 +2453,8 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
     S.hudPauseActive = hudPaused
     markHudTrialDirty()
   end
+
+  updatePreloadHudPrompt()
 
   if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
     sendHudTrialPayload(false)
