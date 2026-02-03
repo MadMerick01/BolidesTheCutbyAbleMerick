@@ -157,25 +157,12 @@ local function spawnPreloadedVehicle(opts)
     return nil, "missing model"
   end
 
-  local options = {
-    config = opts.config,
-    cling = true,
-    autoEnterVehicle = false,
-  }
-
-  local veh = core_vehicles.spawnNewVehicle(opts.model, options)
-  if not veh then
-    return nil, "vehicle spawn failed"
-  end
-
   local distanceInfo, distErr = getPreloadDistanceInfo()
   if not distanceInfo then
-    veh:delete()
     return nil, distErr or "preload spawn point unavailable"
   end
 
   if (distanceInfo.distance or 0) <= 300.0 then
-    veh:delete()
     return nil, "preload spawn point too close"
   end
 
@@ -183,11 +170,27 @@ local function spawnPreloadedVehicle(opts)
   local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
   local transform = makeSpawnTransform(distanceInfo.spawnPoint, playerPos)
   if not transform then
-    veh:delete()
     return nil, "missing preload spawn transform"
   end
 
-  safeTeleportVehicle(veh, transform.pos, transform.rot)
+  local options = {
+    config = opts.config,
+    cling = true,
+    autoEnterVehicle = false,
+    pos = transform.pos,
+    rot = transform.rot,
+  }
+
+  local veh = core_vehicles.spawnNewVehicle(opts.model, options)
+  if not veh then
+    return nil, "vehicle spawn failed"
+  end
+
+  local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0 })
+  if not ok then
+    veh:delete()
+    return nil, "preload teleport verification failed"
+  end
   local placed = "breadcrumbPreload"
   disableVehicleAI(veh)
   setVehicleIdle(veh)
