@@ -489,7 +489,7 @@ local function triggerShot(playerVeh, robberVeh)
     impactForceMultiplier = ROBBER_SHOT_FORCE_MULTIPLIER,
     explosionForce = ROBBER_SHOT_EXPLOSION_FORCE,
     explosionRadius = ROBBER_SHOT_EXPLOSION_RADIUS,
-    applyDamage = false,
+    applyDamage = true,
   })
 
   if not ok then
@@ -567,15 +567,15 @@ function M.triggerManual()
   local tf = makeSpawnTransform(pv, R.spawnPos)
   local id = nil
   if PreloadEvent and PreloadEvent.consume then
-    id = PreloadEvent.consume("RobberEMP", tf)
+    id = PreloadEvent.consume("RobberShotgun", tf)
     if id then
       R.spawnMethod = "PreloadEvent"
-      R.preloadEventName = "RobberEMP"
+      R.preloadEventName = "RobberShotgun"
     else
-      id = PreloadEvent.consume("RobberShotgun", tf)
+      id = PreloadEvent.consume("RobberEMP", tf)
       if id then
         R.spawnMethod = "PreloadEvent"
-        R.preloadEventName = "RobberShotgun"
+        R.preloadEventName = "RobberEMP"
       end
     end
   end
