@@ -489,7 +489,7 @@ local function triggerShot(playerVeh, robberVeh)
     impactForceMultiplier = ROBBER_SHOT_FORCE_MULTIPLIER,
     explosionForce = ROBBER_SHOT_EXPLOSION_FORCE,
     explosionRadius = ROBBER_SHOT_EXPLOSION_RADIUS,
-    applyDamage = false,
+    applyDamage = true,
   })
 
   if not ok then
