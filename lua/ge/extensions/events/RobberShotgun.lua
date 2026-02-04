@@ -21,6 +21,7 @@ local R = {
   spawnPos = nil,
   spawnMode = nil,
   spawnMethod = nil,
+  preloadEventName = nil,
 
   phase = "idle",
   distToPlayer = nil,
@@ -105,6 +106,7 @@ local function resetRuntime()
   R.spawnPos = nil
   R.spawnMode = nil
   R.spawnMethod = nil
+  R.preloadEventName = nil
   R.phase = "idle"
   R.distToPlayer = nil
   R.nextShotAt = nil
@@ -566,11 +568,15 @@ function M.triggerManual()
   local id = nil
   if PreloadEvent and PreloadEvent.consume then
     id = PreloadEvent.consume("RobberEMP", tf)
-    if not id then
-      id = PreloadEvent.consume("RobberShotgun", tf)
-    end
     if id then
       R.spawnMethod = "PreloadEvent"
+      R.preloadEventName = "RobberEMP"
+    else
+      id = PreloadEvent.consume("RobberShotgun", tf)
+      if id then
+        R.spawnMethod = "PreloadEvent"
+        R.preloadEventName = "RobberShotgun"
+      end
     end
   end
   if not id then
@@ -624,13 +630,15 @@ function M.endEvent(reason)
   )
 
   local id = R.spawnedId
+  local preloadName = R.preloadEventName
   resetRuntime()
 
   if type(id) == "number" then
     local v = getObjById(id)
     if v then
       if PreloadEvent and PreloadEvent.stash then
-        local ok = pcall(PreloadEvent.stash, "RobberEMP", id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
+        preloadName = preloadName or "RobberShotgun"
+        local ok = pcall(PreloadEvent.stash, preloadName, id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
         if not ok then
           pcall(function() v:delete() end)
         end
