@@ -900,7 +900,7 @@ function M.triggerManual()
   local tf = makeSpawnTransform(pv, R.spawnPos)
   local id = nil
   if PreloadEvent and PreloadEvent.consume then
-    id = PreloadEvent.consume("RobberEMP", tf)
+    id = PreloadEvent.consume("RobberEMP", tf, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
     if id then
       R.spawnMethod = "PreloadEvent"
     end

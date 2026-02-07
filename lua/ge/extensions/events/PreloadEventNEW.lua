@@ -298,10 +298,16 @@ function M.getDebugState()
   }
 end
 
-function M.consume(eventName, transform)
+function M.consume(eventName, transform, opts)
   if not S.preloaded then return nil end
   if eventName and S.preloaded.eventName ~= eventName then
-    return nil
+    local expectedModel = opts and opts.model or nil
+    local expectedConfig = opts and opts.config or nil
+    if expectedModel ~= nil and expectedModel == S.preloaded.model and expectedConfig == S.preloaded.config then
+      -- Allow shared preloads when the vehicle spec matches.
+    else
+      return nil
+    end
   end
 
   local veh = getObjById(S.preloaded.vehId)
