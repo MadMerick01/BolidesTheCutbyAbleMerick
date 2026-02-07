@@ -12,11 +12,6 @@ into the otherwise safe and predictable. You will need to use strategy in vehicl
 Where traditional career gameplay rewards consistency, safety, and optimisation,  
 Bolides – The Cut introduces **unpredictability**.
 
-- 💬 **Discord** — Join development discussion, report issues, and give feedback  
-  https://discord.gg/jchHGWTS
-- ❤️ **Patreon** — Support development and gain access to early builds  
-  https://patreon.com/AbleMerick
-
 It is the *yin* to career mode’s *yang*.
 
 In standard career play, you build wealth through planning and discipline.
@@ -57,6 +52,37 @@ Weapons and equipment may be obtained from the Bolides themselves, including:
 - Ammunition
 
 Survival is optional. Preparation is not.
+
+### Installation
+
+1. Download the latest release from:
+   - **GitHub** (public releases), or  
+   - **Patreon** (Advanced Edition)
+
+2. Place the downloaded `.zip` file into your BeamNG `mods` folder.  
+   *(Do not extract the zip.)*
+
+3. Launch **BeamNG.drive** and start **Career Mode** as normal  
+   (Vanilla Career or RLS Career).
+
+4. Once in-game, open the **UI Apps** menu and add the  
+   **Bolides – The Cut** app.
+
+You’re ready to go.
+
+The Bolides app automatically initializes each time you load into Career Mode.
+
+### Public & Advanced Editions
+
+Bolides – The Cut is available as a free public release, offering the full core
+experience — criminal encounters, risk, and consequence within Career Mode.
+
+An **Advanced Edition** is available via Patreon for players who want deeper
+strategic control and expanded systems, including features such as
+in-world purchasing of weapons ammo and equipment. New features tbc.
+
+Both editions are stable and supported. Patreon directly funds continued
+development and long-term expansion of the project.
 
 ### Built for stability
 
