@@ -13,7 +13,6 @@
             title: 'Bolides: The Cut',
             tagline: 'You transport value, watch the road',
             status: '\u2014',
-            instruction: '\u2014',
             threat: 'safe',
             dangerReason: '',
             wallet: 0,
@@ -96,7 +95,6 @@
             scope.hudTrial.title = payload.title || defaults.title;
             scope.hudTrial.tagline = payload.tagline || defaults.tagline;
             scope.hudTrial.status = payload.status || defaults.status;
-            scope.hudTrial.instruction = payload.instruction || defaults.instruction;
             scope.hudTrial.threat = payload.threat || defaults.threat;
             scope.hudTrial.dangerReason = payload.dangerReason || '';
             scope.hudTrial.wallet = (payload.wallet === 0 || payload.wallet) ? payload.wallet : defaults.wallet;

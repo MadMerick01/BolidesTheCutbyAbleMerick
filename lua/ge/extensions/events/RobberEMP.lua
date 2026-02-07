@@ -62,7 +62,6 @@ local R = {
   hudThreat = nil,
   hudStatus = nil,
   hudStatusBase = nil,
-  hudInstruction = nil,
 }
 
 local ROBBER_MODEL = "roamer"
@@ -443,6 +442,16 @@ local function formatStatusWithDistance(status, distance)
   return string.format("%s\nDistance to contact: %dm", status, distMeters)
 end
 
+local function mergeStatusInstruction(status, instruction)
+  if not instruction or instruction == "" then
+    return status
+  end
+  if not status or status == "" then
+    return instruction
+  end
+  return string.format("%s\n%s", status, instruction)
+end
+
 local function updateHudState(payload)
   if not payload then return end
 
@@ -464,11 +473,6 @@ local function updateHudState(payload)
     R.hudStatus = statusToSend
     changed = true
   end
-  if payload.instruction and payload.instruction ~= R.hudInstruction then
-    R.hudInstruction = payload.instruction
-    changed = true
-  end
-
   if statusToSend then
     payload.status = statusToSend
   end
@@ -952,13 +956,14 @@ function M.triggerManual()
   R.hudThreat = nil
   R.hudStatus = nil
   R.hudStatusBase = nil
-  R.hudInstruction = nil
 
   startFollowAI(id)
   updateHudState({
     threat = "event",
-    status = "A vehicle is tailing you",
-    instruction = "Stay alert and control your speed.",
+    status = mergeStatusInstruction(
+      "A vehicle is tailing you",
+      "Stay alert and control your speed."
+    ),
   })
   return true
 end
@@ -1018,7 +1023,6 @@ function M.endEvent(opts)
   R.hudThreat = nil
   R.hudStatus = nil
   R.hudStatusBase = nil
-  R.hudInstruction = nil
 
   if not opts.keepGuiMessage then
     setGuiStatusMessage(nil)
@@ -1028,8 +1032,10 @@ function M.endEvent(opts)
   if not opts.keepHudState then
     updateHudState({
       threat = "safe",
-      status = "The robber has been stopped.",
-      instruction = "Stay alert and control your speed.",
+      status = mergeStatusInstruction(
+        "The robber has been stopped.",
+        "Stay alert and control your speed."
+      ),
     })
   end
 
@@ -1088,8 +1094,10 @@ function M.update(dtSim)
     setGuiStatusMessage(nil)
     updateHudState({
       threat = "safe",
-      status = "The robber has been stopped.",
-      instruction = "Stay alert and control your speed.",
+      status = mergeStatusInstruction(
+        "The robber has been stopped.",
+        "Stay alert and control your speed."
+      ),
     })
     log("Ended (robber missing).")
     return
@@ -1161,8 +1169,10 @@ function M.update(dtSim)
   if R.robberStationaryTimer >= 30.0 and d >= 500.0 then
     updateHudState({
       threat = "safe",
-      status = "you live to fight another day",
-      instruction = "carry on with your business",
+      status = mergeStatusInstruction(
+        "you live to fight another day",
+        "carry on with your business"
+      ),
     })
     local msgArgs = {
       title = "NOTICE",
@@ -1245,8 +1255,10 @@ function M.update(dtSim)
 
     updateHudState({
       threat = "danger",
-      status = "You've been robbed, chase the robber down and stop their vehicle to get it back",
-      instruction = "Create distance or disable the robber.",
+      status = mergeStatusInstruction(
+        "You've been robbed, chase the robber down and stop their vehicle to get it back",
+        "Create distance or disable the robber."
+      ),
       dangerReason = "emp",
     })
 
@@ -1290,8 +1302,10 @@ function M.update(dtSim)
     end
     updateHudState({
       threat = "danger",
-      status = "You've been robbed, chase the robber down and stop their vehicle to get it back",
-      instruction = "Stop the robber vehicle to recover your money.",
+      status = mergeStatusInstruction(
+        "You've been robbed, chase the robber down and stop their vehicle to get it back",
+        "Stop the robber vehicle to recover your money."
+      ),
       dangerReason = "robbed",
       moneyDelta = robbedDelta,
     })
@@ -1411,8 +1425,10 @@ function M.update(dtSim)
       end
       updateHudState({
         threat = "safe",
-        status = statusMessage,
-        instruction = empInstruction or "Stay alert and control your speed.",
+        status = mergeStatusInstruction(
+          statusMessage,
+          empInstruction or "Stay alert and control your speed."
+        ),
         moneyDelta = recoveredDelta > 0 and recoveredDelta or nil,
         inventoryDelta = #inventoryDelta > 0 and inventoryDelta or nil,
       })
@@ -1458,10 +1474,12 @@ function M.update(dtSim)
     end
     updateHudState({
       threat = "safe",
-      status = robbedText
-        and string.format("The robber escaped with your money, you lost $%s", robbedText)
-        or "The robber escaped with your money",
-      instruction = "Stay alert and control your speed.",
+      status = mergeStatusInstruction(
+        robbedText
+          and string.format("The robber escaped with your money, you lost $%s", robbedText)
+          or "The robber escaped with your money",
+        "Stay alert and control your speed."
+      ),
     })
     local msgArgs = {
       title = "NOTICE",

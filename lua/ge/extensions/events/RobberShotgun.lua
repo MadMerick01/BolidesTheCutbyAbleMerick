@@ -75,6 +75,16 @@ local function formatStatusWithDistance(status, distance)
   return string.format("%s\nDistance to contact: %dm", status, distMeters)
 end
 
+local function mergeStatusInstruction(status, instruction)
+  if not instruction or instruction == "" then
+    return status
+  end
+  if not status or status == "" then
+    return instruction
+  end
+  return string.format("%s\n%s", status, instruction)
+end
+
 local function pushHudState(payload)
   if Host and Host.setNewHudState then
     Host.setNewHudState(payload)
@@ -84,11 +94,11 @@ local function pushHudState(payload)
 end
 
 local function setHud(threat, status, instruction, dangerReason)
-  R.hudStatusBase = status
+  local combined = mergeStatusInstruction(status, instruction)
+  R.hudStatusBase = combined
   pushHudState({
     threat = threat,
-    status = formatStatusWithDistance(status, R.distToPlayer),
-    instruction = instruction,
+    status = formatStatusWithDistance(combined, R.distToPlayer),
     dangerReason = dangerReason,
   })
 end
@@ -944,11 +954,11 @@ function M.update(dtSim)
       elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.showMissionMessage then
         extensions.bolidesTheCut.showMissionMessage(msgArgs)
       end
-      R.hudStatusBase = status
+      local combinedStatus = mergeStatusInstruction(status, "Secure the area and continue.")
+      R.hudStatusBase = combinedStatus
       pushHudState({
         threat = "safe",
-        status = formatStatusWithDistance(status, R.distToPlayer),
-        instruction = "Secure the area and continue.",
+        status = formatStatusWithDistance(combinedStatus, R.distToPlayer),
         dangerReason = nil,
         moneyDelta = cashFound,
         inventoryDelta = #inventoryDelta > 0 and inventoryDelta or nil,
