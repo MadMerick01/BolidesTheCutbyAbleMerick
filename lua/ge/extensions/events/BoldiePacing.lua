@@ -6,8 +6,8 @@ local Events = {}
 local PreloadRequest = nil
 
 local STATE = {
-  intervalSec = 180,
-  countdown = 180,
+  intervalSec = 30,
+  countdown = 30,
   activeEventName = nil,
   nextIndex = 1,
   retryDelay = 0.5,
