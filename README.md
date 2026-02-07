@@ -4,25 +4,19 @@
 ### You transport value. Watch the road.
 
 A career expansion for **BeamNG.drive** that introduces crime, risk, and chaos  
-into the otherwise safe and predictable. You will need to use strategy in vehicle choice and upgrades
+into the otherwise safe and predictable. You will need to use strategy in vehicle choice and upgrades in order to keep your hard earned gains
 
-**Bolides – The Cut** is a career add-on for BeamNG.drive designed to work alongside  
+**Works with**   
 **Vanilla Career** and **RLS Career**.
-
-Where traditional career gameplay rewards consistency, safety, and optimisation,  
-Bolides – The Cut introduces **unpredictability**.
-
-It is the *yin* to career mode’s *yang*.
 
 In standard career play, you build wealth through planning and discipline.
 
 **Bolides – The Cut exists to disrupt that.**
 
 As you move value across the map, criminal events may unfold:
-- Ambushes
-- Roadside attacks
-- Opportunistic theft
-- Vehicle damage at the worst possible moment
+- Ambushes (EMP disables your vehicle to be robbed)
+- Theft (up to half money total in your wallet)
+- Bullet damage at the worst possible moment (bullet damage is explosive knocks to jbeams/ physics based collision damage)
 
 Every run carries risk.
 
@@ -31,20 +25,18 @@ The Bolides are a roaming crime gang led by **Bonito Bolide**.
 **Custom AI switching Behaviours based on forward thinking**.
 The Bolides use a custom lua trigger based ai switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod.
 
-They take interest in anyone who appears to be building a fortune across:
+They take interest in anyone who appears to be building a future across:
 - West Coast USA
 - Italy
 - Utah
-- Any career-enabled BeamNG map
+- Any career-enabled RLS BeamNG map
 
 If you look profitable, you look like a target.
 
-This is not a passive punishment system.
-
 Players can:
-- Defend their cargo
+- Defend their cargo (EMP and pistol)
 - Protect their earnings
-- Turn the tables
+- Turn the tables (take back robbed amounts plus extra money, ammo and EMP charges
 
 Weapons and equipment may be obtained from the Bolides themselves, including:
 - EMP and charges
@@ -68,9 +60,9 @@ Survival is optional. Preparation is not.
 4. Once in-game, open the **UI Apps** menu and add the  
    **Bolides – The Cut** app.
 
-You’re ready to go.
+You’re ready to go, but actually are you ready?
 
-The Bolides app automatically initializes each time you load into Career Mode.
+The Bolides app automatically initializes each time you load into Career Mode. Weapons and Ammo are preserved for next session.
 
 ### Public & Extended Editions
 
@@ -79,7 +71,7 @@ experience — criminal encounters, risk, and consequence within Career Mode.
 
 An **Extended Edition** is available via Patreon for players who want deeper
 strategic control and expanded systems, including features such as
-in-world purchasing of weapons ammo and equipment. New features tbc.
+in-world purchasing of weapons ammo and equipment. New features. Constantly updated with new events
 
 Both editions are stable and supported. Patreon directly funds continued
 development and long-term expansion of the project.
