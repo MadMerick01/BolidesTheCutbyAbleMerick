@@ -1,4 +1,4 @@
-![Bolides – The Cut](./banner.png)
+![Bolides – The Cut](./docs/bolidesBanner1.svg)
 # Bolides – The Cut
 
 ### You transport value. Watch the road.
