@@ -32,9 +32,9 @@ Common fields to track for every event (include in each event entry):
 	-colour = green
 
 	End2
-	-what = the player catches the robber and gets their money back and possible extra money or device and/or ammo
-	-status message = You got your money back (and found x and/or y and/or z) (x = money, y = EMP or Pistol, z = charges or ammo)  
-	-Pause message (active) message = You got your money back (and found x and/or y and/or z) (x = money, y = EMP or Pistol, z = charges or ammo)
+	-what = the player catches the robber and gets their money back, always finds EMP charges, and may find pistol ammo
+	-status message = You got your money back (and found x and/or y) (x = money, y = EMP charges and/or pistol ammo)
+	-Pause message (active) message = You got your money back (and found x and/or y) (x = money, y = EMP charges and/or pistol ammo)
 	-colour = green
 
 	End3
@@ -64,9 +64,9 @@ Common fields to track for every event (include in each event entry):
 	-colour = green
 
 	End2
-	-what = the player catches the robberShotgun and possible extra money or device and/or ammo
-	-status message = You took down the attacker (and found x and/or y and/or z) (x = money, y = EMP or Pistol, z = charges or ammo) 
-	-Pause message (active ) message = You took down the attacker (and found x and/or y and/or z) (x = money, y = EMP or Pistol, z = charges or ammo)  
+	-what = the player catches the robberShotgun and possible extra money, EMP device/charges, and/or pistol ammo
+	-status message = You took down the attacker (and found x and/or y) (x = money, y = EMP device/charges and/or pistol ammo)
+	-Pause message (active ) message = You took down the attacker (and found x and/or y) (x = money, y = EMP device/charges and/or pistol ammo)
 	-colour = green
 
 	End3

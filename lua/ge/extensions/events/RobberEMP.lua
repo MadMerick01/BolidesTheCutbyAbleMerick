@@ -1357,36 +1357,17 @@ function M.update(dtSim)
       local empInstruction = nil
       local inventoryDelta = {}
       local rewardNotes = {}
-      if math.random() < 0.5 then
-        empRewardText = "an EMP device"
-        inventoryDelta[#inventoryDelta + 1] = {
-          id = "emp",
-          name = "EMP Device",
-          ammoLabel = "Charges",
-          ammoDelta = 0,
-        }
-      else
-        local empCharges = math.random(1, 3)
-        empRewardText = string.format("%d EMP charges", empCharges)
-        empInstruction = "You may deploy the EMP now."
-        inventoryDelta[#inventoryDelta + 1] = {
-          id = "emp",
-          name = "EMP Device",
-          ammoLabel = "Charges",
-          ammoDelta = empCharges,
-        }
-      end
-      if math.random() < 0.3 then
-        rewardNotes[#rewardNotes + 1] = "a pistol"
-        inventoryDelta[#inventoryDelta + 1] = {
-          id = "pistol",
-          name = "Pistol",
-          ammoLabel = "Ammo",
-          ammoDelta = 0,
-        }
-      end
+      local empCharges = math.random(1, 3)
+      empRewardText = string.format("%d EMP charges", empCharges)
+      empInstruction = "You may deploy the EMP now."
+      inventoryDelta[#inventoryDelta + 1] = {
+        id = "emp",
+        name = "EMP Device",
+        ammoLabel = "Charges",
+        ammoDelta = empCharges,
+      }
       local bonusAmmo = 0
-      if math.random() < 0.3 then
+      if math.random() < 0.7 then
         bonusAmmo = math.random(1, 3)
         inventoryDelta[#inventoryDelta + 1] = {
           id = "pistol",

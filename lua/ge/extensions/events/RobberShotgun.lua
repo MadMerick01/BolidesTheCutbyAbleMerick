@@ -897,15 +897,6 @@ function M.update(dtSim)
       R.shotsStarted = false
       local inventoryDelta = {}
       local rewardNotes = {}
-      if math.random() < 0.75 then
-        inventoryDelta[#inventoryDelta + 1] = {
-          id = "pistol",
-          name = "Pistol",
-          ammoLabel = "Ammo",
-          ammoDelta = 0,
-        }
-        rewardNotes[#rewardNotes + 1] = "a pistol"
-      end
       if math.random() < 0.70 then
         local bonusAmmo = math.random(2, 6)
         inventoryDelta[#inventoryDelta + 1] = {
