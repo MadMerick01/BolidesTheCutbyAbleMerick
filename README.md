@@ -72,12 +72,12 @@ You’re ready to go.
 
 The Bolides app automatically initializes each time you load into Career Mode.
 
-### Public & Advanced Editions
+### Public & Extended Editions
 
 Bolides – The Cut is available as a free public release, offering the full core
 experience — criminal encounters, risk, and consequence within Career Mode.
 
-An **Advanced Edition** is available via Patreon for players who want deeper
+An **Extended Edition** is available via Patreon for players who want deeper
 strategic control and expanded systems, including features such as
 in-world purchasing of weapons ammo and equipment. New features tbc.
 
@@ -87,7 +87,7 @@ development and long-term expansion of the project.
 ### Built for stability
 
 Bolides – The Cut is:
-- **~99% Lua-based**
+- **~95% Lua-based**
 - Independent of BeamNG core code
 - Independent of other mods
 - Designed to be robust and low-maintenance
