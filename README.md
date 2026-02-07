@@ -113,7 +113,7 @@ The system is intentionally modular and expandable.
 Bolides – The Cut is built on a modular foundation, allowing new crime events,  
 AI behaviours, and defensive tools to be introduced over time.
 
-Future updates will expand encounter variety and strategic depth while  
+Future updates to Expanded Edition will add encounter variety and strategic depth while  
 maintaining compatibility with existing career systems.
 ---
 
