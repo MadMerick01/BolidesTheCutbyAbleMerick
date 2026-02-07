@@ -71,6 +71,9 @@ local CFG = {
 
   -- Preload pacing
   preloadInitialDelaySec = 60.0,
+
+  -- Messaging
+  popupMessagesEnabled = false,
 }
 
 -- =========================
@@ -530,6 +533,9 @@ function M._activateNextPopup()
 end
 
 function M.showPopupMessage(args)
+  if not CFG.popupMessagesEnabled then
+    return false
+  end
   args = args or {}
   local msg = {
     id = args.id or args.key or args.title or ("popup_" .. tostring(os.clock())),
@@ -684,6 +690,20 @@ local function showLegacyMissionMessage(args)
 end
 
 function M.showMissionMessage(args)
+  if not CFG.popupMessagesEnabled then
+    local title = tostring(args and args.title or "")
+    local text = tostring(args and (args.text or args.body) or "")
+    local combined = ""
+    if title ~= "" and text ~= "" then
+      combined = string.format("%s: %s", title, text)
+    else
+      combined = text ~= "" and text or title
+    end
+    if combined ~= "" then
+      M.setGuiStatusMessage(combined)
+    end
+    return true
+  end
   local ok = M.showPopupMessage(args)
   if ok then
     return true
