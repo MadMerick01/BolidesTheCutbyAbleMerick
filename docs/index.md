@@ -57,7 +57,7 @@ Survival is optional. Preparation is not.
 
 1. Download the latest release from:
    - **GitHub** (public releases), or  
-   - **Patreon** (early builds and testing releases)
+   - **Patreon** (Advanced Edition)
 
 2. Place the downloaded `.zip` file into your BeamNG `mods` folder.  
    *(Do not extract the zip.)*
@@ -72,6 +72,17 @@ You’re ready to go.
 
 The Bolides app automatically initializes each time you load into Career Mode.
 
+### Public & Advanced Editions
+
+Bolides – The Cut is available as a free public release, offering the full core
+experience — criminal encounters, risk, and consequence within Career Mode.
+
+An **Advanced Edition** is available via Patreon for players who want deeper
+strategic control and expanded systems, including features such as
+in-world purchasing of weapons ammo and equipment. New features tbc.
+
+Both editions are stable and supported. Patreon directly funds continued
+development and long-term expansion of the project.
 
 ### Built for stability
 
