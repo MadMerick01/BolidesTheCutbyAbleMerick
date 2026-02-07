@@ -87,7 +87,7 @@ development and long-term expansion of the project.
 ### Built for stability
 
 Bolides – The Cut is:
-- **~99% Lua-based**
+- **~95% Lua-based**
 - Independent of BeamNG core code
 - Independent of other mods
 - Designed to be robust and low-maintenance
