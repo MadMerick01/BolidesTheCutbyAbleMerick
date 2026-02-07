@@ -2340,24 +2340,6 @@ function M.onExtensionLoaded()
       RobberEMP = RobberEMP,
       RobberShotgun = RobberShotgun,
     }, function(nextName, opts)
-      if not S.preloadIntroShown then
-        S.preloadIntroShown = true
-        M.showPopupMessage({
-          id = "preload_intro",
-          title = "Welcome",
-          body = "Welcome to Bolide-the Cut (preloading...)",
-          continueLabel = "Continue",
-          nextEventName = nextName,
-          preloadOpts = opts,
-          preloadStatus = "Preloading next event...",
-          canContinue = false,
-          preloadSuccessBody = "Welcome to Bolide-the Cut (preload successful)",
-          preloadSuccessPlacementLabel = "Preload position:",
-          once = true,
-          freeze = true,
-        })
-        return true
-      end
       return M.requestEventPreloadByName(nextName, opts)
     end)
   end
