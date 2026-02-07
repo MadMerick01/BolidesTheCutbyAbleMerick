@@ -12,6 +12,11 @@ into the otherwise safe and predictable. You will need to use strategy in vehicl
 Where traditional career gameplay rewards consistency, safety, and optimisation,  
 Bolides – The Cut introduces **unpredictability**.
 
+- 💬 **Discord** — Join development discussion, report issues, and give feedback  
+  https://discord.gg/jchHGWTS
+- ❤️ **Patreon** — Support development and gain access to early builds  
+  https://patreon.com/AbleMerick
+
 It is the *yin* to career mode’s *yang*.
 
 In standard career play, you build wealth through planning and discipline.
@@ -26,7 +31,10 @@ As you move value across the map, criminal events may unfold:
 
 Every run carries risk.
 
-The Bolides are a roaming crime gang led by **Bonito Bolide**.
+The Bolides are a roaming crime gang led by **Bonito Bolide**. 
+
+**Custom AI switching Behaviours based on forward thinking**.
+The Bolides use a custom lua trigger based ai switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod.
 
 They take interest in anyone who appears to be building a fortune across:
 - West Coast USA
@@ -73,6 +81,24 @@ The initial release focuses on:
 - Strategic use of hard to come by ammo and charges
 
 The system is intentionally modular and expandable.
+
+### Looking ahead
+
+Bolides – The Cut is built on a modular foundation, allowing new crime events,  
+AI behaviours, and defensive tools to be introduced over time.
+
+Future updates will expand encounter variety and strategic depth while  
+maintaining compatibility with existing career systems.
+---
+
+### Community & Support
+
+- 💬 **Discord** — Join development discussion, report issues, and give feedback  
+  https://discord.gg/jchHGWTS
+
+- ❤️ **Patreon** — Support development and gain access to early builds  
+  https://patreon.com/AbleMerick
+
 
 ### Learn more
 
