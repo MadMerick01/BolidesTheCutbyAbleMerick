@@ -265,6 +265,128 @@ local AUDIO = {
   eventStartPitch = 1.0,
 }
 
+local function getPlayerVeh()
+  if Host and Host.getPlayerVeh then
+    return Host.getPlayerVeh()
+  end
+  if be and be.getPlayerVehicle then
+    return be:getPlayerVehicle(0)
+  end
+  return nil
+end
+
+local SHOT_AUDIO = {
+  file = "/art/sound/bolides/distantgunshot.wav",
+  name = "robberShotgunShot",
+  volume = 12.0,
+  pitch = 1.0,
+  poolSize = 6,
+}
+
+local ShotAudio = {}
+
+local function _resolveShotAudioVeh(v)
+  return getPlayerVeh() or v
+end
+
+function ShotAudio.ensurePooledSources(v, source)
+  v = _resolveShotAudioVeh(v)
+  if not v or not v.queueLuaCommand then return end
+  if not source or not source.name or not source.file then return end
+
+  local poolSize = tonumber(source.count) or tonumber(source.poolSize) or 4
+  poolSize = math.max(1, math.floor(poolSize))
+  local name = tostring(source.name)
+  local file = tostring(source.file)
+
+  local cmd = string.format([[
+    _G.__robberShotgunAudio = _G.__robberShotgunAudio or { ids = {}, pools = {} }
+    local A = _G.__robberShotgunAudio.ids
+    local P = _G.__robberShotgunAudio.pools
+    local function mk(path, nm)
+      if A[nm] then return end
+      local id = obj:createSFXSource(path, "Audio2D", nm, 0)
+      A[nm] = id
+    end
+    local base = %q
+    local path = %q
+    local count = %d
+    P[base] = P[base] or { ids = {}, index = 1 }
+    local pool = P[base]
+    for i = 1, count do
+      local nm = base .. "_" .. tostring(i)
+      mk(path, nm)
+      pool.ids[i] = nm
+    end
+    if (pool.index or 1) < 1 or (pool.index or 1) > count then
+      pool.index = 1
+    end
+  ]], name, file, poolSize)
+
+  v:queueLuaCommand(cmd)
+end
+
+function ShotAudio.playPooledFile(v, name, vol, pitch, file)
+  v = _resolveShotAudioVeh(v)
+  if not v or not v.queueLuaCommand then return end
+  vol = tonumber(vol) or 1.0
+  pitch = tonumber(pitch) or 1.0
+  name = tostring(name)
+  file = tostring(file or "")
+
+  local cmd = string.format([[
+    if not (_G.__robberShotgunAudio and _G.__robberShotgunAudio.ids) then return end
+    local A = _G.__robberShotgunAudio.ids
+    local P = _G.__robberShotgunAudio.pools or {}
+    local pool = P[%q]
+    if not pool or not pool.ids or #pool.ids == 0 then return end
+    local idx = pool.index or 1
+    if idx > #pool.ids then idx = 1 end
+    local nm = pool.ids[idx]
+    pool.index = idx + 1
+    if pool.index > #pool.ids then pool.index = 1 end
+    local id = A[nm]
+    if not id then return end
+
+    if obj.setSFXSourceLooping then pcall(function() obj:setSFXSourceLooping(id, false) end) end
+    if obj.setSFXSourceLoop then pcall(function() obj:setSFXSourceLoop(id, false) end) end
+
+    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 1.0) end) end
+    if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end
+    if obj.setVolume then         pcall(function() obj:setVolume(id, 1.0) end) end
+
+    local played = false
+    if obj.playSFX then
+      played = played or pcall(function() obj:playSFX(id) end)
+      played = played or pcall(function() obj:playSFX(id, 0) end)
+      played = played or pcall(function() obj:playSFX(id, false) end)
+      played = played or pcall(function() obj:playSFX(id, 0, false) end)
+      played = played or pcall(function() obj:playSFX(id, 0, %0.3f, %0.3f, false) end)
+      played = played or pcall(function() obj:playSFX(id, %0.3f, %0.3f, false) end)
+      played = played or pcall(function() obj:playSFX(id, 0, false, %0.3f, %0.3f) end)
+    end
+
+    if (not played) and obj.playSFXOnce and %q ~= "" then
+      pcall(function() obj:playSFXOnce(%q, 0, %0.3f, %0.3f) end)
+    end
+
+    if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, %0.3f) end) end
+    if obj.setSFXSourcePitch  then pcall(function() obj:setSFXSourcePitch(id, %0.3f) end) end
+  ]], name, vol, pitch, vol, pitch, vol, pitch, file, file, vol, pitch, vol, pitch)
+
+  v:queueLuaCommand(cmd)
+end
+
+function ShotAudio.playShot(v)
+  if not SHOT_AUDIO.file or SHOT_AUDIO.file == "" then return end
+  ShotAudio.ensurePooledSources(v, {
+    file = SHOT_AUDIO.file,
+    name = SHOT_AUDIO.name,
+    count = SHOT_AUDIO.poolSize,
+  })
+  ShotAudio.playPooledFile(v, SHOT_AUDIO.name, SHOT_AUDIO.volume, SHOT_AUDIO.pitch, SHOT_AUDIO.file)
+end
+
 local function getAudioHelper()
   if not extensions or not extensions.bolidesTheCut then return nil end
   return extensions.bolidesTheCut.Audio
@@ -274,16 +396,6 @@ local function getObjById(id)
   if type(id) ~= "number" then return nil end
   if getObjectByID then return getObjectByID(id) end
   if be and be.getObjectByID then return be:getObjectByID(id) end
-  return nil
-end
-
-local function getPlayerVeh()
-  if Host and Host.getPlayerVeh then
-    return Host.getPlayerVeh()
-  end
-  if be and be.getPlayerVehicle then
-    return be:getPlayerVehicle(0)
-  end
   return nil
 end
 
@@ -477,10 +589,7 @@ local function triggerShot(playerVeh, robberVeh)
   end
   if not playerVeh or not robberVeh then return false end
 
-  local audio = getAudioHelper()
-  if audio and audio.playGunshot then
-    audio.playGunshot(playerVeh)
-  end
+  ShotAudio.playShot(playerVeh)
 
   local ok, info = BulletDamage.trigger({
     targetId = playerVeh:getID(),
