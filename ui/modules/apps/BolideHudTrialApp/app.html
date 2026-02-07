@@ -272,11 +272,6 @@
       }
     }
 
-    .bolide-hud-trial__danger-reason {
-      margin-top: 6px;
-      font-size: 12px;
-      color: rgba(255, 210, 210, 0.92);
-    }
   </style>
 
   <div class="bolide-hud-trial__panel">
@@ -308,15 +303,6 @@
       <div class="bolide-hud-trial__block">
         <div class="bolide-hud-trial__label">Status</div>
         <div class="bolide-hud-trial__value">{{hudTrial.status || '\u2014'}}</div>
-      </div>
-
-      <div class="bolide-hud-trial__block">
-        <div class="bolide-hud-trial__label">Instruction</div>
-        <div class="bolide-hud-trial__value">{{hudTrial.instruction || '\u2014'}}</div>
-
-        <div class="bolide-hud-trial__danger-reason" ng-if="hudTrial.dangerReason">
-          {{hudTrial.dangerReason}}
-        </div>
       </div>
 
       <div class="bolide-hud-trial__block">

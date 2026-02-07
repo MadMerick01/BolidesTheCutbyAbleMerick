@@ -93,7 +93,6 @@ local S = {
   hudWallet = nil,
   hudWeapons = nil,
   hudStatus = "",
-  hudInstruction = "",
   hudThreat = nil,
   hudDangerReason = nil,
   hudShotgunMessage = "Aim carefully",
@@ -999,9 +998,6 @@ local function ensureHudState()
   if S.hudStatus == nil then
     S.hudStatus = "Normal"
   end
-  if S.hudInstruction == nil then
-    S.hudInstruction = "Lets make money"
-  end
 end
 
 local function getHudThreatLevel()
@@ -1037,52 +1033,6 @@ local function getHudTrialContainerName()
   end
   HUD_TRIAL.containerName = "messagesTasks"
   return HUD_TRIAL.containerName
-end
-
-local TOWING_BLOCK_MESSAGE = "Towing disabled during active threat."
-local PRELOAD_AVAILABLE_MESSAGE = "preload avaiable, pull over and press preload"
-
-local function addTowBlockMessage(instruction)
-  if not instruction or instruction == "" then
-    return TOWING_BLOCK_MESSAGE
-  end
-  if string.find(instruction, TOWING_BLOCK_MESSAGE, 1, true) then
-    return instruction
-  end
-  return string.format("%s\n%s", instruction, TOWING_BLOCK_MESSAGE)
-end
-
-local function removeTowBlockMessage(instruction)
-  if not instruction or instruction == "" then
-    return instruction
-  end
-  if instruction == TOWING_BLOCK_MESSAGE then
-    return ""
-  end
-  local cleaned = string.gsub(instruction, "\n" .. TOWING_BLOCK_MESSAGE, "")
-  return cleaned
-end
-
-local function updatePreloadHudPrompt()
-  if not PreloadEvent or not PreloadEvent.isPreloadPointAvailable then
-    return
-  end
-
-  local available = PreloadEvent.isPreloadPointAvailable()
-  if available and not getRobberPreloaded() then
-    if S.hudInstruction ~= PRELOAD_AVAILABLE_MESSAGE then
-      S.hudInstruction = PRELOAD_AVAILABLE_MESSAGE
-      markHudTrialDirty()
-    end
-    S.hudPreloadPromptActive = true
-    return
-  end
-
-  if S.hudPreloadPromptActive and S.hudInstruction == PRELOAD_AVAILABLE_MESSAGE then
-    S.hudInstruction = nil
-    markHudTrialDirty()
-  end
-  S.hudPreloadPromptActive = false
 end
 
 local function isRecoveryPromptActive()
@@ -1152,12 +1102,6 @@ local function setTowingBlocked(blocked)
     setVehicleRecoveryBlocked(false)
     S.towingBlocked = false
     S.recoveryPromptWasActive = nil
-    if S.hudInstruction then
-      S.hudInstruction = removeTowBlockMessage(S.hudInstruction)
-      if S.hudInstruction == "" then
-        S.hudInstruction = nil
-      end
-    end
     markHudTrialDirty()
   end
 end
@@ -1175,7 +1119,6 @@ local function hudTrialPayloadKey(payload)
     tostring(payload.title or ""),
     tostring(payload.tagline or ""),
     tostring(payload.status or ""),
-    tostring(payload.instruction or ""),
     tostring(payload.threat or ""),
     tostring(payload.dangerReason or ""),
     tostring(payload.wallet or ""),
@@ -1194,7 +1137,6 @@ local function buildHudTrialPayload()
     title = CFG.windowTitle or "Bolides: The Cut",
     tagline = "You transport value, watch the road",
     status = (S.hudStatus and S.hudStatus ~= "") and S.hudStatus or "—",
-    instruction = (S.hudInstruction and S.hudInstruction ~= "") and S.hudInstruction or "—",
     threat = getHudThreatLevel(),
     dangerReason = S.hudDangerReason or "",
     wallet = math.floor(walletAmount),
@@ -1535,15 +1477,6 @@ function M.setNewHudState(payload)
   end
   if payload.status then
     S.hudStatus = tostring(payload.status)
-  end
-  if payload.instruction then
-    local instruction = tostring(payload.instruction)
-    if S.towingBlocked then
-      instruction = addTowBlockMessage(instruction)
-    else
-      instruction = removeTowBlockMessage(instruction)
-    end
-    S.hudInstruction = instruction
   end
   if payload.dangerReason then
     S.hudDangerReason = tostring(payload.dangerReason)
@@ -1941,9 +1874,6 @@ local function drawGui()
     imgui.Text("STATUS")
     imgui.TextWrapped((S.hudStatus and S.hudStatus ~= "") and S.hudStatus or "—")
 
-    imgui.Spacing()
-    imgui.Text("INSTRUCTION")
-    imgui.TextWrapped((S.hudInstruction and S.hudInstruction ~= "") and S.hudInstruction or "—")
     imgui.SetWindowFontScale(baseTextScale)
 
     -- Weapons (New HUD)
@@ -2005,11 +1935,6 @@ local function drawGui()
 
           imgui.TextWrapped(S.hudShotgunHitPoint or "Raycast hit: --")
 
-          if not aimEnabled then
-            imgui.TextWrapped(S.hudShotgunMessage or "Unholster to aim.")
-          else
-            imgui.TextWrapped(S.hudShotgunMessage or "Aim and left-click to fire.")
-          end
         else
           local btnText = "Fire"
           if ammo <= 0 then
@@ -2436,7 +2361,6 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
     markHudTrialDirty()
   end
 
-  updatePreloadHudPrompt()
 
   if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
     sendHudTrialPayload(false)

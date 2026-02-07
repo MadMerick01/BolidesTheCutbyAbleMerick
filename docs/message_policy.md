@@ -22,6 +22,11 @@ Keep player onboarding simple and avoid popup fatigue by using the HUD for routi
 - Non‑critical tips and reminders.
 - Minor event confirmations (unless they dramatically change the game state).
 
+## Single HUD message location
+- All player-facing HUD messaging must be displayed **only** in the **Status** block.
+- Instruction text should be merged into the Status message (newline or separator).
+- System notices (towing/preload prompts) and weapon prompts must **not** be shown in the HUD.
+
 ## Throttling & pacing
 - **Never stack popups back‑to‑back** unless the player explicitly requests the next step.
 - **Keep popups short** (title + 1–3 sentences). If it’s longer, split into steps.
@@ -42,7 +47,7 @@ This is a high‑level plan for wiring the popup + preload system together while
 ### 1) Single messages/tasks app with two modes
 - Keep one UI app registered in `types: ["messagesTasks"]`.
 - Inside that app, render:
-  - **HUD mode** during normal gameplay.
+  - **HUD mode** during normal gameplay (Status block is the only message surface).
   - **Popup mode** when a message is active (centered panel).
 
 ### 2) PopupMessagesManager (GE Lua extension)
