@@ -8,7 +8,7 @@ A career expansion for **BeamNG.drive** that introduces crime, risk, and chaos. 
 **Works with**   
 **Vanilla Career** and **RLS Career**.
 
-In standard career play, you build wealth through planning and discipline.
+In standard career play, you build wealth through planning and discipline. Transport, taxi, drag builds, workshop and races....
 
 **Bolides – The Cut exists to disrupt that.**
 
@@ -16,10 +16,23 @@ As you move value across the map, criminal events may unfold:
 - Ambushes (EMP disables your vehicle to be robbed)
 - Theft (up to half money total in your wallet)
 - Bullet damage at the worst possible moment (bullet damage is explosive knocks to jbeams/ physics based collision damage)
+- Intimidation
+- The Bolides want their Cut 
 
 Every run carries risk.
 
-The Bolides are a roaming crime gang led by **Bonito Bolide**. 
+The Bolides are a roaming crime gang led by **Bonito Bolide**.
+
+Bonito Bolide is the founder of **Bolide Motors** and the unseen head of
+the Bolides crime network.
+
+Publicly, he is known as an industrialist with property holdings in Italy and
+interests in high-performance vehicle manufacturing. Privately, his fortune is
+reinforced through organised criminal operations targeting high-value transport
+and emerging career operators.
+
+If you are making money on the road, Bonito Bolide is already aware of you.
+ 
 
 **Custom AI switching Behaviours based on forward thinking**.
 The Bolides use a custom lua trigger based ai switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod.
