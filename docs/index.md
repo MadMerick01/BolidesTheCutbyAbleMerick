@@ -3,8 +3,7 @@
 
 ### You transport value. Watch the road.
 
-A career expansion for **BeamNG.drive** that introduces crime, risk, and chaos  
-into the otherwise safe and predictable. You will need to use strategy in vehicle choice and upgrades in order to keep your hard earned gains
+A career expansion for **BeamNG.drive** that introduces crime, risk, and chaos. You will need to use strategy in vehicle choice and upgrades in order to keep your hard earned gains
 
 **Works with**   
 **Vanilla Career** and **RLS Career**.
