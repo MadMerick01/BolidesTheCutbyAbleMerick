@@ -88,18 +88,12 @@ in-world purchasing of weapons ammo and equipment. New features. Constantly upda
 Both editions are stable and supported. Patreon directly funds continued
 development and long-term expansion of the project.
 
-<table width="100%">
-<tr>
-<td width="50%" valign="top">
-
 ### Public Edition
 - Core Bolides encounters  
 - Gang ambush events  
 - Weapon looting  
 - Risk-driven gameplay  
 -----------------------------------------------------
-</td>
-<td width="50%" valign="top">
 
 ### Extended Edition
 - Everything in Public Edition  
@@ -111,13 +105,6 @@ development and long-term expansion of the project.
 - Spawn, Breadcrumbs and Performance actively iterated
 - Integration of New mods/gameplay
 ------------------------------------------------------   
-
-</td>
-</tr>
-</table>
-
-
-
 
 ### Built for stability
 
