@@ -76,6 +76,38 @@ in-world purchasing of weapons ammo and equipment. New features. Constantly upda
 Both editions are stable and supported. Patreon directly funds continued
 development and long-term expansion of the project.
 
+## Editions Comparison
+
+<p><strong>The Public Edition delivers the full core experience.</strong><br>
+The Extended Edition expands on this foundation with additional systems.</p>
+
+<div style="display:flex; gap:30px; flex-wrap:wrap;">
+
+  <div style="flex:1; min-width:250px; padding:15px; border:1px solid #444; border-radius:8px;">
+    <h3>Public Edition</h3>
+    <ul>
+      <li>Core Bolides encounters</li>
+      <li>Gang ambush events</li>
+      <li>Weapon looting from gangs</li>
+      <li>Risk-driven progression</li>
+      <li>Stable public releases</li>
+    </ul>
+  </div>
+
+  <div style="flex:1; min-width:250px; padding:15px; border:1px solid #444; border-radius:8px;">
+    <h3>Extended Edition</h3>
+    <ul>
+      <li>Everything in the Public Edition</li>
+      <li>Weapon & ammo purchasing systems</li>
+      <li>Strategic resupply options</li>
+      <li>Expanded long-term progression</li>
+      <li>Supports ongoing development</li>
+    </ul>
+  </div>
+
+</div>
+
+
 ### Built for stability
 
 Bolides – The Cut is:
