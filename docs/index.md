@@ -143,7 +143,7 @@ maintaining compatibility with existing career systems.
 
 ### Community & Support
 
-- 🎥 YouTube — https://www.youtube.com/@ablemerick
+- 🎥 **YouTube** — https://www.youtube.com/@ablemerick
   watch gameplay and dev
   
 
