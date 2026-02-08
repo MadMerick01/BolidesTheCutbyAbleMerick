@@ -97,7 +97,8 @@ development and long-term expansion of the project.
 - Bug fix on Beamng update happens here first
 - Bolide AI actively iterated here
 - Spawn, Breadcrumbs and Performance actively iterated
-- Integration of New mods/gameplay   
+- Integration of New mods/gameplay
+------------------------------------------------------   
 
 </td>
 </tr>
