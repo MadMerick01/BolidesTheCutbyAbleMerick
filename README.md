@@ -1,4 +1,4 @@
-![Bolides – The Cut](./CollageScreen2Pics.jpg)
+![Bolides – The Cut](./docs/CollageScreen2Pics.jpg)
 # Bolides – The Cut
 
 ### You transport value. Watch the road.
@@ -157,5 +157,14 @@ maintaining compatibility with existing career systems.
 Bolides – The Cut does not replace career mode.  
 It makes surviving it harder.
 
-This project is licensed under the MIT License.
-See the LICENSE file for details.
+This project is released under a Source-Available, Non-Commercial, No-Redistribution licence.
+
+You are free to use and modify the code for personal use.
+Redistribution, rehosting, or commercial use is not permitted without permission.
+See the LICENSE file for full terms.
+
+Disclaimer
+This mod is provided “as is”, without warranty of any kind.
+The author is not responsible for any damage, data loss, or issues arising from use of this mod.
+
+This mod is a fictional gameplay experience and does not endorse real-world criminal activity or violence.
