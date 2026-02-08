@@ -156,3 +156,6 @@ maintaining compatibility with existing career systems.
 
 Bolides – The Cut does not replace career mode.  
 It makes surviving it harder.
+
+This project is licensed under the MIT License.
+See the LICENSE file for details.
