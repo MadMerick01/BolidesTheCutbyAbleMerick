@@ -157,15 +157,9 @@ maintaining compatibility with existing career systems.
 - 💬 **Discord** — Join development discussion, report issues, and give feedback  
   https://discord.gg/jchHGWTS
 
-- ❤️ **Patreon** — Support development and gain access to early builds  
+- ❤️ **Patreon** — Support development and gain access to Extended Edition  
   https://patreon.com/AbleMerick
 
-
-### Learn more
-
-- 📘 Full documentation → **GitHub Wiki**
-- 🔧 Installation & compatibility → **Wiki**
-- 🧠 Development notes & roadmap → **Wiki**
 
 Bolides – The Cut does not replace career mode.  
 It makes surviving it harder.
