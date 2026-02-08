@@ -76,42 +76,29 @@ in-world purchasing of weapons ammo and equipment. New features. Constantly upda
 Both editions are stable and supported. Patreon directly funds continued
 development and long-term expansion of the project.
 
-## Editions Comparison
+<table width="100%">
+<tr>
+<td width="50%" valign="top">
 
-## Editions Comparison
+### Public Edition
+- Core Bolides encounters  
+- Gang ambush events  
+- Weapon looting  
+- Risk-driven gameplay  
 
-<p><strong>The Public Edition delivers the full core experience.</strong><br>
-The Extended Edition expands on this foundation with additional systems.</p>
+</td>
+<td width="50%" valign="top">
 
-<div style="
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-">
+### Extended Edition
+- Everything in Public Edition  
+- Weapon & ammo purchasing  
+- Strategic preparation  
+- Expanded progression  
 
-  <div style="padding:15px; border:1px solid #444; border-radius:8px;">
-    <h3>Public Edition</h3>
-    <ul>
-      <li>Core Bolides encounters</li>
-      <li>Gang ambush events</li>
-      <li>Weapon looting from gangs</li>
-      <li>Risk-driven progression</li>
-      <li>Stable public releases</li>
-    </ul>
-  </div>
+</td>
+</tr>
+</table>
 
-  <div style="padding:15px; border:1px solid #444; border-radius:8px;">
-    <h3>Extended Edition</h3>
-    <ul>
-      <li>Everything in the Public Edition</li>
-      <li>Weapon & ammo purchasing</li>
-      <li>Strategic resupply systems</li>
-      <li>Expanded long-term progression</li>
-      <li>Supports ongoing development</li>
-    </ul>
-  </div>
-
-</div>
 
 
 
