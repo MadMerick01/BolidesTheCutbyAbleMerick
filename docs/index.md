@@ -1,12 +1,3 @@
-<style>
-img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 6px;
-}
-</style>
-
-
 ![Bolides – The Cut](./BolidesPatreonpic.png)
 # Bolides – The Cut
 
