@@ -143,6 +143,9 @@ maintaining compatibility with existing career systems.
 
 ### Community & Support
 
+- 🎥 YouTube — watch gameplay and dev
+  https://www.youtube.com/@ablemerick
+
 - 💬 **Discord** — Join development discussion, report issues, and give feedback  
   https://discord.gg/jchHGWTS
 
