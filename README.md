@@ -1,5 +1,5 @@
 ![Bolides – The Cut](./CollageScreen2Pics.jpg)
-# Bolides – The Cut by AbleMerick
+# Bolides – The Cut
 
 ### You transport value. Watch the road.
 
@@ -143,6 +143,10 @@ maintaining compatibility with existing career systems.
 
 ### Community & Support
 
+- 🎥 **YouTube** — https://www.youtube.com/@ablemerick
+  watch gameplay and dev
+  
+
 - 💬 **Discord** — Join development discussion, report issues, and give feedback  
   https://discord.gg/jchHGWTS
 
@@ -152,3 +156,6 @@ maintaining compatibility with existing career systems.
 
 Bolides – The Cut does not replace career mode.  
 It makes surviving it harder.
+
+This project is licensed under the MIT License.
+See the LICENSE file for details.
