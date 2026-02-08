@@ -22,21 +22,22 @@ Every run carries risk.
 
 The Bolides are a roaming crime gang led by **Bonito Bolide**. 
 
-**Custom AI switching Behaviours based on forward thinking**.
-The Bolides use a custom lua trigger based ai switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod.
+**Bolides employ custom AI switching based on forward thinking (what upcoming terrain/obstacles/courners look like)**.
+The Bolides employ a custom lua trigger based ai switching mode to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers than one set ai mode, i intend to keep refining this aspect of the mod.
 
 They take interest in anyone who appears to be building a future across:
 - West Coast USA
 - Italy
 - Utah
-- Any career-enabled RLS BeamNG map
+- The Gap
+- Any other career-enabled RLS BeamNG map
 
 If you look profitable, you look like a target.
 
 Players can:
 - Defend their cargo (EMP and pistol)
 - Protect their earnings
-- Turn the tables (take back robbed amounts plus extra money, ammo and EMP charges
+- Turn the tables (take back robbed amounts plus gain extra money, ammo and EMP charges
 
 Weapons and equipment may be obtained from the Bolides themselves, including:
 - EMP and charges
