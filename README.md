@@ -162,3 +162,9 @@ This project is released under a Source-Available, Non-Commercial, No-Redistribu
 You are free to use and modify the code for personal use.
 Redistribution, rehosting, or commercial use is not permitted without permission.
 See the LICENSE file for full terms.
+
+Disclaimer
+This mod is provided “as is”, without warranty of any kind.
+The author is not responsible for any damage, data loss, or issues arising from use of this mod.
+
+This mod is a fictional gameplay experience and does not endorse real-world criminal activity or violence.
