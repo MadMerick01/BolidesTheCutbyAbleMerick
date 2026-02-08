@@ -1,4 +1,4 @@
-![Bolides – The Cut](./BolidesPatreonpic.png)
+![Bolides – The Cut](./CollageScreen1Pics.jpg)
 # Bolides – The Cut
 
 ### You transport value. Watch the road.
