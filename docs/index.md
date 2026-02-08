@@ -78,12 +78,18 @@ development and long-term expansion of the project.
 
 ## Editions Comparison
 
+## Editions Comparison
+
 <p><strong>The Public Edition delivers the full core experience.</strong><br>
 The Extended Edition expands on this foundation with additional systems.</p>
 
-<div style="display:flex; gap:30px; flex-wrap:wrap;">
+<div style="
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+">
 
-  <div style="flex:1; min-width:250px; padding:15px; border:1px solid #444; border-radius:8px;">
+  <div style="padding:15px; border:1px solid #444; border-radius:8px;">
     <h3>Public Edition</h3>
     <ul>
       <li>Core Bolides encounters</li>
@@ -94,18 +100,19 @@ The Extended Edition expands on this foundation with additional systems.</p>
     </ul>
   </div>
 
-  <div style="flex:1; min-width:250px; padding:15px; border:1px solid #444; border-radius:8px;">
+  <div style="padding:15px; border:1px solid #444; border-radius:8px;">
     <h3>Extended Edition</h3>
     <ul>
       <li>Everything in the Public Edition</li>
-      <li>Weapon & ammo purchasing systems</li>
-      <li>Strategic resupply options</li>
+      <li>Weapon & ammo purchasing</li>
+      <li>Strategic resupply systems</li>
       <li>Expanded long-term progression</li>
       <li>Supports ongoing development</li>
     </ul>
   </div>
 
 </div>
+
 
 
 ### Built for stability
