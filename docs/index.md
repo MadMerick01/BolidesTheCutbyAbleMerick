@@ -92,8 +92,12 @@ development and long-term expansion of the project.
 ### Extended Edition
 - Everything in Public Edition  
 - Weapon & ammo purchasing  
-- Strategic preparation  
-- Expanded progression  
+- Support the Dev  
+- New Bolides Events Added
+- Bug fix on Beamng update happens here first
+- Bolide AI actively iterated here
+- Spawn, Breadcrumbs and Performance actively iterated
+- Integration of New mods/gameplay   
 
 </td>
 </tr>
