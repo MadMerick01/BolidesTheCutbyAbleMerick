@@ -88,6 +88,8 @@ in-world purchasing of weapons ammo and equipment. New features. Constantly upda
 Both editions are stable and supported. Patreon directly funds continued
 development and long-term expansion of the project.
 
+-----------------------------------------------------
+
 ### Public Edition
 - Core Bolides encounters  
 - Gang ambush events  
