@@ -38,6 +38,8 @@ local R = {
   closeTimer = 0,
   robberSlowTimer = 0,
   robberStationaryTimer = 0,
+  pendingAiFrames = 0,
+  aiStarted = false,
 }
 
 local ROBBER_MODEL = "roamer"
@@ -130,6 +132,8 @@ local function resetRuntime()
   R.closeTimer = 0
   R.robberSlowTimer = 0
   R.robberStationaryTimer = 0
+  R.pendingAiFrames = 0
+  R.aiStarted = false
 end
 
 local function chooseFkbPos(spacing, maxAgeSec)
@@ -710,11 +714,13 @@ function M.triggerManual()
   R.nextShotAt = nil
   R.shotsStarted = false
   R.fleeNotified = false
+  R.pendingAiFrames = 0
+  R.aiStarted = false
 
   R.spawnClock = os.clock()
   R.spawnSnapped = false
 
-  startFollowAI(id)
+  R.pendingAiFrames = 2
   setHud(
     "event",
     "A vehicle is tailing you",
@@ -772,6 +778,14 @@ end
 
 function M.update(dtSim)
   if not R.active then return end
+
+  if not R.aiStarted and R.pendingAiFrames and R.pendingAiFrames > 0 then
+    R.pendingAiFrames = R.pendingAiFrames - 1
+    if R.pendingAiFrames <= 0 and R.spawnedId then
+      startFollowAI(R.spawnedId)
+      R.aiStarted = true
+    end
+  end
 
   local robber = getObjById(R.spawnedId)
   if not robber then

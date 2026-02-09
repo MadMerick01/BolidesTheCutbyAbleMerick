@@ -62,6 +62,8 @@ local R = {
   hudThreat = nil,
   hudStatus = nil,
   hudStatusBase = nil,
+  pendingAiFrames = 0,
+  aiStarted = false,
 }
 
 local ROBBER_MODEL = "roamer"
@@ -956,8 +958,10 @@ function M.triggerManual()
   R.hudThreat = nil
   R.hudStatus = nil
   R.hudStatusBase = nil
+  R.pendingAiFrames = 0
+  R.aiStarted = false
 
-  startFollowAI(id)
+  R.pendingAiFrames = 2
   updateHudState({
     threat = "event",
     status = mergeStatusInstruction(
@@ -1023,6 +1027,8 @@ function M.endEvent(opts)
   R.hudThreat = nil
   R.hudStatus = nil
   R.hudStatusBase = nil
+  R.pendingAiFrames = 0
+  R.aiStarted = false
 
   if not opts.keepGuiMessage then
     setGuiStatusMessage(nil)
@@ -1063,6 +1069,14 @@ function M.update(dtSim)
       R.postSuccessMessageAt = nil
     end
     return
+  end
+
+  if not R.aiStarted and R.pendingAiFrames and R.pendingAiFrames > 0 then
+    R.pendingAiFrames = R.pendingAiFrames - 1
+    if R.pendingAiFrames <= 0 and R.spawnedId then
+      startFollowAI(R.spawnedId)
+      R.aiStarted = true
+    end
   end
 
   -- EMP timers + planets cleanup are handled by the main extension update loop.
