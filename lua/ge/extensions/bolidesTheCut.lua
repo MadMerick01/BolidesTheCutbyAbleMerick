@@ -1035,7 +1035,7 @@ local function getHudThreatLevel()
 end
 
 local HUD_TRIAL = {
-  appName = "BolideHudTrialApp",
+  appName = "BolideTheCutHUD",
   containerName = "messagesTasks",
   eventName = "bolideTheCutHudTrialUpdate",
   dirty = true,

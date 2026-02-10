@@ -4,7 +4,7 @@
   angular.module('beamng.apps')
     .directive('bolideHudTrialApp', ['$timeout', function ($timeout) {
       return {
-        templateUrl: '/ui/modules/apps/BolideHudTrialApp/app.html',
+        templateUrl: '/ui/modules/apps/BolideTheCutHUD/app.html',
         restrict: 'EA',
         replace: true,
         scope: true,
