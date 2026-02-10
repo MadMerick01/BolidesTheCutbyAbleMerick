@@ -40,6 +40,12 @@ local R = {
   robberStationaryTimer = 0,
   pendingAiFrames = 0,
   aiStarted = false,
+
+  pendingStart = false,
+  pendingStartTransform = nil,
+  pendingStartDeadline = nil,
+  pendingStartNextAttemptAt = nil,
+  pendingStartAttempts = 0,
 }
 
 local ROBBER_MODEL = "roamer"
@@ -47,6 +53,9 @@ local ROBBER_CONFIG = "robber_light.pc"
 local ROBBER_SHOT_FORCE_MULTIPLIER = 0.35
 local ROBBER_SHOT_EXPLOSION_FORCE = 30.0
 local ROBBER_SHOT_EXPLOSION_RADIUS = 1.0
+local PRELOAD_START_TIMEOUT_SEC = 30.0
+local PRELOAD_RETRY_INTERVAL_SEC = 0.25
+
 
 local function log(msg)
   R.status = msg or ""
@@ -134,6 +143,11 @@ local function resetRuntime()
   R.robberStationaryTimer = 0
   R.pendingAiFrames = 0
   R.aiStarted = false
+  R.pendingStart = false
+  R.pendingStartTransform = nil
+  R.pendingStartDeadline = nil
+  R.pendingStartNextAttemptAt = nil
+  R.pendingStartAttempts = 0
 end
 
 local function chooseFkbPos(spacing, maxAgeSec)
@@ -623,6 +637,59 @@ local function triggerShot(playerVeh, robberVeh)
   return true
 end
 
+local function beginActiveRun(id)
+  R.active = true
+  R.spawnedId = id
+  R.phase = "idle"
+  R.distToPlayer = nil
+  R.nextShotAt = nil
+  R.shotsStarted = false
+  R.fleeNotified = false
+  R.pendingAiFrames = 0
+  R.aiStarted = false
+
+  R.spawnClock = os.clock()
+  R.spawnSnapped = false
+
+  R.pendingAiFrames = 2
+  setHud(
+    "event",
+    "A vehicle is tailing you",
+    "Keep moving. Watch your mirrors.",
+    nil
+  )
+end
+
+local function tryConsumePreload(transform)
+  if not (PreloadEvent and PreloadEvent.consume) then
+    return nil, nil, nil
+  end
+
+  local id, err = PreloadEvent.consume("RobberShotgun", transform, {
+    model = ROBBER_MODEL,
+    config = ROBBER_CONFIG,
+    consumeRetries = 3,
+    consumeMaxDist = 5.0,
+    consumeSkipSafeTeleport = false,
+  })
+  if id then
+    return id, "RobberShotgun", nil
+  end
+
+  id, err = PreloadEvent.consume("RobberEMP", transform, {
+    model = ROBBER_MODEL,
+    config = ROBBER_CONFIG,
+    consumeRetries = 3,
+    consumeMaxDist = 5.0,
+    consumeSkipSafeTeleport = false,
+  })
+  if id then
+    return id, "RobberEMP", nil
+  end
+
+  return nil, nil, err
+end
+
 function M.init(hostCfg, hostApi)
   CFG = hostCfg
   Host = hostApi
@@ -688,50 +755,50 @@ function M.triggerManual()
   log("Using FKB 200 (" .. tostring(mode) .. ")")
 
   local tf = makeSpawnTransform(pv, R.spawnPos)
-  local id = nil
-  if PreloadEvent and PreloadEvent.consume then
-    id = PreloadEvent.consume("RobberShotgun", tf, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
-    if id then
-      R.spawnMethod = "PreloadEvent"
-      R.preloadEventName = "RobberShotgun"
-    else
-      id = PreloadEvent.consume("RobberEMP", tf, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
-      if id then
-        R.spawnMethod = "PreloadEvent"
-        R.preloadEventName = "RobberEMP"
-      end
-    end
+
+  local id, preloadName, consumeErr = tryConsumePreload(tf)
+  if id then
+    R.spawnMethod = "PreloadEvent"
+    R.preloadEventName = preloadName
+    beginActiveRun(id)
+    return true
   end
-  if not id then
-    id = spawnVehicleAt(tf)
-  end
-  if not id then return false end
 
-  R.active = true
-  R.spawnedId = id
-  R.phase = "idle"
-  R.distToPlayer = nil
-  R.nextShotAt = nil
-  R.shotsStarted = false
-  R.fleeNotified = false
-  R.pendingAiFrames = 0
-  R.aiStarted = false
-
-  R.spawnClock = os.clock()
-  R.spawnSnapped = false
-
-  R.pendingAiFrames = 2
+  R.pendingStart = true
+  R.pendingStartTransform = tf
+  R.pendingStartDeadline = os.clock() + PRELOAD_START_TIMEOUT_SEC
+  R.pendingStartNextAttemptAt = os.clock()
+  R.pendingStartAttempts = 0
+  R.spawnMethod = nil
+  R.preloadEventName = nil
   setHud(
     "event",
-    "A vehicle is tailing you",
-    "Keep moving. Watch your mirrors.",
+    "Threat detected",
+    "Preparing attacker vehicle...",
     nil
   )
+  if consumeErr then
+    log("Pending start: preload consume failed, will retry (" .. tostring(consumeErr) .. ")")
+  else
+    log("Pending start: waiting for preload handoff.")
+  end
   return true
 end
 
 function M.endEvent(reason)
-  if not R.active then return end
+  if not R.active and not R.pendingStart then return end
+
+  if R.pendingStart and not R.active then
+    resetRuntime()
+    setHud(
+      "safe",
+      "Threat cleared.",
+      "Resume route.",
+      nil
+    )
+    log("Ended (pending start cancelled).")
+    return
+  end
 
   local status = "Threat cleared."
   if reason == "escape" then
@@ -777,6 +844,58 @@ function M.endEvent(reason)
 end
 
 function M.update(dtSim)
+  local now = os.clock()
+
+  if R.pendingStart and not R.active then
+    if R.pendingStartDeadline and now >= R.pendingStartDeadline then
+      local tf = R.pendingStartTransform
+      local id = tf and spawnVehicleAt(tf) or nil
+      if id then
+        R.spawnMethod = "spawnFallbackAfterPending"
+        R.preloadEventName = nil
+        R.pendingStart = false
+        R.pendingStartTransform = nil
+        R.pendingStartDeadline = nil
+        R.pendingStartNextAttemptAt = nil
+        R.pendingStartAttempts = 0
+        log("Pending start timed out; used fallback spawn.")
+        beginActiveRun(id)
+      else
+        resetRuntime()
+        setHud(
+          "safe",
+          "Threat cleared.",
+          "Resume route.",
+          nil
+        )
+        log("Pending start failed: fallback spawn unavailable.")
+      end
+      return
+    end
+
+    if (not R.pendingStartNextAttemptAt) or now >= R.pendingStartNextAttemptAt then
+      R.pendingStartAttempts = (R.pendingStartAttempts or 0) + 1
+      local id, preloadName, consumeErr = tryConsumePreload(R.pendingStartTransform)
+      if id then
+        R.spawnMethod = "PreloadEvent"
+        R.preloadEventName = preloadName
+        R.pendingStart = false
+        R.pendingStartTransform = nil
+        R.pendingStartDeadline = nil
+        R.pendingStartNextAttemptAt = nil
+        R.pendingStartAttempts = 0
+        log("Pending start resolved via preload handoff.")
+        beginActiveRun(id)
+        return
+      end
+
+      R.pendingStartNextAttemptAt = now + PRELOAD_RETRY_INTERVAL_SEC
+      if consumeErr and (R.pendingStartAttempts % 8 == 0) then
+        log("Pending start retry still waiting (" .. tostring(consumeErr) .. ")")
+      end
+    end
+  end
+
   if not R.active then return end
 
   if not R.aiStarted and R.pendingAiFrames and R.pendingAiFrames > 0 then
