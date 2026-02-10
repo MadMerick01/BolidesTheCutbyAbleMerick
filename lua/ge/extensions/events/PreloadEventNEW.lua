@@ -300,32 +300,38 @@ function M.getDebugState()
 end
 
 function M.consume(eventName, transform, opts)
-  if not S.preloaded then return nil end
+  if not S.preloaded then return nil, "no_preloaded_vehicle" end
   if eventName and S.preloaded.eventName ~= eventName then
     local expectedModel = opts and opts.model or nil
     local expectedConfig = opts and opts.config or nil
     if expectedModel ~= nil and expectedModel == S.preloaded.model and expectedConfig == S.preloaded.config then
       -- Allow shared preloads when the vehicle spec matches.
     else
-      return nil
+      return nil, "event_mismatch"
     end
   end
 
   local veh = getObjById(S.preloaded.vehId)
   if not veh then
     S.preloaded = nil
-    return nil
+    return nil, "preloaded_vehicle_missing"
   end
 
   if transform and transform.pos then
+    local consumeRetries = opts and tonumber(opts.consumeRetries) or 3
+    local consumeMaxDist = opts and tonumber(opts.consumeMaxDist) or 5.0
+    local skipSafeTeleport = opts and opts.consumeSkipSafeTeleport
+    if skipSafeTeleport == nil then
+      skipSafeTeleport = false
+    end
     local ok = teleportWithVerify(veh, transform.pos, transform.rot, {
-      retries = 1,
-      maxDist = 5.0,
-      skipSafeTeleport = true,
+      retries = consumeRetries,
+      maxDist = consumeMaxDist,
+      skipSafeTeleport = skipSafeTeleport,
     })
     if not ok then
       log("Consume failed: teleport verification failed.")
-      return nil
+      return nil, "teleport_verification_failed"
     end
   end
 
@@ -333,7 +339,7 @@ function M.consume(eventName, transform, opts)
   S.pending = nil
   S.preloaded.placed = "event"
   S.preloaded.lastUsedAt = os.clock()
-  return id
+  return id, nil
 end
 
 function M.stash(eventName, vehId, opts)
