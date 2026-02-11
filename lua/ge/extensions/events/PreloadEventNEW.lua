@@ -41,6 +41,19 @@ local function getObjById(id)
   return nil
 end
 
+local function getObjectPos(obj)
+  if not obj or not obj.getPosition then
+    return nil
+  end
+  local ok, pos = pcall(function()
+    return obj:getPosition()
+  end)
+  if ok then
+    return pos
+  end
+  return nil
+end
+
 local function getBreadcrumbs()
   if Host and Host.Breadcrumbs then
     return Host.Breadcrumbs
@@ -73,6 +86,33 @@ local function getPreloadDistanceInfo()
     spawnPoint = spawnPoint,
     distance = playerPos:distance(spawnPoint.pos),
   }, nil
+end
+
+local function isPreloadedEntryValid(entry)
+  if type(entry) ~= "table" then
+    return false
+  end
+
+  local veh = getObjById(entry.vehId)
+  if not veh then
+    return false
+  end
+
+  if type(veh.queueLuaCommand) ~= "function" then
+    return false
+  end
+
+  if entry.placed == "breadcrumbPreload" then
+    local spawnPoint = getPreloadSpawnPoint()
+    local vehPos = getObjectPos(veh)
+    if spawnPoint and spawnPoint.pos and vehPos then
+      if vehPos:distance(spawnPoint.pos) > 120.0 then
+        return false
+      end
+    end
+  end
+
+  return true
 end
 
 local function safeTeleportVehicle(veh, pos, rot, opts)
@@ -277,7 +317,11 @@ end
 function M.hasPreloaded(eventName)
   if not S.preloaded then return false end
   if eventName and S.preloaded.eventName ~= eventName then return false end
-  return getObjById(S.preloaded.vehId) ~= nil
+  if not isPreloadedEntryValid(S.preloaded) then
+    S.preloaded = nil
+    return false
+  end
+  return true
 end
 
 function M.getDebugState()
@@ -312,7 +356,7 @@ function M.consume(eventName, transform, opts)
   end
 
   local veh = getObjById(S.preloaded.vehId)
-  if not veh then
+  if not veh or not isPreloadedEntryValid(S.preloaded) then
     S.preloaded = nil
     return nil, "preloaded_vehicle_missing"
   end
@@ -395,7 +439,7 @@ end
 
 function M.update(dtSim)
   if not S.preloaded then return end
-  if not getObjById(S.preloaded.vehId) then
+  if not isPreloadedEntryValid(S.preloaded) then
     local pending = {
       eventName = S.preloaded.eventName,
       model = S.preloaded.model,
