@@ -20,7 +20,10 @@
             equippedWeapon: null,
             paused: false,
             preloaded: false,
-            preloadAvailable: false
+            preloadAvailable: false,
+            pacingMode: 'real',
+            pendingPacingMode: null,
+            isHarassing: false
           };
 
           var weaponLimits = {
@@ -103,6 +106,9 @@
             scope.hudTrial.paused = payload.paused === true;
             scope.hudTrial.preloaded = payload.preloaded === true;
             scope.hudTrial.preloadAvailable = payload.preloadAvailable === true;
+            scope.hudTrial.pacingMode = payload.pacingMode || defaults.pacingMode;
+            scope.hudTrial.pendingPacingMode = payload.pendingPacingMode || null;
+            scope.hudTrial.isHarassing = scope.hudTrial.pacingMode === 'harassing';
             updateWeaponButtonHoverState();
             scope.hudTrial.weapons.forEach(function (weapon) {
               if (!weapon.animate) {
@@ -158,6 +164,13 @@
             }
             if (window.bngApi && bngApi.engineLua) {
               bngApi.engineLua("extensions.bolidesTheCut.preloadRobberFromHud()");
+            }
+          };
+
+          scope.setPacingMode = function (mode) {
+            var safeMode = (mode === 'harassing') ? 'harassing' : 'real';
+            if (window.bngApi && bngApi.engineLua) {
+              bngApi.engineLua("extensions.bolidesTheCut.setHudPacingMode('" + safeMode + "')");
             }
           };
 

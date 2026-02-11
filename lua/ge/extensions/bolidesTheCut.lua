@@ -71,6 +71,7 @@ local CFG = {
 
   -- Preload pacing
   preloadInitialDelaySec = 60.0,
+  pacingModeDefault = "real",
 
   -- Messaging
   popupMessagesEnabled = false,
@@ -312,6 +313,16 @@ function M.toggleHudAbout()
   if type(handleAboutIntroAudio) == "function" then
     handleAboutIntroAudio(S.uiShowAbout)
   end
+end
+
+function M.setHudPacingMode(mode)
+  if BoldiePacing and BoldiePacing.setMode then
+    BoldiePacing.setMode(mode)
+    markHudTrialDirty()
+    sendHudTrialPayload(true)
+    return true
+  end
+  return false
 end
 
 local function ensureMissionInfo()
@@ -1145,6 +1156,8 @@ local function hudTrialPayloadKey(payload)
     tostring(payload.paused or ""),
     tostring(payload.preloaded or ""),
     tostring(payload.preloadAvailable or ""),
+    tostring(payload.pacingMode or ""),
+    tostring(payload.pendingPacingMode or ""),
     weaponsKey,
   }, "|")
 end
@@ -1165,6 +1178,8 @@ local function buildHudTrialPayload()
     paused = getHudPauseActive(),
     preloaded = getRobberPreloaded(),
     preloadAvailable = preloadAvailable,
+    pacingMode = BoldiePacing and BoldiePacing.getMode and BoldiePacing.getMode() or (CFG.pacingModeDefault or "real"),
+    pendingPacingMode = BoldiePacing and BoldiePacing.getPendingMode and BoldiePacing.getPendingMode() or nil,
   }
 end
 
@@ -1532,6 +1547,7 @@ local function attachHostApi(host)
   host.setGuiStatusMessage = M.setGuiStatusMessage
   host.setNewHudState = M.setNewHudState
   host.requestHudTrialSnapshot = M.requestHudTrialSnapshot
+  host.setHudPacingMode = M.setHudPacingMode
 end
 
 -- =========================================================
@@ -2511,5 +2527,6 @@ end
 M.Audio = Audio
 M.toggleHudWeapon = toggleHudWeapon
 M.setHudWeaponButtonHover = setHudWeaponButtonHover
+M.setHudPacingMode = M.setHudPacingMode
 
 return M
