@@ -6,6 +6,8 @@ local Events = {}
 local PreloadRequest = nil
 
 local STATE = {
+  activeMode = "real",
+  pendingMode = nil,
   intervalSec = 30,
   countdown = 30,
   activeEventName = nil,
@@ -20,6 +22,52 @@ local EVENT_ORDER = {
   "RobberEMP",
   "RobberShotgun",
 }
+
+local HARASSING_INTERVAL_SEC = 30
+local REAL_MIN_INTERVAL_SEC = 180
+local REAL_MAX_INTERVAL_SEC = 600
+local rngSeeded = false
+
+local function normalizeMode(mode)
+  local v = tostring(mode or ""):lower()
+  if v == "harassing" then
+    return "harassing"
+  end
+  return "real"
+end
+
+local function ensureRngSeeded()
+  if rngSeeded then
+    return
+  end
+  local seed = math.floor((os.time() or 0) + ((os.clock() or 0) * 100000))
+  math.randomseed(seed)
+  rngSeeded = true
+end
+
+local function sampleIntervalSec(mode)
+  local normalized = normalizeMode(mode)
+  if normalized == "harassing" then
+    return HARASSING_INTERVAL_SEC
+  end
+  ensureRngSeeded()
+  return math.random(REAL_MIN_INTERVAL_SEC, REAL_MAX_INTERVAL_SEC)
+end
+
+local function beginCountdownForMode(mode)
+  STATE.activeMode = normalizeMode(mode)
+  STATE.intervalSec = sampleIntervalSec(STATE.activeMode)
+  STATE.countdown = STATE.intervalSec
+  STATE.preloadRequested = false
+end
+
+local function applyPendingModeIfNeeded()
+  if not STATE.pendingMode then
+    return
+  end
+  beginCountdownForMode(STATE.pendingMode)
+  STATE.pendingMode = nil
+end
 
 local function setNextIndexFromName(name)
   for i, eventName in ipairs(EVENT_ORDER) do
@@ -65,11 +113,12 @@ function M.init(hostCfg, hostApi, eventModules, preloadRequestFn)
   Events = eventModules or Events
   PreloadRequest = preloadRequestFn
 
-  STATE.countdown = STATE.intervalSec
+  STATE.activeMode = normalizeMode((CFG and CFG.pacingModeDefault) or STATE.activeMode)
+  beginCountdownForMode(STATE.activeMode)
+  STATE.pendingMode = nil
   STATE.activeEventName = nil
   STATE.retryTimer = 0
   STATE.nextIndex = 1
-  STATE.preloadRequested = false
   STATE.preloadDelaySec = (CFG and CFG.preloadInitialDelaySec) or STATE.preloadDelaySec or 60
 end
 
@@ -79,6 +128,24 @@ end
 
 function M.getNextEventName()
   return EVENT_ORDER[STATE.nextIndex]
+end
+
+function M.getMode()
+  return STATE.activeMode
+end
+
+function M.getPendingMode()
+  return STATE.pendingMode
+end
+
+function M.setMode(mode)
+  local target = normalizeMode(mode)
+  if target == STATE.activeMode then
+    STATE.pendingMode = nil
+    return true
+  end
+  STATE.pendingMode = target
+  return true
 end
 
 function M.isEventActive()
@@ -96,9 +163,9 @@ function M.update(dtSim)
     setNextIndexFromName(activeName)
     if not isEventActive(activeName) then
       STATE.activeEventName = nil
-      STATE.countdown = STATE.intervalSec
+      applyPendingModeIfNeeded()
+      beginCountdownForMode(STATE.activeMode)
       STATE.retryTimer = 0
-      STATE.preloadRequested = false
     end
     return
   end

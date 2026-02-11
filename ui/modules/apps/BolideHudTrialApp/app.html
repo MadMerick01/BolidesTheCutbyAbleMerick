@@ -425,7 +425,11 @@
     <div class="bolide-hud-trial__bandit-switch">
       <span class="bolide-hud-trial__bandit-label">Real</span>
       <label class="bolide-hud-trial__bandit-toggle" aria-label="Bandit level">
-        <input type="checkbox" />
+        <input
+          type="checkbox"
+          ng-model="hudTrial.isHarassing"
+          ng-change="setPacingMode(hudTrial.isHarassing ? 'harassing' : 'real')"
+        />
         <span class="bolide-hud-trial__bandit-track">
           <span class="bolide-hud-trial__bandit-thumb"></span>
         </span>
