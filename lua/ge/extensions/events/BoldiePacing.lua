@@ -144,7 +144,15 @@ function M.setMode(mode)
     STATE.pendingMode = nil
     return true
   end
-  STATE.pendingMode = target
+
+  local activeName = STATE.activeEventName or detectActiveEvent()
+  if activeName then
+    STATE.pendingMode = target
+    return true
+  end
+
+  beginCountdownForMode(target)
+  STATE.pendingMode = nil
   return true
 end
 
