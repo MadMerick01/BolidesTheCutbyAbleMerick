@@ -60,7 +60,7 @@ Survival is optional. Preparation is not.
 ### Installation
 
 1. Download the latest release from:
-   - **GitHub** (public releases), or  
+   - **GitHub** (Releases), or  
    - **Patreon** (Extended Edition)
 
 2. Place the downloaded `.zip` file into your BeamNG `mods` folder.  
