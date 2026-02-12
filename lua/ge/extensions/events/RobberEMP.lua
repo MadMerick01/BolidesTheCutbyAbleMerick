@@ -1373,7 +1373,7 @@ function M.update(dtSim)
       local rewardNotes = {}
       local empCharges = math.random(1, 3)
       empRewardText = string.format("%d EMP charges", empCharges)
-      empInstruction = "You may deploy the EMP now."
+      empInstruction = nil
       inventoryDelta[#inventoryDelta + 1] = {
         id = "emp",
         name = "EMP Device",
