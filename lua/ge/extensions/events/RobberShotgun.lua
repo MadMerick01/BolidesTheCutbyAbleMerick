@@ -773,8 +773,8 @@ function M.triggerManual()
   R.preloadEventName = nil
   setHud(
     "event",
-    "Threat detected",
-    "Preparing attacker vehicle...",
+    "Stay Alert",
+    nil,
     nil
   )
   if consumeErr then
