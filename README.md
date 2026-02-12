@@ -70,8 +70,8 @@ Survival is optional. Preparation is not.
    (Vanilla Career or RLS Career).
 
 4. Once in-game, open the **UI Apps** menu and add the  
-   **Bolides – The Cut** app.
-
+   **BolideTheCutHUD** app.
+   
 You’re ready to go, but actually are you ready?
 
 The Bolides app automatically initializes each time you load into Career Mode. Weapons and Ammo are preserved for next session.
