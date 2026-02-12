@@ -60,7 +60,7 @@ Survival is optional. Preparation is not.
 ### Installation
 
 1. Download the latest release from:
-   - **GitHub** (public releases), or  
+   - **GitHub** (Releases), or  
    - **Patreon** (Extended Edition)
 
 2. Place the downloaded `.zip` file into your BeamNG `mods` folder.  
@@ -70,8 +70,8 @@ Survival is optional. Preparation is not.
    (Vanilla Career or RLS Career).
 
 4. Once in-game, open the **UI Apps** menu and add the  
-   **Bolides – The Cut** app.
-
+   **BolideTheCutHUD** app.
+   
 You’re ready to go, but actually are you ready?
 
 The Bolides app automatically initializes each time you load into Career Mode. Weapons and Ammo are preserved for next session.
@@ -156,3 +156,15 @@ maintaining compatibility with existing career systems.
 
 Bolides – The Cut does not replace career mode.  
 It makes surviving it harder.
+
+This project is released under a Source-Available, Non-Commercial, No-Redistribution licence.
+
+You are free to use and modify the code for personal use.
+Redistribution, rehosting, or commercial use is not permitted without permission.
+See the LICENSE file for full terms.
+
+Disclaimer
+This mod is provided “as is”, without warranty of any kind.
+The author is not responsible for any damage, data loss, or issues arising from use of this mod.
+
+This mod is a fictional gameplay experience and does not endorse real-world criminal activity or violence.
