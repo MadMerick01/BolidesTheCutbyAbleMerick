@@ -8,6 +8,20 @@ A career expansion for **BeamNG.drive** that introduces crime, risk, and chaos. 
 **Works with**   
 **Vanilla Career** and **RLS Career**.
 
+### Installation of BETA
+
+1. Download the latest release from:
+   - **GitHub** (Releases)
+
+2. Place the downloaded `.zip` file into your BeamNG `mods` folder.  
+   *(Do not extract the zip.)*
+
+3. Launch **BeamNG.drive** and start **Career Mode** as normal  
+   (Vanilla Career or RLS Career).
+
+4. Once in-game, open the **UI Apps** menu and add the  
+   **BolideTheCutHUD** app.
+
 In standard career play, you build wealth through planning and discipline. Transport, taxi, drag builds, workshop and races....
 
 **Bolides – The Cut exists to disrupt that.**
