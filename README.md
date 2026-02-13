@@ -24,6 +24,8 @@ A career expansion for **BeamNG.drive** that introduces crime, risk, and chaos.
 4. Once in-game, open the **UI Apps** menu, go to **General** and add the  
    **BolideTheCutHUD** app.
 
+-----------------------------------------------------
+
 In standard career play, you build wealth through planning and discipline. Transport, taxi, drag builds, workshop and races....
 
 **Bolides – The Cut exists to disrupt that.**
@@ -69,6 +71,8 @@ Weapons and equipment may be obtained from the Bolides themselves, including:
 - EMP and charges
 - Pistols
 - Ammunition
+
+-----------------------------------------------------
 
 ### Public & Extended Editions
 
@@ -133,7 +137,8 @@ AI behaviours, and defensive tools to be introduced over time.
 
 Future updates to Expanded Edition will add encounter variety and strategic depth while  
 maintaining compatibility with existing career systems.
----
+
+-----------------------------------------------------
 
 ### Community & Support
 
@@ -148,6 +153,8 @@ maintaining compatibility with existing career systems.
 
 Bolides – The Cut does not replace career mode.  
 It makes surviving it harder.
+
+-----------------------------------------------------
 
 This project is released under a Source-Available, Non-Commercial, No-Redistribution licence.
 
