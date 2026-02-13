@@ -319,6 +319,8 @@ end
 
 function M.toggleHudAbout()
   S.uiShowAbout = not S.uiShowAbout
+  handleAboutHudAudio(S.uiShowAbout)
+  markHudTrialDirty()
 end
 
 function M.setHudPacingMode(mode)
