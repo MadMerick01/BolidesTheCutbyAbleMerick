@@ -47,7 +47,6 @@ and emerging career operators.
 
 If you are making money on the road, Bonito Bolide is already aware of you.
  
-
 **Custom AI switching Behaviours based on forward thinking**.
 The Bolides use a custom lua trigger based ai switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod.
 
@@ -68,27 +67,6 @@ Weapons and equipment may be obtained from the Bolides themselves, including:
 - EMP and charges
 - Pistols
 - Ammunition
-
-Survival is optional. Preparation is not.
-
-### Installation
-
-1. Download the latest release from:
-   - **GitHub** (Releases), or  
-   - **Patreon** (Extended Edition)
-
-2. Place the downloaded `.zip` file into your BeamNG `mods` folder.  
-   *(Do not extract the zip.)*
-
-3. Launch **BeamNG.drive** and start **Career Mode** as normal  
-   (Vanilla Career or RLS Career).
-
-4. Once in-game, open the **UI Apps** menu and add the  
-   **BolideTheCutHUD** app.
-   
-You’re ready to go, but actually are you ready?
-
-The Bolides app automatically initializes each time you load into Career Mode. Weapons and Ammo are preserved for next session.
 
 ### Public & Extended Editions
 
@@ -160,13 +138,11 @@ maintaining compatibility with existing career systems.
 - 🎥 **YouTube** — https://www.youtube.com/@ablemerick
   watch gameplay and dev
   
-
 - 💬 **Discord** — Join development discussion, report issues, and give feedback  
   https://discord.gg/jchHGWTS
 
 - ❤️ **Patreon** — Support development and gain access to Extended Edition  
   https://patreon.com/AbleMerick
-
 
 Bolides – The Cut does not replace career mode.  
 It makes surviving it harder.
