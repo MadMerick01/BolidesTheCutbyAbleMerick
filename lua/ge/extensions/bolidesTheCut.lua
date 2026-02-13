@@ -1281,7 +1281,9 @@ sendHudTrialPayload = function(force)
     return false
   end
 
-  ensureHudTrialAppVisible(force)
+  if force then
+    ensureHudTrialAppVisible(true)
+  end
 
   local payload = buildHudTrialPayload()
   local key = hudTrialPayloadKey(payload)
@@ -1924,10 +1926,6 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
         markHudTrialDirty()
       end
     end
-  end
-
-  if HUD_TRIAL.timeSinceEnsureVisible >= HUD_TRIAL.ensureVisibleInterval then
-    ensureHudTrialAppVisible(false)
   end
 
   local hudPaused = getHudPauseActive()
