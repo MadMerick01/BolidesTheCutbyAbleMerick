@@ -182,8 +182,16 @@
 
           if (window.bngApi && bngApi.engineLua) {
             bngApi.engineLua(
-              'if extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.requestHudTrialSnapshot then ' +
-                'extensions.bolidesTheCut.requestHudTrialSnapshot(); ' +
+              'if extensions and extensions.load then ' +
+                'if not (extensions.isExtensionLoaded and extensions.isExtensionLoaded("bolidesTheCut")) then ' +
+                  'extensions.load("bolidesTheCut");' +
+                'end;' +
+                'if extensions.bolidesTheCut and extensions.bolidesTheCut.setWindowVisible then ' +
+                  'extensions.bolidesTheCut.setWindowVisible(true);' +
+                'end;' +
+                'if extensions.bolidesTheCut and extensions.bolidesTheCut.requestHudTrialSnapshot then ' +
+                  'extensions.bolidesTheCut.requestHudTrialSnapshot();' +
+                'end;' +
               'end'
             );
           }
