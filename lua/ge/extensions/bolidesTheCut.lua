@@ -305,6 +305,18 @@ function M.preloadRobberFromHud()
   markHudTrialDirty()
 end
 
+handleAboutHudAudio = function(showing)
+  local v = getPlayerVeh()
+  if not v then return end
+  Audio.ensureIntro(v)
+  if showing then
+    Audio.stopId(v, CFG.sfxBolidesIntroName)
+    Audio.playId(v, CFG.sfxBolidesIntroName, CFG.bolidesIntroVol, CFG.bolidesIntroPitch)
+  else
+    Audio.stopId(v, CFG.sfxBolidesIntroName)
+  end
+end
+
 function M.toggleHudAbout()
   S.uiShowAbout = not S.uiShowAbout
 end
