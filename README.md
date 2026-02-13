@@ -7,6 +7,8 @@ A career expansion for **BeamNG.drive** that introduces crime, risk, and chaos.
 **Works with**   
 **Vanilla Career** and **RLS Career**.
 
+-----------------------------------------------------
+
 ## Bolides The Cut Public Release Candidate (0.9 RC)
 
 ### Installation Guide
