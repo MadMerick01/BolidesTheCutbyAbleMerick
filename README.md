@@ -3,10 +3,13 @@
 
 ### You transport value. Watch the road.
 
-A career expansion for **BeamNG.drive** that introduces a criminal gang, risk, and chaos.
-**Works with**   
-**Vanilla Career** and **RLS Career**.
+A career expansion for BeamNG.drive introducing a hostile criminal gang, calculated risk on every run, equipment and weapons. Your strategic choices determine whether you escape, fight back or profit.
 
+----------------------------------------------------
+
+**Bolides - The Cut** works on **ALL career enabled maps**
+
+**RLS Career** (recommended - for features and balance) and Vanilla Career.
 -----------------------------------------------------
 
 ## Bolides The Cut Public Release Candidate (0.9 RC)
