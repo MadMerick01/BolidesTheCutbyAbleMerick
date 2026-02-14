@@ -3,7 +3,7 @@
 
 ### You transport value. Watch the road.
 
-A career expansion for BeamNG.drive introducing a hostile criminal gang (The Bolides), calculated risk on every run, equipment and weapons. Your strategic choices determine whether you escape, fight back or profit.
+A career expansion for BeamNG.drive introducing The Bolides, a hostile criminal gang, calculated risk on every run, equipment and weapons. Your strategic choices determine whether you escape, fight back or profit.
 
 ----------------------------------------------------
 
@@ -11,7 +11,7 @@ A career expansion for BeamNG.drive introducing a hostile criminal gang (The Bol
 
 **RLS Career** (recommended - for features and balance).
 
-**Sim-Racers: Beamng.drive has great triple screen and VR support**
+**Sim-Racers: Beamng.drive has great FFB, triple screen, VR and simhub (telemetry) support**
 
 -----------------------------------------------------
 
