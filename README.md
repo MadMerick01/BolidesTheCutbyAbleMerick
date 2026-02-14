@@ -40,28 +40,19 @@ As you move value across the map, criminal events may unfold:
 - Bullet damage at the worst possible moment
 - Intimidation
 
-**The Bolides want their Cut.... Every run carries risk.**
-
-The Bolides are a roaming crime gang led by **Bonito Bolide**.
-
-Bonito Bolide is the founder of **Bolide Motors** and the unseen head of
-the Bolides crime network.
-
-Publicly, he is known as an industrialist with property holdings in Italy and
-interests in high-performance vehicle manufacturing. Privately, his fortune is
-reinforced through organised criminal operations targeting high-value transport
-and emerging career operators.
+The Bolides are a roaming crime gang led by **Bonito Bolide**. Bonito Bolide is the founder of **Bolide Motors** and the unseen head of
+the Bolides crime network. Publicly, he is known as an industrialist with property holdings in Italy and interests in high-performance vehicle manufacturing. Privately, his fortune is reinforced through organised criminal operations targeting high-value transport and emerging career operators.
 
 If you are making money on the road, Bonito Bolide is already aware of you.
  
 **Custom AI switching Behaviours based on forward thinking**.
-The Bolides use a custom lua trigger based ai switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod.
+The Bolides use a custom lua trigger based ai switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod. They switch between AI modes based on forward thinking
 
 They take interest in anyone who appears to be building a future across:
 - West Coast USA
 - Italy
 - Utah
-- Any career-enabled RLS BeamNG map
+- Any career-enabled RLS BeamNG.drive map
 
 If you look profitable, you look like a target.
 
