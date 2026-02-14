@@ -3,7 +3,7 @@
 
 ### You transport value. Watch the road.
 
-A career expansion for BeamNG.drive introducing a hostile criminal gang, calculated risk on every run, equipment and weapons. Your strategic choices determine whether you escape, fight back or profit.
+A career expansion for BeamNG.drive introducing a hostile criminal gang (The Bolides), calculated risk on every run, equipment and weapons. Your strategic choices determine whether you escape, fight back or profit.
 
 ----------------------------------------------------
 
@@ -51,7 +51,7 @@ If you are making money on the road, Bonito Bolide is already aware of you.
 --------------------------------------------------------------------------------------
  
 **Custom Lua AI switching behaviour based on forward thinking**.
-The Bolides use custom lua ai mode and constraint switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed and retention of speed in corners. They limit speed when appropriate, lane change and avoid traffic and obstacles. Essentially the Bolides are better drivers than 'flee' mode vanilla. Part of the inspitration of this mod originated in my curious digging into the weeds of the Beamng.drive AI and finding a suprisingly robust set of parameters and road ahead information. Once the fun parts of the mod are more fleshed out I intend to return to keep refining this aspect of the mod. 
+The Bolides use custom lua ai mode and constraint switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed and retention of speed in corners. They limit speed when appropriate, lane change and avoid traffic and obstacles. Essentially the Bolides are better drivers than 'flee' mode vanilla. Part of the inspitration of this mod originated in my curious digging into the weeds of the Beamng.drive AI and finding a suprisingly robust set of parameters and road ahead information. Once the fun parts of the mod are more fleshed out I intend to return to keep refining Bolide AI further. 
 
 -------------------------------------------------------------------------------------
 
