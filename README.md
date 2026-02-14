@@ -42,6 +42,7 @@ As you move value across the map, criminal events may unfold:
 - Theft (up to half money total in your wallet)
 - Bullet damage at the worst possible moment
 - Intimidation
+- many more features to come!!
 
 The Bolides are a roaming crime gang led by **Bonito Bolide**. Bonito Bolide is the founder of **Bolide Motors** and the unseen head of
 the Bolides crime network. Publicly, he is known as an industrialist with property holdings in Italy and interests in high-performance vehicle manufacturing. Privately, his fortune is reinforced through organised criminal operations targeting high-value transport and emerging career operators.
