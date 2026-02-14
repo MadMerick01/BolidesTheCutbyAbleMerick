@@ -7,9 +7,9 @@ A career expansion for BeamNG.drive introducing a hostile criminal gang, calcula
 
 ----------------------------------------------------
 
-**Works with**
-Vanilla Career and **RLS Career** (recommended - for features and balance).
 **Bolides - The Cut** works on **ALL career enabled maps**
+
+**RLS Career** (recommended - for features and balance) and Vanilla Career.
 
 -----------------------------------------------------
 
