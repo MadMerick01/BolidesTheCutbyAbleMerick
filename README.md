@@ -18,6 +18,7 @@ A career expansion for BeamNG.drive introducing a hostile criminal gang, calcula
 ### Installation Guide
 
 1. Download BolidesTheCutbyAbleMerickPublic_Release_Candidate_(0.9 RC).zip (From Releases)
+https://github.com/MadMerick01/BolidesTheCutbyAbleMerick/releases/tag/Public_Release_Candidate
 
 2. Place the downloaded `.zip` file into your BeamNG `mods` folder.  
    *(Do not extract the zip.)*
