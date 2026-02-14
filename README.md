@@ -3,7 +3,7 @@
 
 ### You transport value. Watch the road.
 
-A career expansion for **BeamNG.drive** that introduces crime, risk, and chaos.
+A career expansion for **BeamNG.drive** that introduces a criminal gang, risk, and chaos.
 **Works with**   
 **Vanilla Career** and **RLS Career**.
 
