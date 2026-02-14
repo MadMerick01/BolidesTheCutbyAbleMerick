@@ -11,6 +11,8 @@ A career expansion for BeamNG.drive introducing a hostile criminal gang, calcula
 
 **RLS Career** (recommended - for features and balance).
 
+**Sim-Racers: Beamng.drive has great triple screen and VR support**
+
 -----------------------------------------------------
 
 ## Bolides The Cut Public Release Candidate (0.9 RC)
@@ -45,9 +47,13 @@ The Bolides are a roaming crime gang led by **Bonito Bolide**. Bonito Bolide is 
 the Bolides crime network. Publicly, he is known as an industrialist with property holdings in Italy and interests in high-performance vehicle manufacturing. Privately, his fortune is reinforced through organised criminal operations targeting high-value transport and emerging career operators.
 
 If you are making money on the road, Bonito Bolide is already aware of you.
+
+--------------------------------------------------------------------------------------
  
-**Custom AI switching Behaviours based on forward thinking**.
-The Bolides use custom lua ai mode and constraint switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod. They switch between AI modes and speed limits based on forward thinking.
+**Custom Lua AI switching behaviour based on forward thinking**.
+The Bolides use custom lua ai mode and constraint switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed and retention of speed in corners. They limit speed when appropriate, lane change and avoid traffic and obstacles. Essentially the Bolides are better drivers than 'flee' mode vanilla. Part of the inspitration of this mod originated in my curious digging into the weeds of the Beamng.drive AI and finding a suprisingly robust set of parameters and road ahead information. Once the fun parts of the mod are more fleshed out I intend to return to keep refining this aspect of the mod. 
+
+-------------------------------------------------------------------------------------
 
 The Bolides take an interest in anyone who appears to be building a future across:
 - West Coast USA
