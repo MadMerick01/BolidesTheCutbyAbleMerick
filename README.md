@@ -141,7 +141,7 @@ maintaining compatibility with existing career systems.
   watch gameplay and dev
   
 - 💬 **Discord** — Join development discussion, report issues, and give feedback  
-  https://discord.gg/jchHGWTS
+  https://discord.gg/SpJv4UaY7m
 
 - ❤️ **Patreon** — Support development and gain access to Extended Edition  
   https://patreon.com/AbleMerick
