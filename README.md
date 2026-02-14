@@ -42,6 +42,7 @@ As you move value across the map, criminal events may unfold:
 - Theft (up to half money total in your wallet)
 - Bullet damage at the worst possible moment
 - Intimidation
+- NEXT UPDATE: ability to purchase EMP charges and ammo (in RC 0.9 obtain these from intercepting Bolide vehicles)
 - many more features to come!!
 
 The Bolides are a roaming crime gang led by **Bonito Bolide**. Bonito Bolide is the founder of **Bolide Motors** and the unseen head of
@@ -81,7 +82,7 @@ Weapons and equipment may be obtained from the Bolides themselves, including:
 Bolides – The Cut is available as a free public release, offering the full core
 experience — criminal encounters, risk, and consequence within Career Mode.
 
-An **Extended Edition** is available (NOT YET COMING SOON) via Patreon for players who want deeper
+An **Extended Edition** (COMING SOON) via Patreon for players who want deeper
 strategic control and expanded systems, including features such as
 in-world purchasing of weapons ammo and equipment. New features. Constantly updated with new events
 
@@ -108,19 +109,6 @@ development and long-term expansion of the project.
 - Integration of New mods/gameplay
 ------------------------------------------------------   
 
-### Built for stability
-
-Bolides – The Cut is:
-- **~95% Lua-based**
-- Independent of BeamNG core code
-- Independent of other mods
-- Designed to be robust and low-maintenance
-
-This approach ensures the mod:
-- Plays well with updates
-- Minimises breakage
-- Integrates cleanly into existing career saves and other carreer mods
-
 ### Current release focus
 
 The initial release focuses on:
@@ -144,8 +132,9 @@ maintaining compatibility with existing career systems.
 
 ### Community & Support
 
-- 🎥 **YouTube** — https://www.youtube.com/@ablemerick
-  watch gameplay and dev
+- 🎥 **YouTube** — Watch gameplay and dev
+  https://www.youtube.com/@ablemerick
+  
   
 - 💬 **Discord** — Join development discussion, report issues, and give feedback  
   https://discord.gg/SpJv4UaY7m
