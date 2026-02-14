@@ -37,11 +37,10 @@ In standard career play, you build wealth through planning and discipline. Trans
 As you move value across the map, criminal events may unfold:
 - Ambushes (EMP disables your vehicle to be robbed)
 - Theft (up to half money total in your wallet)
-- Bullet damage at the worst possible moment (bullet damage is explosive knocks to jbeams/ physics based collision damage)
+- Bullet damage at the worst possible moment
 - Intimidation
-- The Bolides want their Cut 
 
-Every run carries risk.
+**The Bolides want their Cut.... Every run carries risk.**
 
 The Bolides are a roaming crime gang led by **Bonito Bolide**.
 
