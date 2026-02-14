@@ -3,7 +3,8 @@
 
 ### You transport value. Watch the road.
 
-A career expansion for BeamNG.drive introducing a hostile criminal gang, calculated risk on every run, and strategic vehicle upgrades and weapons to survive the chaos.
+A career expansion for BeamNG.drive introducing a hostile criminal gang, calculated risk on every run and equipment and weapons. Your strategic choices determine whether you escape, fight back or profit.
+
 **Works with**   
 **Vanilla Career** and **RLS Career**.
 
