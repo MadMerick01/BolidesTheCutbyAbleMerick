@@ -47,24 +47,24 @@ the Bolides crime network. Publicly, he is known as an industrialist with proper
 If you are making money on the road, Bonito Bolide is already aware of you.
  
 **Custom AI switching Behaviours based on forward thinking**.
-The Bolides use a custom lua trigger based ai switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod. They switch between AI modes based on forward thinking
+The Bolides use custom lua ai mode and constraint switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed. Essentially the Bolides will be better drivers and i intend to keep refining this aspect of the mod. They switch between AI modes and speed limits based on forward thinking.
 
-They take interest in anyone who appears to be building a future across:
+The Bolides take an interest in anyone who appears to be building a future across:
 - West Coast USA
 - Italy
 - Utah
 - Any career-enabled RLS BeamNG.drive map
 
-If you look profitable, you look like a target.
+If you look profitable, you look like a target. The want a cut of your earnings.
 
 Players can:
-- Defend their cargo (EMP and pistol)
+- Defend their vehicle and cargo (EMP and pistol)
 - Protect their earnings
-- Turn the tables (take back robbed amounts plus extra money, ammo and EMP charges
+- Turn the tables (take back robbed amounts plus extra money, loot, ammo and EMP charges
 
 Weapons and equipment may be obtained from the Bolides themselves, including:
 - EMP and charges
-- Pistols
+- Pistol
 - Ammunition
 
 -----------------------------------------------------
@@ -74,7 +74,7 @@ Weapons and equipment may be obtained from the Bolides themselves, including:
 Bolides – The Cut is available as a free public release, offering the full core
 experience — criminal encounters, risk, and consequence within Career Mode.
 
-An **Extended Edition** is available via Patreon for players who want deeper
+An **Extended Edition** is available (NOT YET COMING SOON) via Patreon for players who want deeper
 strategic control and expanded systems, including features such as
 in-world purchasing of weapons ammo and equipment. New features. Constantly updated with new events
 
@@ -90,7 +90,7 @@ development and long-term expansion of the project.
 - Risk-driven gameplay  
 -----------------------------------------------------
 
-### Extended Edition
+### Extended Edition (COMING SOON)
 - Everything in Public Edition  
 - Weapon & ammo purchasing  
 - Support the Dev  
