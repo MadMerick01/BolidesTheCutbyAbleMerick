@@ -13,7 +13,7 @@ A career expansion for **BeamNG.drive** that introduces crime, risk, and chaos.
 
 ### Installation Guide
 
-1. Download BolidesTheCutbyAbleMerickPublic_Release_Candidate_(0.9 RC).zip (see below)
+1. Download BolidesTheCutbyAbleMerickPublic_Release_Candidate_(0.9 RC).zip (From Releases)
 
 2. Place the downloaded `.zip` file into your BeamNG `mods` folder.  
    *(Do not extract the zip.)*
