@@ -26,7 +26,7 @@ https://github.com/MadMerick01/BolidesTheCutbyAbleMerick/releases/tag/Public_Rel
    *(Do not extract the zip.)*
 
 3. Launch **BeamNG.drive** and start **Career Mode** as normal  
-   (Vanilla Career or RLS Career).
+   (RLS Career Highly Recommended).
 
 4. Once in-game, open the **UI Apps** menu, go to **General** and add the  
    **BolideTheCutHUD** app.
