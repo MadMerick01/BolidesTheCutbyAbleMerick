@@ -3,7 +3,14 @@
 
 ### You transport value. Watch the road.
 
-A career expansion for BeamNG.drive introducing The Bolides, a hostile criminal gang, calculated risk on every run, equipment and weapons. Your strategic choices determine whether you escape, fight back or profit.
+Career mode is no longer safe.
+
+Bolides – The Cut is a career expansion for BeamNG.drive introducing The Bolides — a hostile criminal gang that transforms every run into a high-stakes encounter.
+
+EMP attacks, armed vehicle combat, and mechanical damage systems force real consequences.
+Your decisions determine whether you survive, fight back, or turn danger into profit.
+
+Grounded in realistic simulation and emergent gameplay, the focus is tension, risk, and player agency.
 
 ----------------------------------------------------
 
@@ -33,7 +40,8 @@ https://github.com/MadMerick01/BolidesTheCutbyAbleMerick/releases/tag/Public_Rel
 
 -----------------------------------------------------
 
-In standard career play, you build wealth through planning and discipline. Transport, taxi, drag builds, workshop and races....
+In standard BeanNG.drive RLS or Vanilla career, you build wealth through planning and discipline. Time Trials & Competition, Drag, Rally, Circuit, Drift, and Rock crawling events, 
+Mechanic Workshop, Police & Law Enforcement, Deliver materials, Parcels, Restaurant orders, Warehouse goods, Repo Missions, Taxi Work and Garage Delivery.
 
 **Bolides – The Cut exists to disrupt that.**
 
@@ -42,8 +50,11 @@ As you move value across the map, criminal events may unfold:
 - Theft (up to half money total in your wallet)
 - Bullet damage at the worst possible moment
 - Intimidation
+- Drive by shooting
+- Chase Robber
+- Pursuit by armed Bolide Vehicle
 - NEXT UPDATE: ability to purchase EMP charges and ammo (in RC 0.9 obtain these from intercepting Bolide vehicles)
-- many more features to come!!
+- many more planned features
 
 The Bolides are a roaming crime gang led by **Bonito Bolide**. Bonito Bolide is the founder of **Bolide Motors** and the unseen head of
 the Bolides crime network. Publicly, he is known as an industrialist with property holdings in Italy and interests in high-performance vehicle manufacturing. Privately, his fortune is reinforced through organised criminal operations targeting high-value transport and emerging career operators.
@@ -53,7 +64,7 @@ If you are making money on the road, Bonito Bolide is already aware of you.
 --------------------------------------------------------------------------------------
  
 **Custom Lua AI switching behaviour based on forward thinking**.
-The Bolides use custom lua ai mode and constraint switching to enable for example safe downhill chases and better safe corner speeds while still preserving good top speed and retention of speed in corners. They limit speed when appropriate, lane change and avoid traffic and obstacles. Essentially the Bolides are better drivers than 'flee' mode vanilla. Part of the inspiration of this mod originated in my curious digging into the weeds of the Beamng.drive AI and finding a surprisingly robust set of parameters and road ahead information. Once the fun parts of the mod are more fleshed out I intend to return to keep refining Bolide AI further. 
+The Bolides use custom lua ai mode and constraint switching to enable for example realistic and safe downhill chases while still preserving good top speed and retention of speed in corners. They limit speed when appropriate, lane change and avoid traffic and obstacles. Essentially the Bolides are better drivers than 'flee' mode vanilla. Part of the inspiration of this mod originated in my curious digging into the weeds of the Beamng.drive AI and finding a surprisingly robust set of parameters and road ahead information. Once the core parts of the mod are more robustly implemented I intend to return to keep refining Custom Bolide AI further. 
 
 -------------------------------------------------------------------------------------
 
@@ -88,7 +99,7 @@ An **Extended Edition** (COMING SOON) via Patreon for players who want deeper
 strategic control and expanded systems, including features such as
 in-world purchasing of weapons ammo and equipment. New features. Constantly updated with new events
 
-Both editions are stable and supported. Patreon directly funds continued
+Both editions are stable and supported. Patreon will directly fund continued
 development and long-term expansion of the project.
 
 -----------------------------------------------------
@@ -104,9 +115,9 @@ development and long-term expansion of the project.
 - Everything in Public Edition  
 - Weapon & ammo purchasing  
 - Support the Dev  
-- New Bolides Events Added
+- New Hoostile Bolides Events Added
 - Bug fix on Beamng update happens here first
-- Bolide AI actively iterated here
+- Bolide AI actively iterated here (will be transferred to Public on major updates)
 - Spawn, Breadcrumbs and Performance actively iterated
 - Integration of New mods/gameplay
 ------------------------------------------------------   
@@ -114,6 +125,7 @@ development and long-term expansion of the project.
 ### Current release focus
 
 The initial release focuses on:
+- Bug Testing
 - Gang encounters
 - Robbery
 - Vehicle damage via gunfire
@@ -124,8 +136,8 @@ The system is intentionally modular and expandable.
 
 ### Looking ahead
 
-Bolides – The Cut is built on a modular foundation, allowing new crime events,  
-AI behaviours, and defensive tools to be introduced over time.
+Bolides – The Cut is built on a modular foundation, allowing new hostile crime events,  
+AI behaviours, and defensive tools to be introduced.
 
 Future updates to Expanded Edition will add encounter variety and strategic depth while  
 maintaining compatibility with existing career systems.
