@@ -1454,33 +1454,33 @@ function M.update(dtSim)
     return
   end
 
-  if R.empFleeTriggered and (not R.successTriggered) and d >= 1000.0 then
-    R.guiBaseMessage = "The robber has escaped with your money"
-    R.hideDistance = true
-    R.postSuccessMessageAt = now
-    updateGuiDistanceMessage(d)
-    local robbedText = nil
-    if R.robbedAmount and R.robbedAmount > 0 then
+  if (not R.successTriggered) and d >= 800.0 then
+    local escapedWithMoney = R.robberyProcessed and (R.robbedAmount or 0) > 0
+    local finalText = "you live to fight another day"
+
+    if escapedWithMoney then
+      local robbedText = nil
       if CareerMoney and CareerMoney.fmt then
         robbedText = CareerMoney.fmt(R.robbedAmount)
       else
         robbedText = string.format("%d", math.floor(R.robbedAmount))
       end
+      finalText = string.format("The robber escaped with your money, you lost $%s", robbedText)
     end
+
+    R.guiBaseMessage = finalText
+    R.hideDistance = true
+    R.postSuccessMessageAt = now
+    updateGuiDistanceMessage(d)
+
     updateHudState({
       threat = "safe",
-      status = mergeStatusInstruction(
-        robbedText
-          and string.format("The robber escaped with your money, you lost $%s", robbedText)
-          or "The robber escaped with your money",
-        "Stay alert and control your speed."
-      ),
+      status = mergeStatusInstruction(finalText, "Stay alert and control your speed."),
     })
+
     local msgArgs = {
       title = "NOTICE",
-      text = robbedText
-        and string.format("The robber escaped with your money, you lost $%s", robbedText)
-        or "The robber escaped with your money",
+      text = finalText,
       freeze = true,
       continueLabel = "Continue",
     }
