@@ -7,7 +7,7 @@ Career mode is no longer safe.
 
 Bolides – The Cut is a career expansion for BeamNG.drive that introduces the Bolides — a hostile criminal gang that turns every profitable run into a potential high-stakes encounter.
 
-EMP attacks. Vehicle theft. Armed combat by pistol. Mechanical bullet damage with real consequences.
+EMP attacks. Theft of Career Money. Armed combat by pistol. Mechanical bullet damage with real consequences to driveability and repair costs.
 
 Your decisions determine whether you survive, fight back, or turn danger into profit.
 
@@ -34,7 +34,7 @@ The objective is simple: complete the job and keep the earnings.
 
 **RLS Career** (recommended - for features and balance).
 
-**FOR Sim-Racers: Beamng.drive has great FFB, triple screen, VR and simhub (telemetry) support**
+**FOR Sim-Racers: Beamng.drive has excellent FFB, triple screen and simhub (telemetry) support**
 
 -----------------------------------------------------
 
