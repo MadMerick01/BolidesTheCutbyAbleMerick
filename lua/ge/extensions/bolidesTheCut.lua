@@ -23,6 +23,7 @@ local markHudTrialDirty
 local ensureHudTrialAppVisible
 local sendHudTrialPayload
 local getPlayerVeh
+local Audio = {}
 
 -- =========================
 -- Config
@@ -1578,7 +1579,7 @@ end
 -- =========================================================
 -- AUDIO UTILITY (vehicle-side, version-tolerant)  [MATCHES OLDCODE]
 -- =========================================================
-local Audio = {}
+Audio = Audio or {}
 
 local function resolveAudioVehicle(v)
   return getPlayerVeh() or v
