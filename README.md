@@ -48,10 +48,10 @@ Mechanic Workshop, Police & Law Enforcement, Deliver materials, Parcels, Restaur
 As you move value across the map, criminal events may unfold:
 - Ambushes (EMP disables your vehicle to be robbed)
 - Theft (up to half money total in your wallet)
+- Pursuit of Bolide Robber to intercept/disable to gain money back (plus possible loot)
 - Bullet damage at the worst possible moment
 - Intimidation
 - Drive by shooting
-- Chase Robber
 - Pursuit by armed Bolide Vehicle
 - NEXT UPDATE: ability to purchase EMP charges and ammo (in RC 0.9 obtain these from intercepting Bolide vehicles)
 - many more planned features
