@@ -5,9 +5,9 @@
 
 Career mode is no longer safe.
 
-Bolides – The Cut is a career expansion for BeamNG.drive introducing The Bolides.....a Hostile criminal gang that force the transformation of every potentially profitable run into a high-stakes encounter.
+Bolides – The Cut is a career expansion for BeamNG.drive introducing The Bolides.....a Hostile criminal gang that force the transformation of every profitable run into a potential high-stakes encounter.
 
-EMP attacks, armed vehicle combat by pistol, and mechanical bullet damage force real consequences.
+EMP attacks, Theft, Armed vehicle combat by pistol, and mechanical bullet damage force real consequences.
 Your decisions determine whether you survive, fight back, or turn danger into profit.
 
 Grounded in realistic simulation and emergent gameplay, the focus is tension, risk, and player agency.
