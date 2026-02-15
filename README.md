@@ -40,7 +40,7 @@ https://github.com/MadMerick01/BolidesTheCutbyAbleMerick/releases/tag/Public_Rel
 
 -----------------------------------------------------
 
-In standard BeanNG.drive RLS or Vanilla career, you build wealth through planning and discipline. Time Trials & Competition, Drag, Rally, Circuit, Drift, and Rock crawling events, 
+In standard BeamNG.drive RLS or Vanilla career, you build wealth through planning and discipline. Time Trials & Competition, Drag, Rally, Circuit, Drift, and Rock crawling events, 
 Mechanic Workshop, Police & Law Enforcement, Deliver materials, Parcels, Restaurant orders, Warehouse goods, Repo Missions, Taxi Work and Garage Delivery.
 
 **Bolides – The Cut exists to disrupt that.**
