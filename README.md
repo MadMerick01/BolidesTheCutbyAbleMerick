@@ -5,12 +5,28 @@
 
 Career mode is no longer safe.
 
-Bolides – The Cut is a career expansion for BeamNG.drive introducing The Bolides.....a Hostile criminal gang that force the transformation of every profitable run into a potential high-stakes encounter.
+Bolides – The Cut is a career expansion for BeamNG.drive that introduces the Bolides — a hostile criminal gang that turns every profitable run into a potential high-stakes encounter.
 
-EMP attacks, Theft, Armed vehicle combat by pistol, and mechanical bullet damage force real consequences.
+EMP attacks. Theft of Career Money. Armed combat by pistol. Mechanical bullet damage with real consequences to driveability and repair costs.
+
 Your decisions determine whether you survive, fight back, or turn danger into profit.
 
-Grounded in realistic simulation and emergent gameplay, the focus is tension, risk, and player agency.
+### Strategic Vehicle Configuration
+
+Vehicle setup is not cosmetic — it is functional engineering.
+
+Your build must complete standard career work — cargo transport, value delivery, contracts — while also surviving and responding to hostile encounters.
+
+A pure work configuration may maximise income but increase vulnerability.
+A defensive build may improve survivability but reduce efficiency, range, or payload.
+
+Success depends on driving skill and deliberate configuration — balancing payload, durability and mobility.
+
+Every component affects handling.
+Every kilogram affects performance.
+Every decision affects risk.
+
+The objective is simple: complete the job and keep the earnings.
 
 ----------------------------------------------------
 
@@ -18,7 +34,7 @@ Grounded in realistic simulation and emergent gameplay, the focus is tension, ri
 
 **RLS Career** (recommended - for features and balance).
 
-**FOR Sim-Racers: Beamng.drive has great FFB, triple screen, VR and simhub (telemetry) support**
+**FOR Sim-Racers: Beamng.drive has excellent FFB, triple screen and simhub (telemetry) support**
 
 -----------------------------------------------------
 
