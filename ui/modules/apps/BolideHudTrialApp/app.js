@@ -18,6 +18,7 @@
             wallet: 0,
             weapons: [],
             equippedWeapon: null,
+            hasPlayerVehicle: false,
             paused: false,
             preloaded: false,
             preloadAvailable: false,
@@ -103,6 +104,7 @@
             scope.hudTrial.wallet = (payload.wallet === 0 || payload.wallet) ? payload.wallet : defaults.wallet;
             scope.hudTrial.weapons = buildWeaponDisplay(payload.weapons || defaults.weapons);
             scope.hudTrial.equippedWeapon = payload.equippedWeapon || null;
+            scope.hudTrial.hasPlayerVehicle = payload.hasPlayerVehicle === true;
             scope.hudTrial.paused = payload.paused === true;
             scope.hudTrial.preloaded = payload.preloaded === true;
             scope.hudTrial.preloadAvailable = payload.preloadAvailable === true;
@@ -175,6 +177,9 @@
           };
 
           scope.toggleAbout = function () {
+            if (!scope.hudTrial.hasPlayerVehicle) {
+              return;
+            }
             if (window.bngApi && bngApi.engineLua) {
               bngApi.engineLua("extensions.bolidesTheCut.toggleHudAbout()");
             }
