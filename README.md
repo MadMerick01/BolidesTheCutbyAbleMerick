@@ -15,10 +15,9 @@ Grounded in realistic simulation and emergent gameplay, the focus is tension, ri
 ----------------------------------------------------
 
 **Bolides - The Cut** works on **ALL career enabled maps**
-
 **RLS Career** (recommended - for features and balance).
 
-**Sim-Racers: Beamng.drive has great FFB, triple screen, VR and simhub (telemetry) support**
+**FOR Sim-Racers: Beamng.drive has great FFB, triple screen, VR and simhub (telemetry) support**
 
 -----------------------------------------------------
 
