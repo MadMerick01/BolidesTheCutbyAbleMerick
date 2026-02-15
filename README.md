@@ -5,19 +5,19 @@
 
 Career mode is no longer safe.
 
-Bolides – The Cut is a career expansion for BeamNG.drive introducing The Bolides.....a Hostile criminal gang that force the transformation of every profitable run into a potential high-stakes encounter.
+Bolides – The Cut is a career expansion for BeamNG.drive introducing The Bolide - a Hostile criminal gang that change every profitable run into a potential high-stakes encounter.
 
 EMP attacks, Theft, Armed vehicle combat by pistol, and mechanical bullet damage force real consequences.
 Your decisions determine whether you survive, fight back, or turn danger into profit.
 
-Strategic Vehicle Configuration
+###Strategic Vehicle Configuration
 
 Vehicle setup is a functional decision. Your build must handle standard career work — cargo, value transport, contracts — while also surviving and responding to hostile encounters.
 
 A pure work setup may maximise income but increase vulnerability.
 A defensive build may improve survivability but reduce efficiency.
 
-Success depends on balance: payload, durability, mobility, and countermeasure capability.
+Success depends on driving skill and a balance of payload, durability, mobility, and countermeasure capability.
 
 The objective is simple — complete the job and keep the earnings.
 
