@@ -415,7 +415,9 @@
       </button>
       <button
         class="bolide-hud-trial__action-button bolide-hud-trial__action-button--about"
+        ng-disabled="!hudTrial.hasPlayerVehicle"
         ng-click="toggleAbout()"
+        title="{{hudTrial.hasPlayerVehicle ? 'Show About' : 'Spawn or purchase a vehicle first'}}"
         type="button"
       >
         About

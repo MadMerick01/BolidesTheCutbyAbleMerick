@@ -22,6 +22,7 @@ local CareerMoney = require("CareerMoney")
 local markHudTrialDirty
 local ensureHudTrialAppVisible
 local sendHudTrialPayload
+local getPlayerVeh
 
 -- =========================
 -- Config
@@ -306,8 +307,14 @@ function M.preloadRobberFromHud()
 end
 
 handleAboutHudAudio = function(showing)
-  local v = getPlayerVeh()
-  if not v then return end
+  local v = getPlayerVeh and getPlayerVeh() or nil
+  if not v then
+    if not showing then
+      return
+    end
+    M.setGuiStatusMessage("About audio unavailable: no player vehicle yet.")
+    return
+  end
   Audio.ensureIntro(v)
   if showing then
     Audio.stopId(v, CFG.sfxBolidesIntroName)
@@ -318,9 +325,18 @@ handleAboutHudAudio = function(showing)
 end
 
 function M.toggleHudAbout()
+  local playerVeh = getPlayerVeh and getPlayerVeh() or nil
+  if not playerVeh then
+    S.uiShowAbout = false
+    M.setGuiStatusMessage("Purchase/spawn a vehicle to enable About audio.")
+    markHudTrialDirty()
+    return false
+  end
+
   S.uiShowAbout = not S.uiShowAbout
   handleAboutHudAudio(S.uiShowAbout)
   markHudTrialDirty()
+  return true
 end
 
 function M.setHudPacingMode(mode)
@@ -805,7 +821,7 @@ function M.requestHudTrialSnapshot()
   return true
 end
 
-local function getPlayerVeh()
+getPlayerVeh = function()
   return be:getPlayerVehicle(0)
 end
 
@@ -1158,6 +1174,7 @@ local function hudTrialPayloadKey(payload)
     tostring(payload.threat or ""),
     tostring(payload.dangerReason or ""),
     tostring(payload.wallet or ""),
+    tostring(payload.hasPlayerVehicle or ""),
     tostring(payload.paused or ""),
     tostring(payload.preloaded or ""),
     tostring(payload.preloadAvailable or ""),
@@ -1180,6 +1197,7 @@ local function buildHudTrialPayload()
     wallet = math.floor(walletAmount),
     weapons = cloneWeapons(S.hudWeapons),
     equippedWeapon = S.hudEquippedWeapon,
+    hasPlayerVehicle = getPlayerVeh() ~= nil,
     paused = getHudPauseActive(),
     preloaded = getRobberPreloaded(),
     preloadAvailable = preloadAvailable,
