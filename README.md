@@ -64,7 +64,7 @@ If you are making money on the road, Bonito Bolide is already aware of you.
 --------------------------------------------------------------------------------------
  
 **Custom Lua AI switching behaviour based on forward thinking**.
-The Bolides use custom lua ai mode and constraint switching to enable for example realistic and safe downhill chases while still preserving good top speed and retention of speed in corners. They limit speed when appropriate, lane change and avoid traffic and obstacles. Essentially the Bolides are better drivers than 'flee' mode vanilla. Part of the inspiration of this mod originated in my curious digging into the weeds of the Beamng.drive AI and finding a surprisingly robust set of parameters and road ahead information. Once the core parts of the mod are more robustly implemented I intend to return to keep refining Custom Bolide AI further. 
+The Bolides use custom lua ai mode and constraint switching to enable for example realistic and safe downhill chases while still preserving good top speed and retention of momentum in corners. They limit speed when appropriate, lane change and avoid traffic and obstacles. Essentially the Bolides are better drivers than 'flee' mode vanilla. Part of the inspiration of this mod originated in my curious digging into the weeds of the Beamng.drive AI and finding a surprisingly robust set of parameters and road ahead information. Once the core parts of the mod are more robustly implemented I intend to return to keep refining Custom Bolide AI further. 
 
 -------------------------------------------------------------------------------------
 
@@ -74,7 +74,7 @@ The Bolides take an interest in anyone who appears to be building a future acros
 - Utah
 - River Highway
 - The Gap
-- Any career-enabled RLS BeamNG.drive map
+- Any other career-enabled RLS BeamNG.drive map
 
 If you look profitable, you look like a target. They want a cut of your earnings.
 
