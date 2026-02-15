@@ -10,7 +10,7 @@ Bolides – The Cut is a career expansion for BeamNG.drive introducing The Bolid
 EMP attacks, Theft, Armed vehicle combat by pistol, and mechanical bullet damage force real consequences.
 Your decisions determine whether you survive, fight back, or turn danger into profit.
 
-###Strategic Vehicle Configuration
+### Strategic Vehicle Configuration
 
 Vehicle setup is a functional decision. Your build must handle standard career work — cargo, value transport, contracts — while also surviving and responding to hostile encounters.
 
