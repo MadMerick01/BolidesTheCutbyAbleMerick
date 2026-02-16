@@ -959,6 +959,10 @@ function M.isActive()
   return R.active == true
 end
 
+function M.isPendingStart()
+  return R.pendingStart == true
+end
+
 function M.triggerManual()
   if R.active then
     log("Already active.")
@@ -1152,7 +1156,7 @@ function M.update(dtSim)
           log("Pending start failed: fallback spawn unavailable.")
         end
       else
-        resetPendingStart()
+        R.pendingStartDeadline = now + PRELOAD_START_TIMEOUT_SEC
         updateHudState({
           threat = "event",
           status = mergeStatusInstruction(
@@ -1160,7 +1164,7 @@ function M.update(dtSim)
             "Robber event will resume once handoff is ready."
           ),
         })
-        log("Pending start timed out; cold spawn fallback disabled.")
+        log("Pending start timed out; cold spawn fallback disabled (continuing preload wait).")
       end
       return
     end

@@ -138,6 +138,90 @@ local function isPreloadedEntryValid(entry)
   return true
 end
 
+local function removeEntryFromLookup(entry)
+  if type(entry) ~= "table" then
+    return
+  end
+  if entry.specKey then
+    S.preloadedBySpec[entry.specKey] = nil
+  end
+  if S.preloaded == entry then
+    S.preloaded = nil
+  end
+end
+
+local function cleanupInvalidEntries()
+  for specKey, entry in pairs(S.preloadedBySpec) do
+    if not isPreloadedEntryValid(entry) then
+      S.preloadedBySpec[specKey] = nil
+      if S.preloaded == entry then
+        S.preloaded = nil
+      end
+      if S.activeSpecKey == specKey then
+        S.activeSpecKey = nil
+      end
+    end
+  end
+
+  if S.preloaded and not isPreloadedEntryValid(S.preloaded) then
+    removeEntryFromLookup(S.preloaded)
+  end
+end
+
+local function entryMatchesSpec(entry, model, config, eventName)
+  if type(entry) ~= "table" then
+    return false
+  end
+
+  if model ~= nil and entry.model ~= model then
+    return false
+  end
+  if config ~= nil and entry.config ~= config then
+    return false
+  end
+  if eventName ~= nil and entry.eventName ~= eventName then
+    return false
+  end
+
+  return true
+end
+
+local function findEntryBySpec(model, config, eventName)
+  cleanupInvalidEntries()
+
+  if model ~= nil or config ~= nil then
+    local key = makeSpecKey(model, config)
+    local keyed = S.preloadedBySpec[key]
+    if keyed and isPreloadedEntryValid(keyed) and entryMatchesSpec(keyed, model, config, eventName) then
+      S.preloaded = keyed
+      S.activeSpecKey = key
+      return keyed
+    end
+  end
+
+  if S.activeSpecKey then
+    local active = S.preloadedBySpec[S.activeSpecKey]
+    if active and isPreloadedEntryValid(active) and entryMatchesSpec(active, model, config, eventName) then
+      S.preloaded = active
+      return active
+    end
+  end
+
+  if S.preloaded and isPreloadedEntryValid(S.preloaded) and entryMatchesSpec(S.preloaded, model, config, eventName) then
+    return S.preloaded
+  end
+
+  for specKey, entry in pairs(S.preloadedBySpec) do
+    if isPreloadedEntryValid(entry) and entryMatchesSpec(entry, model, config, eventName) then
+      S.preloaded = entry
+      S.activeSpecKey = specKey
+      return entry
+    end
+  end
+
+  return nil
+end
+
 local function safeTeleportVehicle(veh, pos, rot, opts)
   if not veh then return end
   opts = opts or {}
@@ -418,21 +502,8 @@ function M.clear()
 end
 
 function M.hasPreloaded(eventName)
-  local entry = S.preloaded
-  if not entry and S.activeSpecKey then
-    entry = S.preloadedBySpec[S.activeSpecKey]
-  end
+  local entry = findEntryBySpec(nil, nil, eventName)
   if not entry then return false end
-  if eventName and entry.eventName ~= eventName then return false end
-  if not isPreloadedEntryValid(entry) then
-    if entry.specKey then
-      S.preloadedBySpec[entry.specKey] = nil
-    end
-    if S.preloaded == entry then
-      S.preloaded = nil
-    end
-    return false
-  end
   S.preloaded = entry
   return true
 end
@@ -462,23 +533,24 @@ function M.getDebugState()
 end
 
 function M.consume(eventName, transform, opts)
-  if not S.preloaded then return nil, "no_preloaded_vehicle" end
-  if eventName and S.preloaded.eventName ~= eventName then
-    local expectedModel = opts and opts.model or nil
-    local expectedConfig = opts and opts.config or nil
-    if expectedModel ~= nil and expectedModel == S.preloaded.model and expectedConfig == S.preloaded.config then
+  local expectedModel = opts and opts.model or nil
+  local expectedConfig = opts and opts.config or nil
+  local entry = findEntryBySpec(expectedModel, expectedConfig, nil)
+  if not entry then
+    return nil, "no_preloaded_vehicle"
+  end
+
+  if eventName and entry.eventName ~= eventName then
+    if expectedModel ~= nil and expectedModel == entry.model and expectedConfig == entry.config then
       -- Allow shared preloads when the vehicle spec matches.
     else
       return nil, "event_mismatch"
     end
   end
 
-  local veh = getObjById(S.preloaded.vehId)
-  if not veh or not isPreloadedEntryValid(S.preloaded) then
-    if S.preloaded and S.preloaded.specKey then
-      S.preloadedBySpec[S.preloaded.specKey] = nil
-    end
-    S.preloaded = nil
+  local veh = getObjById(entry.vehId)
+  if not veh or not isPreloadedEntryValid(entry) then
+    removeEntryFromLookup(entry)
     return nil, "preloaded_vehicle_missing"
   end
 
@@ -503,11 +575,11 @@ function M.consume(eventName, transform, opts)
     end
   end
 
-  local id = S.preloaded.vehId
+  local id = entry.vehId
   S.pending = nil
-  S.preloaded.placed = "event"
-  S.preloaded.lastUsedAt = os.clock()
-  S.preloaded.eventName = eventName or S.preloaded.eventName
+  entry.placed = "event"
+  entry.lastUsedAt = os.clock()
+  entry.eventName = eventName or entry.eventName
   S.stats.consumeCount = (S.stats.consumeCount or 0) + 1
   S.stats.consumeRetries = (S.stats.consumeRetries or 0) + usedRetries
   S.lastFailure = nil

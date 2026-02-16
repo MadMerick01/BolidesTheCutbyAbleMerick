@@ -82,17 +82,26 @@ local function getEventModule(name)
   return Events and Events[name]
 end
 
-local function isEventActive(name)
+local function isEventInProgress(name)
   local eventModule = getEventModule(name)
-  if eventModule and eventModule.isActive then
-    return eventModule.isActive()
+  if not eventModule then
+    return false
   end
+
+  if eventModule.isActive and eventModule.isActive() then
+    return true
+  end
+
+  if eventModule.isPendingStart and eventModule.isPendingStart() then
+    return true
+  end
+
   return false
 end
 
 local function detectActiveEvent()
   for _, eventName in ipairs(EVENT_ORDER) do
-    if isEventActive(eventName) then
+    if isEventInProgress(eventName) then
       return eventName
     end
   end
@@ -169,7 +178,7 @@ function M.update(dtSim)
   if activeName then
     STATE.activeEventName = activeName
     setNextIndexFromName(activeName)
-    if not isEventActive(activeName) then
+    if not isEventInProgress(activeName) then
       STATE.activeEventName = nil
       applyPendingModeIfNeeded()
       beginCountdownForMode(STATE.activeMode)
