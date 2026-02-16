@@ -22,6 +22,27 @@
             paused: false,
             preloaded: false,
             preloadAvailable: false,
+            preloadDebug: {
+              ready: false,
+              owner: null,
+              specKey: null,
+              pending: null,
+              placed: null,
+              anchorReady: false,
+              anchorDistance: null,
+              anchorFarEnough: false,
+              lastFailure: null,
+              consumeCount: 0,
+              stashCount: 0,
+              parkingFallbacks: 0,
+              empPending: false,
+              empPendingAttempts: 0,
+              empPendingEta: null,
+              shotgunPending: false,
+              shotgunPendingAttempts: 0,
+              shotgunPendingEta: null,
+              coldSpawnAllowed: false
+            },
             pacingMode: 'real',
             pendingPacingMode: null,
             isHarassing: false
@@ -108,6 +129,7 @@
             scope.hudTrial.paused = payload.paused === true;
             scope.hudTrial.preloaded = payload.preloaded === true;
             scope.hudTrial.preloadAvailable = payload.preloadAvailable === true;
+            scope.hudTrial.preloadDebug = angular.extend({}, defaults.preloadDebug, payload.preloadDebug || {});
             scope.hudTrial.pacingMode = payload.pacingMode || defaults.pacingMode;
             scope.hudTrial.pendingPacingMode = payload.pendingPacingMode || null;
             scope.hudTrial.isHarassing = scope.hudTrial.pacingMode === 'harassing';

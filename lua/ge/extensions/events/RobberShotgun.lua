@@ -711,6 +711,15 @@ function M.getSpawnMethod()
   return R.spawnMethod
 end
 
+function M.getPendingStartState()
+  return {
+    pending = R.pendingStart == true,
+    attempts = R.pendingStartAttempts or 0,
+    deadline = R.pendingStartDeadline,
+    nextAttemptAt = R.pendingStartNextAttemptAt,
+  }
+end
+
 function M.getPreloadSpec()
   return {
     eventName = "RobberShotgun",
