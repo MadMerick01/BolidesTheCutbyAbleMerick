@@ -69,7 +69,6 @@ local R = {
   pendingStartDeadline = nil,
   pendingStartNextAttemptAt = nil,
   pendingStartAttempts = 0,
-  pendingStartTimeoutExtensions = 0,
 }
 
 local ROBBER_MODEL = "roamer"
@@ -77,7 +76,6 @@ local ROBBER_CONFIG = "robber_light.pc"
 local PRELOAD_START_TIMEOUT_SEC = 30.0
 local PRELOAD_RETRY_INTERVAL_SEC = 0.25
 local ALLOW_COLD_SPAWN_FALLBACK = false
-local MAX_PRELOAD_TIMEOUT_EXTENSIONS = 2
 
 local function log(msg)
   R.status = msg or ""
@@ -460,10 +458,6 @@ local function resetPendingStart()
   R.pendingStartDeadline = nil
   R.pendingStartNextAttemptAt = nil
   R.pendingStartAttempts = 0
-end
-
-local function resetPendingStartTimeoutExtensions()
-  R.pendingStartTimeoutExtensions = 0
 end
 
 local function beginActiveRun(id)
@@ -965,10 +959,6 @@ function M.isActive()
   return R.active == true
 end
 
-function M.isPendingStart()
-  return R.pendingStart == true
-end
-
 function M.triggerManual()
   if R.active then
     log("Already active.")
@@ -1018,7 +1008,6 @@ function M.triggerManual()
   R.pendingStartDeadline = os.clock() + PRELOAD_START_TIMEOUT_SEC
   R.pendingStartNextAttemptAt = os.clock()
   R.pendingStartAttempts = 0
-  resetPendingStartTimeoutExtensions()
   updateHudState({
     threat = "event",
     status = mergeStatusInstruction(
@@ -1106,7 +1095,6 @@ function M.endEvent(opts)
   R.pendingAiFrames = 0
   R.aiStarted = false
   resetPendingStart()
-  resetPendingStartTimeoutExtensions()
 
   if not opts.keepGuiMessage then
     setGuiStatusMessage(nil)
@@ -1127,8 +1115,8 @@ function M.endEvent(opts)
     local v = getObjById(id)
     if v then
       if PreloadEvent and PreloadEvent.stash then
-        local okCall, stashed = pcall(PreloadEvent.stash, "RobberEMP", id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
-        if (not okCall) or stashed ~= true then
+        local ok = pcall(PreloadEvent.stash, "RobberEMP", id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
+        if not ok then
           pcall(function() v:delete() end)
         end
       else
@@ -1164,29 +1152,15 @@ function M.update(dtSim)
           log("Pending start failed: fallback spawn unavailable.")
         end
       else
-        R.pendingStartTimeoutExtensions = (R.pendingStartTimeoutExtensions or 0) + 1
-        if R.pendingStartTimeoutExtensions <= MAX_PRELOAD_TIMEOUT_EXTENSIONS then
-          R.pendingStartDeadline = now + PRELOAD_START_TIMEOUT_SEC
-          updateHudState({
-            threat = "event",
-            status = mergeStatusInstruction(
-              "Preload delayed",
-              "Robber event will resume once handoff is ready."
-            ),
-          })
-          log("Pending start timed out; cold spawn fallback disabled (continuing preload wait).")
-        else
-          resetPendingStart()
-          resetPendingStartTimeoutExtensions()
-          updateHudState({
-            threat = "safe",
-            status = mergeStatusInstruction(
-              "Threat cleared.",
-              "Robber preload unavailable; event skipped to avoid stall."
-            ),
-          })
-          log("Pending start aborted after repeated preload timeouts.")
-        end
+        resetPendingStart()
+        updateHudState({
+          threat = "event",
+          status = mergeStatusInstruction(
+            "Preload delayed",
+            "Robber event will resume once handoff is ready."
+          ),
+        })
+        log("Pending start timed out; cold spawn fallback disabled.")
       end
       return
     end
