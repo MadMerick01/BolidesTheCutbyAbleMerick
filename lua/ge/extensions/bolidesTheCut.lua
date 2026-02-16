@@ -294,7 +294,12 @@ function M.preloadRobberFromHud()
     return
   end
 
-  if RobberEMP and RobberEMP.getPreloadSpec and PreloadEvent and PreloadEvent.request then
+  if PreloadEvent and PreloadEvent.requestByEvent then
+    if PreloadEvent and PreloadEvent.setUiGateOverride then
+      pcall(PreloadEvent.setUiGateOverride, true)
+    end
+    pcall(PreloadEvent.requestByEvent, "RobberEMP")
+  elseif RobberEMP and RobberEMP.getPreloadSpec and PreloadEvent and PreloadEvent.request then
     local spec = RobberEMP.getPreloadSpec()
     if spec then
       if PreloadEvent and PreloadEvent.setUiGateOverride then
@@ -1939,7 +1944,19 @@ function M.onExtensionLoaded()
   end
   if PreloadEvent and PreloadEvent.init then
     PreloadEvent.init(CFG, EVENT_HOST)
-    if RobberEMP and RobberEMP.getPreloadSpec and PreloadEvent.request then
+    if PreloadEvent.registerSpec then
+      if RobberEMP and RobberEMP.getPreloadSpec then
+        local spec = RobberEMP.getPreloadSpec()
+        if spec then pcall(PreloadEvent.registerSpec, spec) end
+      end
+      if RobberShotgun and RobberShotgun.getPreloadSpec then
+        local spec = RobberShotgun.getPreloadSpec()
+        if spec then pcall(PreloadEvent.registerSpec, spec) end
+      end
+    end
+    if PreloadEvent.requestByEvent then
+      pcall(PreloadEvent.requestByEvent, "RobberEMP")
+    elseif RobberEMP and RobberEMP.getPreloadSpec and PreloadEvent.request then
       local spec = RobberEMP.getPreloadSpec()
       if spec then
         pcall(PreloadEvent.request, spec)
@@ -2087,6 +2104,13 @@ end
 
 function M.requestEventPreloadByName(name, opts)
   if not name then return false end
+  if PreloadEvent and PreloadEvent.requestByEvent then
+    local ok, res = pcall(PreloadEvent.requestByEvent, name, opts)
+    if ok and res ~= false then
+      return true
+    end
+  end
+
   local spec = nil
   if name == "RobberEMP" and RobberEMP and RobberEMP.getPreloadSpec then
     spec = RobberEMP.getPreloadSpec()
