@@ -111,18 +111,7 @@ local function makeSpecKey(model, config)
   return string.format("%s::%s", tostring(model or ""), tostring(config or ""))
 end
 
-local isPreloadedEntryValid
-
-local function findEntryBySpec(model, config)
-  local specKey = makeSpecKey(model, config)
-  local entry = S.preloadedBySpec[specKey]
-  if entry and isPreloadedEntryValid(entry) then
-    return entry
-  end
-  return nil
-end
-
-isPreloadedEntryValid = function(entry)
+local function isPreloadedEntryValid(entry)
   if type(entry) ~= "table" then
     return false
   end
@@ -433,16 +422,6 @@ function M.hasPreloaded(eventName)
   if not entry and S.activeSpecKey then
     entry = S.preloadedBySpec[S.activeSpecKey]
   end
-  if not entry then
-    for _, candidate in pairs(S.preloadedBySpec) do
-      if isPreloadedEntryValid(candidate) then
-        if not eventName or candidate.eventName == eventName then
-          entry = candidate
-          break
-        end
-      end
-    end
-  end
   if not entry then return false end
   if eventName and entry.eventName ~= eventName then return false end
   if not isPreloadedEntryValid(entry) then
@@ -505,10 +484,10 @@ function M.consume(eventName, transform, opts)
     end
   end
 
-  local veh = getObjById(entry.vehId)
-  if not veh or not isPreloadedEntryValid(entry) then
-    if entry and entry.specKey then
-      S.preloadedBySpec[entry.specKey] = nil
+  local veh = getObjById(S.preloaded.vehId)
+  if not veh or not isPreloadedEntryValid(S.preloaded) then
+    if S.preloaded and S.preloaded.specKey then
+      S.preloadedBySpec[S.preloaded.specKey] = nil
     end
     S.preloaded = nil
     return nil, "preloaded_vehicle_missing"
@@ -537,14 +516,9 @@ function M.consume(eventName, transform, opts)
 
   local id = entry.vehId
   S.pending = nil
-  entry.placed = "event"
-  entry.lastUsedAt = os.clock()
-  entry.eventName = eventName or entry.eventName
-  S.preloaded = entry
-  if entry.specKey then
-    S.preloadedBySpec[entry.specKey] = entry
-    S.activeSpecKey = entry.specKey
-  end
+  S.preloaded.placed = "event"
+  S.preloaded.lastUsedAt = os.clock()
+  S.preloaded.eventName = eventName or S.preloaded.eventName
   S.stats.consumeCount = (S.stats.consumeCount or 0) + 1
   S.stats.consumeRetries = (S.stats.consumeRetries or 0) + usedRetries
   S.lastFailure = nil

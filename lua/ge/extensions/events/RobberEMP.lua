@@ -1156,17 +1156,15 @@ function M.update(dtSim)
           log("Pending start failed: fallback spawn unavailable.")
         end
       else
-        -- Keep pending state alive to avoid event skips/cold spawns.
-        R.pendingStartDeadline = now + PRELOAD_START_TIMEOUT_SEC
-        R.pendingStartNextAttemptAt = now + PRELOAD_RETRY_INTERVAL_SEC
+        resetPendingStart()
         updateHudState({
           threat = "event",
           status = mergeStatusInstruction(
             "Preload delayed",
-            "Waiting for robber handoff to avoid stutter."
+            "Robber event will resume once handoff is ready."
           ),
         })
-        log("Pending start window extended; cold spawn fallback disabled.")
+        log("Pending start timed out; cold spawn fallback disabled.")
       end
       return
     end
