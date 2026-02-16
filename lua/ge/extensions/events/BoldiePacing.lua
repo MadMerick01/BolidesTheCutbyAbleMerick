@@ -107,6 +107,15 @@ local function triggerEvent(name)
   return false
 end
 
+local function isEventPendingStart(name)
+  local eventModule = getEventModule(name)
+  if eventModule and eventModule.getPendingStartState then
+    local state = eventModule.getPendingStartState()
+    return state and state.pending == true
+  end
+  return false
+end
+
 function M.init(hostCfg, hostApi, eventModules, preloadRequestFn)
   CFG = hostCfg
   Host = hostApi
@@ -202,6 +211,12 @@ function M.update(dtSim)
 
   local nextName = M.getNextEventName()
   if nextName then
+    if isEventPendingStart(nextName) then
+      STATE.retryTimer = STATE.retryDelay
+      STATE.countdown = 0
+      return
+    end
+
     local ok = triggerEvent(nextName)
     if ok then
       STATE.activeEventName = nextName

@@ -314,7 +314,7 @@ local function spawnPreloadedVehicle(opts)
   end
 
   if placed ~= "preloadParking" then
-    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0, skipSafeTeleport = true })
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0, skipSafeTeleport = false })
     if not ok then
       veh:delete()
       return nil, "preload teleport verification failed"
@@ -722,7 +722,7 @@ function M.claim(eventName, transform, opts)
     local consumeMaxDist = opts and tonumber(opts.consumeMaxDist) or 4.0
     local skipSafeTeleport = opts and opts.consumeSkipSafeTeleport
     if skipSafeTeleport == nil then
-      skipSafeTeleport = true
+      skipSafeTeleport = false
     end
     usedRetries = consumeRetries
     local ok = teleportWithVerify(veh, transform.pos, transform.rot, {
@@ -820,7 +820,7 @@ function M.stash(eventName, vehId, opts)
 
   if placed ~= "preloadParking" then
     stashRetries = 3
-    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0, skipSafeTeleport = true })
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0, skipSafeTeleport = false })
     if not ok then
       log("Stash failed: teleport verification failed.")
       S.lastFailure = "stash teleport verification failed"

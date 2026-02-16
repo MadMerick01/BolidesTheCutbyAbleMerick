@@ -970,7 +970,7 @@ function M.triggerManual()
     return false
   end
 
-  local fkbPos, mode = chooseFkbPos(200, 10.0, false)
+  local fkbPos, mode = chooseFkbPos(200, 10.0, true)
   if not fkbPos then
     log("BLOCKED: FKB 200m not available (no stable cached point).")
     return false
@@ -998,7 +998,7 @@ function M.triggerManual()
       config = ROBBER_CONFIG,
       consumeRetries = 3,
       consumeMaxDist = 5.0,
-      consumeSkipSafeTeleport = true,
+      consumeSkipSafeTeleport = false,
     },
   })
 
@@ -1161,7 +1161,17 @@ function M.update(dtSim)
     end
 
     if claim and claim.status == "timeout" then
+      local fallbackTf = R.pendingStartTransform
+      local fallbackId = fallbackTf and spawnVehicleAt(fallbackTf) or nil
       resetPendingStart()
+
+      if fallbackId then
+        R.spawnMethod = "FallbackSpawnOnTimeout"
+        log("Pending start timed out; fallback cold spawn started.")
+        beginActiveRun(fallbackId)
+        return
+      end
+
       updateHudState({
         threat = "event",
         status = mergeStatusInstruction(
