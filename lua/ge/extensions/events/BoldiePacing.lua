@@ -90,6 +90,14 @@ local function isEventActive(name)
   return false
 end
 
+local function isEventPending(name)
+  local eventModule = getEventModule(name)
+  if eventModule and eventModule.isPendingStart then
+    return eventModule.isPendingStart()
+  end
+  return false
+end
+
 local function detectActiveEvent()
   for _, eventName in ipairs(EVENT_ORDER) do
     if isEventActive(eventName) then
@@ -169,7 +177,7 @@ function M.update(dtSim)
   if activeName then
     STATE.activeEventName = activeName
     setNextIndexFromName(activeName)
-    if not isEventActive(activeName) then
+    if not isEventActive(activeName) and not isEventPending(activeName) then
       STATE.activeEventName = nil
       applyPendingModeIfNeeded()
       beginCountdownForMode(STATE.activeMode)

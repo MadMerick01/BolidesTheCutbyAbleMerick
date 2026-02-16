@@ -1,19 +1,38 @@
 -- PreloadEventNEW.lua
--- Simplified preload: keep robber vehicle parked at the fixed preload position.
+-- Robust preload: keep a canonical robber vehicle parked and hand it off to events.
 
 local M = {}
+
+local PreloadParking = require("lua/ge/extensions/events/PreloadParking")
 
 local CFG = nil
 local Host = nil
 
+local DEFAULT_MIN_PRELOAD_DISTANCE = 300.0
+
 local S = {
   preloaded = nil,
+  preloadedBySpec = {},
+  activeSpecKey = nil,
   pending = nil,
   preloadInProgress = false,
   lastAttemptAt = 0,
   attemptCount = 0,
   maxAttempts = 1,
   uiGateOverride = nil,
+  lastRequestedSpec = nil,
+  maintenanceNextAt = 0,
+  maintenanceIntervalSec = 1.0,
+  lastFailure = nil,
+  stats = {
+    requests = 0,
+    failures = 0,
+    consumeCount = 0,
+    consumeRetries = 0,
+    stashCount = 0,
+    stashRetries = 0,
+    parkingFallbacks = 0,
+  },
 }
 
 local function log(msg)
@@ -88,7 +107,22 @@ local function getPreloadDistanceInfo()
   }, nil
 end
 
-local function isPreloadedEntryValid(entry)
+local function makeSpecKey(model, config)
+  return string.format("%s::%s", tostring(model or ""), tostring(config or ""))
+end
+
+local isPreloadedEntryValid
+
+local function findEntryBySpec(model, config)
+  local specKey = makeSpecKey(model, config)
+  local entry = S.preloadedBySpec[specKey]
+  if entry and isPreloadedEntryValid(entry) then
+    return entry
+  end
+  return nil
+end
+
+isPreloadedEntryValid = function(entry)
   if type(entry) ~= "table" then
     return false
   end
@@ -165,6 +199,13 @@ local function makeSpawnTransform(spawnPoint, playerPos)
   return { pos = spawnPoint.pos, rot = rot }
 end
 
+local function makeParkingTransform(spot, playerPos)
+  if not spot or not spot.pos then
+    return nil
+  end
+  return makeSpawnTransform({ pos = spot.pos, fwd = spot.rot }, playerPos)
+end
+
 local function disableVehicleAI(veh)
   if not veh or not veh.queueLuaCommand then return end
   veh:queueLuaCommand([[
@@ -193,23 +234,53 @@ local function ensurePrewarmAudio(opts)
   end
 end
 
+local function getPreferredPreloadPlacement(requireFar)
+  local distanceInfo, distErr = getPreloadDistanceInfo()
+  if distanceInfo and distanceInfo.spawnPoint and distanceInfo.spawnPoint.pos then
+    local dist = distanceInfo.distance or 0
+    if (not requireFar) or dist > DEFAULT_MIN_PRELOAD_DISTANCE then
+      return {
+        mode = "breadcrumb",
+        spawnPoint = distanceInfo.spawnPoint,
+      }, nil
+    end
+  end
+
+  if PreloadParking and PreloadParking.getBestSpot then
+    local best, err = PreloadParking.getBestSpot({
+      minDistance = DEFAULT_MIN_PRELOAD_DISTANCE,
+    })
+    if best and best.spot then
+      return {
+        mode = "parking",
+        parking = best,
+      }, nil
+    end
+    return nil, err or distErr or "no preload placement"
+  end
+
+  return nil, distErr or "no preload placement"
+end
+
 local function spawnPreloadedVehicle(opts)
   if not opts or not opts.model then
     return nil, "missing model"
   end
 
-  local distanceInfo, distErr = getPreloadDistanceInfo()
-  if not distanceInfo then
-    return nil, distErr or "preload spawn point unavailable"
-  end
-
-  if (distanceInfo.distance or 0) <= 300.0 then
-    return nil, "preload spawn point too close"
+  local placement, placeErr = getPreferredPreloadPlacement(true)
+  if not placement then
+    return nil, placeErr or "preload placement unavailable"
   end
 
   local playerVeh = getPlayerVeh()
   local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
-  local transform = makeSpawnTransform(distanceInfo.spawnPoint, playerPos)
+
+  local transform = nil
+  if placement.mode == "breadcrumb" then
+    transform = makeSpawnTransform(placement.spawnPoint, playerPos)
+  elseif placement.mode == "parking" then
+    transform = makeParkingTransform(placement.parking.spot, playerPos)
+  end
   if not transform then
     return nil, "missing preload spawn transform"
   end
@@ -227,12 +298,29 @@ local function spawnPreloadedVehicle(opts)
     return nil, "vehicle spawn failed"
   end
 
-  local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0 })
-  if not ok then
-    veh:delete()
-    return nil, "preload teleport verification failed"
-  end
   local placed = "breadcrumbPreload"
+  if placement.mode == "parking" then
+    local parked = false
+    if gameplay_parking and gameplay_parking.moveToParkingSpot and placement.parking and placement.parking.spot then
+      local okMove, moved = pcall(function()
+        return gameplay_parking.moveToParkingSpot(veh:getId(), placement.parking.spot, true)
+      end)
+      parked = okMove and moved == true
+    end
+    if parked then
+      placed = "preloadParking"
+      S.stats.parkingFallbacks = (S.stats.parkingFallbacks or 0) + 1
+    end
+  end
+
+  if placed ~= "preloadParking" then
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0 })
+    if not ok then
+      veh:delete()
+      return nil, "preload teleport verification failed"
+    end
+  end
+
   disableVehicleAI(veh)
   setVehicleIdle(veh)
 
@@ -246,6 +334,9 @@ end
 function M.init(cfg, host)
   CFG = cfg
   Host = host
+  if PreloadParking and PreloadParking.init then
+    PreloadParking.init(cfg, host)
+  end
 end
 
 function M.request(opts)
@@ -253,6 +344,7 @@ function M.request(opts)
     log("Request missing options table")
     return false
   end
+  S.stats.requests = (S.stats.requests or 0) + 1
   if not opts.eventName then
     log("Request missing eventName")
     return false
@@ -262,7 +354,18 @@ function M.request(opts)
     return false
   end
 
-  if S.preloaded and getObjById(S.preloaded.vehId) then
+  S.lastRequestedSpec = {
+    eventName = tostring(opts.eventName),
+    model = opts.model,
+    config = opts.config,
+    prewarmAudio = opts.prewarmAudio,
+  }
+
+  local specKey = makeSpecKey(opts.model, opts.config)
+  local existing = S.preloadedBySpec[specKey]
+  if existing and isPreloadedEntryValid(existing) then
+    S.preloaded = existing
+    S.activeSpecKey = specKey
     return true
   end
 
@@ -275,21 +378,28 @@ function M.request(opts)
 
   local res, err = spawnPreloadedVehicle(S.pending)
   if not res or not res.vehId then
+    S.stats.failures = (S.stats.failures or 0) + 1
+    S.lastFailure = err or "preload spawn failed"
     if err then log("Preload failed: " .. tostring(err)) end
     return false
   end
 
   ensurePrewarmAudio(S.pending)
-  S.preloaded = {
+  local entry = {
     vehId = res.vehId,
     eventName = S.pending.eventName,
     model = S.pending.model,
     config = S.pending.config,
+    specKey = specKey,
     placed = res.placed,
     createdAt = os.clock(),
   }
+  S.preloaded = entry
+  S.preloadedBySpec[specKey] = entry
+  S.activeSpecKey = specKey
   S.pending = nil
   S.preloadInProgress = false
+  S.lastFailure = nil
   return true
 end
 
@@ -308,59 +418,103 @@ end
 function M.clear()
   S.pending = nil
   S.preloaded = nil
+  S.preloadedBySpec = {}
+  S.activeSpecKey = nil
   S.preloadInProgress = false
   S.attemptCount = 0
   S.maxAttempts = 1
   S.lastAttemptAt = 0
+  S.lastRequestedSpec = nil
+  S.lastFailure = nil
 end
 
 function M.hasPreloaded(eventName)
-  if not S.preloaded then return false end
-  if eventName and S.preloaded.eventName ~= eventName then return false end
-  if not isPreloadedEntryValid(S.preloaded) then
-    S.preloaded = nil
+  local entry = S.preloaded
+  if not entry and S.activeSpecKey then
+    entry = S.preloadedBySpec[S.activeSpecKey]
+  end
+  if not entry then
+    for _, candidate in pairs(S.preloadedBySpec) do
+      if isPreloadedEntryValid(candidate) then
+        if not eventName or candidate.eventName == eventName then
+          entry = candidate
+          break
+        end
+      end
+    end
+  end
+  if not entry then return false end
+  if eventName and entry.eventName ~= eventName then return false end
+  if not isPreloadedEntryValid(entry) then
+    if entry.specKey then
+      S.preloadedBySpec[entry.specKey] = nil
+    end
+    if S.preloaded == entry then
+      S.preloaded = nil
+    end
     return false
   end
+  S.preloaded = entry
   return true
 end
 
 function M.getDebugState()
   local pendingName = S.pending and S.pending.eventName or nil
   local preloadedName = S.preloaded and S.preloaded.eventName or nil
+  local spec = S.preloaded and makeSpecKey(S.preloaded.model, S.preloaded.config) or nil
   local distanceInfo = getPreloadDistanceInfo()
   local spawnPointDistance = distanceInfo and distanceInfo.distance or nil
   local spawnPointReady = distanceInfo ~= nil
   return {
     pending = pendingName,
     preloaded = preloadedName,
+    specKey = spec,
     preloadedId = S.preloaded and S.preloaded.vehId or nil,
     placed = S.preloaded and S.preloaded.placed or nil,
     preloadInProgress = S.preloadInProgress,
     uiGateOverride = S.uiGateOverride,
     spawnPointReady = spawnPointReady,
     spawnPointDistance = spawnPointDistance,
-    spawnPointFarEnough = spawnPointDistance ~= nil and spawnPointDistance > 300.0 or false,
+    spawnPointFarEnough = spawnPointDistance ~= nil and spawnPointDistance > DEFAULT_MIN_PRELOAD_DISTANCE or false,
+    lastRequestedSpec = S.lastRequestedSpec and makeSpecKey(S.lastRequestedSpec.model, S.lastRequestedSpec.config) or nil,
+    lastFailure = S.lastFailure,
+    stats = S.stats,
   }
 end
 
 function M.consume(eventName, transform, opts)
-  if not S.preloaded then return nil, "no_preloaded_vehicle" end
-  if eventName and S.preloaded.eventName ~= eventName then
+  local entry = S.preloaded
+  if (not entry) and opts and opts.model then
+    entry = findEntryBySpec(opts.model, opts.config)
+  end
+  if not entry and S.activeSpecKey then
+    entry = S.preloadedBySpec[S.activeSpecKey]
+  end
+  if not entry then
+    return nil, "no_preloaded_vehicle"
+  end
+  S.preloaded = entry
+
+  if eventName and entry.eventName ~= eventName then
     local expectedModel = opts and opts.model or nil
     local expectedConfig = opts and opts.config or nil
-    if expectedModel ~= nil and expectedModel == S.preloaded.model and expectedConfig == S.preloaded.config then
+    if expectedModel ~= nil and expectedModel == entry.model and expectedConfig == entry.config then
       -- Allow shared preloads when the vehicle spec matches.
     else
       return nil, "event_mismatch"
     end
   end
 
-  local veh = getObjById(S.preloaded.vehId)
-  if not veh or not isPreloadedEntryValid(S.preloaded) then
+  local veh = getObjById(entry.vehId)
+  if not veh or not isPreloadedEntryValid(entry) then
+    if entry and entry.specKey then
+      S.preloadedBySpec[entry.specKey] = nil
+    end
     S.preloaded = nil
     return nil, "preloaded_vehicle_missing"
   end
 
+  local usedRetries = 0
   if transform and transform.pos then
     local consumeRetries = opts and tonumber(opts.consumeRetries) or 3
     local consumeMaxDist = opts and tonumber(opts.consumeMaxDist) or 5.0
@@ -368,6 +522,7 @@ function M.consume(eventName, transform, opts)
     if skipSafeTeleport == nil then
       skipSafeTeleport = false
     end
+    usedRetries = consumeRetries
     local ok = teleportWithVerify(veh, transform.pos, transform.rot, {
       retries = consumeRetries,
       maxDist = consumeMaxDist,
@@ -375,14 +530,24 @@ function M.consume(eventName, transform, opts)
     })
     if not ok then
       log("Consume failed: teleport verification failed.")
+      S.lastFailure = "consume teleport verification failed"
       return nil, "teleport_verification_failed"
     end
   end
 
-  local id = S.preloaded.vehId
+  local id = entry.vehId
   S.pending = nil
-  S.preloaded.placed = "event"
-  S.preloaded.lastUsedAt = os.clock()
+  entry.placed = "event"
+  entry.lastUsedAt = os.clock()
+  entry.eventName = eventName or entry.eventName
+  S.preloaded = entry
+  if entry.specKey then
+    S.preloadedBySpec[entry.specKey] = entry
+    S.activeSpecKey = entry.specKey
+  end
+  S.stats.consumeCount = (S.stats.consumeCount or 0) + 1
+  S.stats.consumeRetries = (S.stats.consumeRetries or 0) + usedRetries
+  S.lastFailure = nil
   return id, nil
 end
 
@@ -395,37 +560,68 @@ function M.stash(eventName, vehId, opts)
     return false
   end
 
-  local distanceInfo = getPreloadDistanceInfo()
-  if not distanceInfo then
+  local placement, placeErr = getPreferredPreloadPlacement(false)
+  if not placement then
+    S.lastFailure = placeErr or "stash placement unavailable"
     return false
   end
 
   local playerVeh = getPlayerVeh()
   local playerPos = playerVeh and playerVeh.getPosition and playerVeh:getPosition() or nil
-  local transform = makeSpawnTransform(distanceInfo.spawnPoint, playerPos)
+  local transform = nil
+  if placement.mode == "breadcrumb" then
+    transform = makeSpawnTransform(placement.spawnPoint, playerPos)
+  elseif placement.mode == "parking" then
+    transform = makeParkingTransform(placement.parking and placement.parking.spot, playerPos)
+  end
   if not transform then
+    S.lastFailure = "stash transform unavailable"
     return false
   end
 
-  local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0 })
-  if not ok then
-    log("Stash failed: teleport verification failed.")
-    error("PreloadEvent stash teleport verification failed.")
-  end
   local placed = "breadcrumbPreload"
+  local stashRetries = 0
+  if placement.mode == "parking" and gameplay_parking and gameplay_parking.moveToParkingSpot and placement.parking and placement.parking.spot then
+    local okMove, moved = pcall(function()
+      return gameplay_parking.moveToParkingSpot(veh:getId(), placement.parking.spot, true)
+    end)
+    if okMove and moved == true then
+      placed = "preloadParking"
+      S.stats.parkingFallbacks = (S.stats.parkingFallbacks or 0) + 1
+    end
+  end
+
+  if placed ~= "preloadParking" then
+    stashRetries = 3
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0 })
+    if not ok then
+      log("Stash failed: teleport verification failed.")
+      S.lastFailure = "stash teleport verification failed"
+      return false
+    end
+  end
+
   disableVehicleAI(veh)
   setVehicleIdle(veh)
 
-  S.preloaded = {
+  local specKey = makeSpecKey(opts and opts.model or nil, opts and opts.config or nil)
+  local entry = {
     vehId = vehId,
     eventName = eventName or "RobberEMP",
     model = opts and opts.model or nil,
     config = opts and opts.config or nil,
+    specKey = specKey,
     placed = placed,
     createdAt = os.clock(),
   }
+  S.preloaded = entry
+  S.preloadedBySpec[specKey] = entry
+  S.activeSpecKey = specKey
   S.pending = nil
   S.preloadInProgress = false
+  S.stats.stashCount = (S.stats.stashCount or 0) + 1
+  S.stats.stashRetries = (S.stats.stashRetries or 0) + stashRetries
+  S.lastFailure = nil
   return true
 end
 
@@ -434,22 +630,63 @@ function M.isPreloadPointAvailable()
   if not distanceInfo then
     return false
   end
-  return (distanceInfo.distance or 0) > 300.0
+  return (distanceInfo.distance or 0) > DEFAULT_MIN_PRELOAD_DISTANCE
 end
 
 function M.update(dtSim)
-  if not S.preloaded then return end
-  if not isPreloadedEntryValid(S.preloaded) then
+  local now = os.clock()
+
+  if S.preloaded and not isPreloadedEntryValid(S.preloaded) then
     local pending = {
       eventName = S.preloaded.eventName,
       model = S.preloaded.model,
       config = S.preloaded.config,
     }
+    if S.preloaded.specKey then
+      S.preloadedBySpec[S.preloaded.specKey] = nil
+    end
     S.preloaded = nil
     if pending.model then
       M.request(pending)
     end
   end
+
+  if S.preloaded then
+    return
+  end
+
+  if not S.lastRequestedSpec or not S.lastRequestedSpec.model then
+    return
+  end
+
+  if S.maintenanceNextAt and now < S.maintenanceNextAt then
+    return
+  end
+
+  local info = getPreloadDistanceInfo()
+  if info and info.distance and info.distance <= DEFAULT_MIN_PRELOAD_DISTANCE then
+    S.maintenanceNextAt = now + S.maintenanceIntervalSec
+    return
+  end
+
+  M.request(S.lastRequestedSpec)
+  S.maintenanceNextAt = now + S.maintenanceIntervalSec
+end
+
+function M.getPreloadDebugInfo()
+  local state = M.getDebugState()
+  return {
+    ready = state and state.preloaded ~= nil,
+    owner = state and state.preloaded or nil,
+    specKey = state and state.specKey or nil,
+    pending = state and state.pending or nil,
+    placed = state and state.placed or nil,
+    spawnPointReady = state and state.spawnPointReady or false,
+    spawnPointDistance = state and state.spawnPointDistance or nil,
+    spawnPointFarEnough = state and state.spawnPointFarEnough or false,
+    lastFailure = state and state.lastFailure or nil,
+    stats = state and state.stats or nil,
+  }
 end
 
 return M
