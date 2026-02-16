@@ -1168,6 +1168,32 @@ local function hudTrialPayloadKey(payload)
     end
     weaponsKey = table.concat(parts, ",")
   end
+  local preloadKey = ""
+  if type(payload.preloadDebug) == "table" then
+    local pd = payload.preloadDebug
+    preloadKey = table.concat({
+      tostring(pd.ready or ""),
+      tostring(pd.owner or ""),
+      tostring(pd.specKey or ""),
+      tostring(pd.pending or ""),
+      tostring(pd.placed or ""),
+      tostring(pd.anchorReady or ""),
+      tostring(pd.anchorDistance or ""),
+      tostring(pd.anchorFarEnough or ""),
+      tostring(pd.lastFailure or ""),
+      tostring(pd.consumeCount or ""),
+      tostring(pd.stashCount or ""),
+      tostring(pd.parkingFallbacks or ""),
+      tostring(pd.empPending or ""),
+      tostring(pd.empPendingAttempts or ""),
+      tostring(pd.empPendingEta or ""),
+      tostring(pd.shotgunPending or ""),
+      tostring(pd.shotgunPendingAttempts or ""),
+      tostring(pd.shotgunPendingEta or ""),
+      tostring(pd.coldSpawnAllowed or ""),
+    }, ":")
+  end
+
   return table.concat({
     tostring(payload.title or ""),
     tostring(payload.tagline or ""),
@@ -1181,6 +1207,7 @@ local function hudTrialPayloadKey(payload)
     tostring(payload.preloadAvailable or ""),
     tostring(payload.pacingMode or ""),
     tostring(payload.pendingPacingMode or ""),
+    preloadKey,
     weaponsKey,
   }, "|")
 end
@@ -1189,6 +1216,17 @@ local function buildHudTrialPayload()
   ensureHudState()
   local walletAmount = tonumber(S.hudWallet) or 0
   local preloadAvailable = PreloadEvent and PreloadEvent.isPreloadPointAvailable and PreloadEvent.isPreloadPointAvailable() or false
+  local preloadInfo = PreloadEvent and PreloadEvent.getPreloadDebugInfo and PreloadEvent.getPreloadDebugInfo() or nil
+  local empPending = RobberEMP and RobberEMP.getPendingStartState and RobberEMP.getPendingStartState() or nil
+  local shotgunPending = RobberShotgun and RobberShotgun.getPendingStartState and RobberShotgun.getPendingStartState() or nil
+
+  local function secondsUntil(ts)
+    if type(ts) ~= "number" then return nil end
+    return math.max(0, ts - os.clock())
+  end
+
+  local preloadStats = preloadInfo and preloadInfo.stats or nil
+
   return {
     title = "Bolides: The Cut",
     tagline = "You transport value, watch the road",
@@ -1202,6 +1240,27 @@ local function buildHudTrialPayload()
     paused = getHudPauseActive(),
     preloaded = getRobberPreloaded(),
     preloadAvailable = preloadAvailable,
+    preloadDebug = {
+      ready = preloadInfo and preloadInfo.ready or false,
+      owner = preloadInfo and preloadInfo.owner or nil,
+      specKey = preloadInfo and preloadInfo.specKey or nil,
+      pending = preloadInfo and preloadInfo.pending or nil,
+      placed = preloadInfo and preloadInfo.placed or nil,
+      anchorReady = preloadInfo and preloadInfo.spawnPointReady or false,
+      anchorDistance = preloadInfo and preloadInfo.spawnPointDistance or nil,
+      anchorFarEnough = preloadInfo and preloadInfo.spawnPointFarEnough or false,
+      lastFailure = preloadInfo and preloadInfo.lastFailure or nil,
+      consumeCount = preloadStats and preloadStats.consumeCount or 0,
+      stashCount = preloadStats and preloadStats.stashCount or 0,
+      parkingFallbacks = preloadStats and preloadStats.parkingFallbacks or 0,
+      empPending = empPending and empPending.pending or false,
+      empPendingAttempts = empPending and empPending.attempts or 0,
+      empPendingEta = secondsUntil(empPending and empPending.deadline or nil),
+      shotgunPending = shotgunPending and shotgunPending.pending or false,
+      shotgunPendingAttempts = shotgunPending and shotgunPending.attempts or 0,
+      shotgunPendingEta = secondsUntil(shotgunPending and shotgunPending.deadline or nil),
+      coldSpawnAllowed = false,
+    },
     pacingMode = BoldiePacing and BoldiePacing.getMode and BoldiePacing.getMode() or (CFG.pacingModeDefault or "real"),
     pendingPacingMode = BoldiePacing and BoldiePacing.getPendingMode and BoldiePacing.getPendingMode() or nil,
   }

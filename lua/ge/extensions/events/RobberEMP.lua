@@ -64,10 +64,18 @@ local R = {
   hudStatusBase = nil,
   pendingAiFrames = 0,
   aiStarted = false,
+  pendingStart = false,
+  pendingStartTransform = nil,
+  pendingStartDeadline = nil,
+  pendingStartNextAttemptAt = nil,
+  pendingStartAttempts = 0,
 }
 
 local ROBBER_MODEL = "roamer"
 local ROBBER_CONFIG = "robber_light.pc"
+local PRELOAD_START_TIMEOUT_SEC = 30.0
+local PRELOAD_RETRY_INTERVAL_SEC = 0.25
+local ALLOW_COLD_SPAWN_FALLBACK = false
 
 local function log(msg)
   R.status = msg or ""
@@ -442,6 +450,68 @@ local function formatStatusWithDistance(status, distance)
   if not status or status == "" then return status end
   local distMeters = math.floor((distance or 0) + 0.5)
   return string.format("%s\nDistance to contact: %dm", status, distMeters)
+end
+
+local function resetPendingStart()
+  R.pendingStart = false
+  R.pendingStartTransform = nil
+  R.pendingStartDeadline = nil
+  R.pendingStartNextAttemptAt = nil
+  R.pendingStartAttempts = 0
+end
+
+local function beginActiveRun(id)
+  R.active = true
+  R.spawnedId = id
+  R.phase = "idle"
+  R.distToPlayer = nil
+  R.waitForFlee = false
+  R.waitTimer = 0
+  R.closeTimer = 0
+  R.robberSlowTimer = 0
+  R.robberStationaryTimer = 0
+  R.successTriggered = false
+  R.successDespawnAt = nil
+  R.guiBaseMessage = "??????"
+  R.hideDistance = true
+  R.postSuccessMessageAt = nil
+  setGuiStatusMessage(R.guiBaseMessage)
+
+  R.spawnClock = os.clock()
+  R.spawnSnapped = false
+
+  R.empFired = false
+  R.empFiredAt = 0
+  R.empPlayerId = nil
+  R.empFleeTriggered = false
+  R.empFleeAt = nil
+  R.empSlowChaseApplied = false
+  R.empFootstepsAt = nil
+  R.empFootstepsPlayed = false
+  R.empBrakeEnd = nil
+  R.empPreStopTriggered = false
+  R.empPreStopEnd = nil
+  R.fleeProfile = nil
+  R.downhillHold = 0
+  R.lastNotDownhillAt = 0
+  R.downhillActive = false
+  R.robberyProcessed = false
+  R.robbedAmount = 0
+  R.cashFound = nil
+  R.hudThreat = nil
+  R.hudStatus = nil
+  R.hudStatusBase = nil
+  R.pendingAiFrames = 2
+  R.aiStarted = false
+  resetPendingStart()
+
+  updateHudState({
+    threat = "event",
+    status = mergeStatusInstruction(
+      "A vehicle is tailing you",
+      "Stay alert and control your speed."
+    ),
+  })
 end
 
 local function mergeStatusInstruction(status, instruction)
@@ -865,6 +935,15 @@ function M.getSpawnMethod()
   return R.spawnMethod
 end
 
+function M.getPendingStartState()
+  return {
+    pending = R.pendingStart == true,
+    attempts = R.pendingStartAttempts or 0,
+    deadline = R.pendingStartDeadline,
+    nextAttemptAt = R.pendingStartNextAttemptAt,
+  }
+end
+
 function M.getPreloadSpec()
   return {
     eventName = "RobberEMP",
@@ -901,6 +980,7 @@ function M.triggerManual()
   R.spawnMode = mode
   R.spawnPos = fkbPos + vec3(0, 0, 0.8)
   R.spawnMethod = nil
+  resetPendingStart()
   log("Using FKB 200 (" .. tostring(mode) .. ")")
 
   local tf = makeSpawnTransform(pv, R.spawnPos)
@@ -911,70 +991,55 @@ function M.triggerManual()
       R.spawnMethod = "PreloadEvent"
     end
   end
-  if not id then
-    id = spawnVehicleAt(tf)
+  if id then
+    beginActiveRun(id)
+    return true
   end
-  if not id then return false end
 
-  R.active = true
-  R.spawnedId = id
-  R.phase = "idle"
-  R.distToPlayer = nil
-  R.waitForFlee = false
-  R.waitTimer = 0
-  R.closeTimer = 0
-  R.robberSlowTimer = 0
-  R.robberStationaryTimer = 0
-  R.successTriggered = false
-  R.successDespawnAt = nil
-  R.guiBaseMessage = "??????"
-  R.hideDistance = true
-  R.postSuccessMessageAt = nil
-  setGuiStatusMessage(R.guiBaseMessage)
+  if PreloadEvent and PreloadEvent.request then
+    local spec = M.getPreloadSpec()
+    if spec then
+      pcall(PreloadEvent.request, spec)
+    end
+  end
 
-  -- init anti-teleport window
-  R.spawnClock = os.clock()
-  R.spawnSnapped = false
-
-  -- init EMP state
-  R.empFired = false
-  R.empFiredAt = 0
-  R.empPlayerId = nil
-  R.empFleeTriggered = false
-  R.empFleeAt = nil
-  R.empSlowChaseApplied = false
-  R.empFootstepsAt = nil
-  R.empFootstepsPlayed = false
-  R.empBrakeEnd = nil
-  R.empPreStopTriggered = false
-  R.empPreStopEnd = nil
-  R.fleeProfile = nil
-  R.downhillHold = 0
-  R.lastNotDownhillAt = 0
-  R.downhillActive = false
-  R.robberyProcessed = false
-  R.robbedAmount = 0
-  R.cashFound = nil
-  R.hudThreat = nil
-  R.hudStatus = nil
-  R.hudStatusBase = nil
-  R.pendingAiFrames = 0
-  R.aiStarted = false
-
-  R.pendingAiFrames = 2
+  R.pendingStart = true
+  R.pendingStartTransform = tf
+  R.pendingStartDeadline = os.clock() + PRELOAD_START_TIMEOUT_SEC
+  R.pendingStartNextAttemptAt = os.clock()
+  R.pendingStartAttempts = 0
   updateHudState({
     threat = "event",
     status = mergeStatusInstruction(
-      "A vehicle is tailing you",
-      "Stay alert and control your speed."
+      "Stay Alert",
+      "Waiting for robber preload handoff."
     ),
   })
+  log("Pending start: waiting for preload handoff.")
   return true
 end
 
 function M.endEvent(opts)
-  if not R.active then return end
+  if not R.active and not R.pendingStart then return end
   opts = opts or {}
+
+  if R.pendingStart and not R.active then
+    resetPendingStart()
+    if not opts.keepHudState then
+      updateHudState({
+        threat = "safe",
+        status = mergeStatusInstruction(
+          "Threat cleared.",
+          "Resume route."
+        ),
+      })
+    end
+    if not opts.keepGuiMessage then
+      setGuiStatusMessage(nil)
+    end
+    log("Ended (pending start cancelled).")
+    return
+  end
 
   local pv = getPlayerVeh()
   if pv then
@@ -1029,6 +1094,7 @@ function M.endEvent(opts)
   R.hudStatusBase = nil
   R.pendingAiFrames = 0
   R.aiStarted = false
+  resetPendingStart()
 
   if not opts.keepGuiMessage then
     setGuiStatusMessage(nil)
@@ -1063,6 +1129,76 @@ function M.endEvent(opts)
 end
 
 function M.update(dtSim)
+  local now = os.clock()
+
+  if R.pendingStart and not R.active then
+    if R.pendingStartDeadline and now >= R.pendingStartDeadline then
+      if ALLOW_COLD_SPAWN_FALLBACK then
+        local tf = R.pendingStartTransform
+        local id = tf and spawnVehicleAt(tf) or nil
+        if id then
+          R.spawnMethod = "spawnFallbackAfterPending"
+          log("Pending start timed out; used fallback spawn.")
+          beginActiveRun(id)
+        else
+          resetPendingStart()
+          updateHudState({
+            threat = "safe",
+            status = mergeStatusInstruction(
+              "Threat cleared.",
+              "Resume route."
+            ),
+          })
+          log("Pending start failed: fallback spawn unavailable.")
+        end
+      else
+        resetPendingStart()
+        updateHudState({
+          threat = "event",
+          status = mergeStatusInstruction(
+            "Preload delayed",
+            "Robber event will resume once handoff is ready."
+          ),
+        })
+        log("Pending start timed out; cold spawn fallback disabled.")
+      end
+      return
+    end
+
+    if (not R.pendingStartNextAttemptAt) or now >= R.pendingStartNextAttemptAt then
+      R.pendingStartAttempts = (R.pendingStartAttempts or 0) + 1
+      local id = nil
+      local err = nil
+      if PreloadEvent and PreloadEvent.consume then
+        id, err = PreloadEvent.consume("RobberEMP", R.pendingStartTransform, {
+          model = ROBBER_MODEL,
+          config = ROBBER_CONFIG,
+          consumeRetries = 3,
+          consumeMaxDist = 5.0,
+          consumeSkipSafeTeleport = false,
+        })
+      end
+      if id then
+        R.spawnMethod = "PreloadEvent"
+        log("Pending start resolved via preload handoff.")
+        beginActiveRun(id)
+        return
+      end
+
+      if PreloadEvent and PreloadEvent.request then
+        local spec = M.getPreloadSpec()
+        if spec then
+          pcall(PreloadEvent.request, spec)
+        end
+      end
+
+      R.pendingStartNextAttemptAt = now + PRELOAD_RETRY_INTERVAL_SEC
+      if err and (R.pendingStartAttempts % 8 == 0) then
+        log("Pending start retry still waiting (" .. tostring(err) .. ")")
+      end
+    end
+  end
+
   if not R.active then
     if R.postSuccessMessageAt and os.clock() >= (R.postSuccessMessageAt + 60.0) then
       setGuiStatusMessage("nothing unusual")
