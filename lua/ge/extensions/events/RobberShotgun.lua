@@ -53,8 +53,6 @@ local ROBBER_CONFIG = "robber_light.pc"
 local ROBBER_SHOT_FORCE_MULTIPLIER = 0.35
 local ROBBER_SHOT_EXPLOSION_FORCE = 30.0
 local ROBBER_SHOT_EXPLOSION_RADIUS = 1.0
-local PRELOAD_START_TIMEOUT_SEC = 30.0
-local PRELOAD_RETRY_INTERVAL_SEC = 0.25
 
 
 local function log(msg)
@@ -661,33 +659,36 @@ local function beginActiveRun(id)
 end
 
 local function tryConsumePreload(transform)
-  if not (PreloadEvent and PreloadEvent.consume) then
-    return nil, nil, nil
+  if not (PreloadEvent and PreloadEvent.beginClaim) then
+    return nil, nil, "preload_manager_unavailable"
   end
 
-  local id, err = PreloadEvent.consume("RobberShotgun", transform, {
-    model = ROBBER_MODEL,
-    config = ROBBER_CONFIG,
-    consumeRetries = 3,
-    consumeMaxDist = 5.0,
-    consumeSkipSafeTeleport = false,
+  local res = PreloadEvent.beginClaim("RobberShotgun", transform, {
+    requestSpec = (PreloadEvent and PreloadEvent.getRegisteredSpec and PreloadEvent.getRegisteredSpec("RobberShotgun"))
+      or (M.getPreloadSpec and M.getPreloadSpec() or nil),
+    timeoutSec = 30.0,
+    retryIntervalSec = 0.25,
+    claimOptions = {
+      model = ROBBER_MODEL,
+      config = ROBBER_CONFIG,
+      consumeRetries = 3,
+      consumeMaxDist = 5.0,
+      consumeSkipSafeTeleport = true,
+    },
   })
-  if id then
-    return id, "RobberShotgun", nil
+
+  if res and res.id then
+    return res.id, res.ownerEventName or "RobberShotgun", nil
   end
 
-  id, err = PreloadEvent.consume("RobberEMP", transform, {
-    model = ROBBER_MODEL,
-    config = ROBBER_CONFIG,
-    consumeRetries = 3,
-    consumeMaxDist = 5.0,
-    consumeSkipSafeTeleport = false,
-  })
-  if id then
-    return id, "RobberEMP", nil
-  end
+  return nil, nil, res and res.err or nil
+end
 
-  return nil, nil, err
+local function getPendingClaimState()
+  if not (PreloadEvent and PreloadEvent.updateClaim) then
+    return { pending = false, status = "idle", err = "preload_manager_unavailable" }
+  end
+  return PreloadEvent.updateClaim("RobberShotgun")
 end
 
 function M.init(hostCfg, hostApi)
@@ -712,11 +713,13 @@ function M.getSpawnMethod()
 end
 
 function M.getPendingStartState()
+  local state = (PreloadEvent and PreloadEvent.getClaimState and PreloadEvent.getClaimState("RobberShotgun")) or nil
   return {
-    pending = R.pendingStart == true,
-    attempts = R.pendingStartAttempts or 0,
-    deadline = R.pendingStartDeadline,
-    nextAttemptAt = R.pendingStartNextAttemptAt,
+    pending = state ~= nil,
+    attempts = state and state.attempts or 0,
+    deadline = state and state.timeoutAt or nil,
+    nextAttemptAt = state and state.nextAttemptAt or nil,
+    err = state and state.lastError or nil,
   }
 end
 
@@ -775,9 +778,6 @@ function M.triggerManual()
 
   R.pendingStart = true
   R.pendingStartTransform = tf
-  R.pendingStartDeadline = os.clock() + PRELOAD_START_TIMEOUT_SEC
-  R.pendingStartNextAttemptAt = os.clock()
-  R.pendingStartAttempts = 0
   R.spawnMethod = nil
   R.preloadEventName = nil
   setHud(
@@ -798,6 +798,9 @@ function M.endEvent(reason)
   if not R.active and not R.pendingStart then return end
 
   if R.pendingStart and not R.active then
+    if PreloadEvent and PreloadEvent.cancelClaim then
+      pcall(PreloadEvent.cancelClaim, "RobberShotgun")
+    end
     resetRuntime()
     setHud(
       "safe",
@@ -837,9 +840,9 @@ function M.endEvent(reason)
   if type(id) == "number" then
     local v = getObjById(id)
     if v then
-      if PreloadEvent and PreloadEvent.stash then
+      if PreloadEvent and PreloadEvent.release then
         preloadName = preloadName or "RobberShotgun"
-        local ok = pcall(PreloadEvent.stash, preloadName, id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
+        local ok = pcall(PreloadEvent.release, preloadName, id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
         if not ok then
           pcall(function() v:delete() end)
         end
@@ -853,54 +856,40 @@ function M.endEvent(reason)
 end
 
 function M.update(dtSim)
-  local now = os.clock()
 
   if R.pendingStart and not R.active then
-    if R.pendingStartDeadline and now >= R.pendingStartDeadline then
-      local tf = R.pendingStartTransform
-      local id = tf and spawnVehicleAt(tf) or nil
-      if id then
-        R.spawnMethod = "spawnFallbackAfterPending"
-        R.preloadEventName = nil
-        R.pendingStart = false
-        R.pendingStartTransform = nil
-        R.pendingStartDeadline = nil
-        R.pendingStartNextAttemptAt = nil
-        R.pendingStartAttempts = 0
-        log("Pending start timed out; used fallback spawn.")
-        beginActiveRun(id)
-      else
-        resetRuntime()
-        setHud(
-          "safe",
-          "Threat cleared.",
-          "Resume route.",
-          nil
-        )
-        log("Pending start failed: fallback spawn unavailable.")
-      end
+    local claim = getPendingClaimState()
+    if claim and claim.status == "claimed" and claim.id then
+      R.spawnMethod = "PreloadEvent"
+      R.preloadEventName = claim.eventName or "RobberShotgun"
+      R.pendingStart = false
+      R.pendingStartTransform = nil
+      R.pendingStartDeadline = nil
+      R.pendingStartNextAttemptAt = nil
+      R.pendingStartAttempts = 0
+      log("Pending start resolved via preload handoff.")
+      beginActiveRun(claim.id)
       return
     end
 
-    if (not R.pendingStartNextAttemptAt) or now >= R.pendingStartNextAttemptAt then
-      R.pendingStartAttempts = (R.pendingStartAttempts or 0) + 1
-      local id, preloadName, consumeErr = tryConsumePreload(R.pendingStartTransform)
-      if id then
-        R.spawnMethod = "PreloadEvent"
-        R.preloadEventName = preloadName
-        R.pendingStart = false
-        R.pendingStartTransform = nil
-        R.pendingStartDeadline = nil
-        R.pendingStartNextAttemptAt = nil
-        R.pendingStartAttempts = 0
-        log("Pending start resolved via preload handoff.")
-        beginActiveRun(id)
-        return
-      end
+    if claim and claim.status == "timeout" then
+      resetRuntime()
+      setHud(
+        "safe",
+        "Threat cleared.",
+        "Resume route.",
+        nil
+      )
+      log("Pending start timed out; preload not ready.")
+      return
+    end
 
-      R.pendingStartNextAttemptAt = now + PRELOAD_RETRY_INTERVAL_SEC
-      if consumeErr and (R.pendingStartAttempts % 8 == 0) then
-        log("Pending start retry still waiting (" .. tostring(consumeErr) .. ")")
+    if claim then
+      R.pendingStartAttempts = claim.attempts or R.pendingStartAttempts
+      R.pendingStartDeadline = claim.deadline or R.pendingStartDeadline
+      R.pendingStartNextAttemptAt = claim.nextAttemptAt or R.pendingStartNextAttemptAt
+      if claim.err and (R.pendingStartAttempts % 8 == 0) then
+        log("Pending start retry still waiting (" .. tostring(claim.err) .. ")")
       end
     end
   end

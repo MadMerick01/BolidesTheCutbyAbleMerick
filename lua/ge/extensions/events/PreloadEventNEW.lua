@@ -24,6 +24,12 @@ local S = {
   maintenanceNextAt = 0,
   maintenanceIntervalSec = 1.0,
   lastFailure = nil,
+  ownerEventName = nil,
+  ownerVehId = nil,
+  ownerSince = nil,
+  claimStateByEvent = {},
+  specRegistryByEvent = {},
+  specRegistryByKey = {},
   stats = {
     requests = 0,
     failures = 0,
@@ -32,6 +38,11 @@ local S = {
     stashCount = 0,
     stashRetries = 0,
     parkingFallbacks = 0,
+    claimCount = 0,
+    releaseCount = 0,
+    claimBeginCount = 0,
+    claimTimeoutCount = 0,
+    registryCount = 0,
   },
 }
 
@@ -125,7 +136,7 @@ local function isPreloadedEntryValid(entry)
     return false
   end
 
-  if entry.placed == "breadcrumbPreload" then
+  if entry.placed == "breadcrumbPreload" and not S.ownerEventName then
     local spawnPoint = getPreloadSpawnPoint()
     local vehPos = getObjectPos(veh)
     if spawnPoint and spawnPoint.pos and vehPos then
@@ -303,7 +314,7 @@ local function spawnPreloadedVehicle(opts)
   end
 
   if placed ~= "preloadParking" then
-    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0 })
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0, skipSafeTeleport = true })
     if not ok then
       veh:delete()
       return nil, "preload teleport verification failed"
@@ -415,6 +426,12 @@ function M.clear()
   S.lastAttemptAt = 0
   S.lastRequestedSpec = nil
   S.lastFailure = nil
+  S.ownerEventName = nil
+  S.ownerVehId = nil
+  S.ownerSince = nil
+  S.claimStateByEvent = {}
+  S.specRegistryByEvent = {}
+  S.specRegistryByKey = {}
 end
 
 function M.hasPreloaded(eventName)
@@ -456,21 +473,235 @@ function M.getDebugState()
     spawnPointDistance = spawnPointDistance,
     spawnPointFarEnough = spawnPointDistance ~= nil and spawnPointDistance > DEFAULT_MIN_PRELOAD_DISTANCE or false,
     lastRequestedSpec = S.lastRequestedSpec and makeSpecKey(S.lastRequestedSpec.model, S.lastRequestedSpec.config) or nil,
+    ownerEventName = S.ownerEventName,
+    ownerVehId = S.ownerVehId,
+    ownerSince = S.ownerSince,
+    claimStateByEvent = S.claimStateByEvent,
+    registryCount = S.stats.registryCount or 0,
+    registeredEvents = S.specRegistryByEvent,
     lastFailure = S.lastFailure,
     stats = S.stats,
   }
 end
 
-function M.consume(eventName, transform, opts)
-  if not S.preloaded then return nil, "no_preloaded_vehicle" end
+local function cloneSpec(spec)
+  if type(spec) ~= "table" then return nil end
+  local copy = {}
+  for k, v in pairs(spec) do copy[k] = v end
+  return copy
+end
+
+function M.registerSpec(spec)
+  if type(spec) ~= "table" then
+    return false, "missing_spec"
+  end
+  if not spec.eventName then
+    return false, "missing_event_name"
+  end
+  if not spec.model then
+    return false, "missing_model"
+  end
+
+  local eventName = tostring(spec.eventName)
+  local clean = cloneSpec(spec)
+  clean.eventName = eventName
+
+  local key = makeSpecKey(clean.model, clean.config)
+  clean.specKey = key
+
+  local prev = S.specRegistryByEvent[eventName]
+  S.specRegistryByEvent[eventName] = clean
+  S.specRegistryByKey[key] = clean
+
+  if not prev then
+    S.stats.registryCount = (S.stats.registryCount or 0) + 1
+  end
+
+  return true, key
+end
+
+function M.getRegisteredSpec(eventName)
+  if not eventName then return nil end
+  local spec = S.specRegistryByEvent[tostring(eventName)]
+  return cloneSpec(spec)
+end
+
+function M.requestByEvent(eventName, overrides)
+  if not eventName then
+    return false, "missing_event_name"
+  end
+
+  local spec = M.getRegisteredSpec(eventName)
+  if not spec then
+    return false, "spec_not_registered"
+  end
+
+  if type(overrides) == "table" then
+    for k, v in pairs(overrides) do
+      if k ~= "eventName" and v ~= nil then
+        spec[k] = v
+      end
+    end
+    spec.eventName = tostring(eventName)
+  end
+
+  return M.request(spec)
+end
+
+local function clearClaimState(eventName)
+  if not eventName then return end
+  S.claimStateByEvent[eventName] = nil
+end
+
+local function buildClaimState(eventName, state)
+  if not eventName then return nil end
+  local existing = S.claimStateByEvent[eventName] or {}
+  for k, v in pairs(state or {}) do
+    existing[k] = v
+  end
+  S.claimStateByEvent[eventName] = existing
+  return existing
+end
+
+function M.beginClaim(eventName, transform, opts)
+  if not eventName then
+    return { pending = false, err = "missing_event_name" }
+  end
+  opts = opts or {}
+
+  local requestSpec = opts.requestSpec
+  if requestSpec == nil then
+    requestSpec = M.getRegisteredSpec(eventName)
+  end
+
+  local claimOptions = opts.claimOptions or {
+    model = opts.model,
+    config = opts.config,
+    consumeRetries = opts.consumeRetries,
+    consumeMaxDist = opts.consumeMaxDist,
+    consumeSkipSafeTeleport = opts.consumeSkipSafeTeleport,
+  }
+
+  local id, err = M.claim(eventName, transform, claimOptions)
+  if id then
+    clearClaimState(eventName)
+    return { pending = false, id = id, eventName = eventName, ownerEventName = eventName }
+  end
+
+  if requestSpec and M.request then
+    pcall(M.request, requestSpec)
+  end
+
+  local now = os.clock()
+  local timeoutSec = tonumber(opts.timeoutSec) or 30.0
+  local retryIntervalSec = tonumber(opts.retryIntervalSec) or 0.25
+  local state = buildClaimState(eventName, {
+    eventName = eventName,
+    transform = transform,
+    claimOptions = claimOptions,
+    requestSpec = requestSpec,
+    timeoutAt = now + timeoutSec,
+    nextAttemptAt = now + retryIntervalSec,
+    retryIntervalSec = retryIntervalSec,
+    attempts = 0,
+    lastError = err,
+    startedAt = now,
+  })
+
+  S.stats.claimBeginCount = (S.stats.claimBeginCount or 0) + 1
+
+  return {
+    pending = true,
+    eventName = eventName,
+    attempts = state.attempts,
+    deadline = state.timeoutAt,
+    nextAttemptAt = state.nextAttemptAt,
+    err = err,
+  }
+end
+
+function M.updateClaim(eventName)
+  local state = eventName and S.claimStateByEvent[eventName] or nil
+  if not state then
+    return { pending = false, status = "idle" }
+  end
+
+  local now = os.clock()
+  if state.timeoutAt and now >= state.timeoutAt then
+    local err = state.lastError or "claim_timeout"
+    clearClaimState(eventName)
+    S.stats.claimTimeoutCount = (S.stats.claimTimeoutCount or 0) + 1
+    S.lastFailure = err
+    return { pending = false, status = "timeout", err = err }
+  end
+
+  if (not state.nextAttemptAt) or now >= state.nextAttemptAt then
+    state.attempts = (state.attempts or 0) + 1
+    local id, err = M.claim(eventName, state.transform, state.claimOptions)
+    if id then
+      clearClaimState(eventName)
+      return {
+        pending = false,
+        status = "claimed",
+        id = id,
+        eventName = eventName,
+        attempts = state.attempts,
+      }
+    end
+
+    state.lastError = err
+    state.nextAttemptAt = now + (state.retryIntervalSec or 0.25)
+    if state.requestSpec and M.request then
+      pcall(M.request, state.requestSpec)
+    end
+  end
+
+  return {
+    pending = true,
+    status = "pending",
+    eventName = eventName,
+    attempts = state.attempts or 0,
+    deadline = state.timeoutAt,
+    nextAttemptAt = state.nextAttemptAt,
+    err = state.lastError,
+  }
+end
+
+function M.cancelClaim(eventName)
+  if not eventName then return end
+  clearClaimState(eventName)
+end
+
+function M.getClaimState(eventName)
+  if eventName then
+    return S.claimStateByEvent[eventName]
+  end
+  return S.claimStateByEvent
+end
+
+local function isClaimCompatible(eventName, opts)
+  if not S.preloaded then
+    return false, "no_preloaded_vehicle"
+  end
   if eventName and S.preloaded.eventName ~= eventName then
     local expectedModel = opts and opts.model or nil
     local expectedConfig = opts and opts.config or nil
     if expectedModel ~= nil and expectedModel == S.preloaded.model and expectedConfig == S.preloaded.config then
-      -- Allow shared preloads when the vehicle spec matches.
-    else
-      return nil, "event_mismatch"
+      return true, nil
     end
+    return false, "event_mismatch"
+  end
+  return true, nil
+end
+
+function M.claim(eventName, transform, opts)
+  local compatible, compatErr = isClaimCompatible(eventName, opts)
+  if not compatible then
+    return nil, compatErr
+  end
+
+  if S.ownerEventName and S.ownerEventName ~= eventName then
+    return nil, "owned_by_other_event"
   end
 
   local veh = getObjById(S.preloaded.vehId)
@@ -479,16 +710,19 @@ function M.consume(eventName, transform, opts)
       S.preloadedBySpec[S.preloaded.specKey] = nil
     end
     S.preloaded = nil
+    S.ownerEventName = nil
+    S.ownerVehId = nil
+    S.ownerSince = nil
     return nil, "preloaded_vehicle_missing"
   end
 
   local usedRetries = 0
   if transform and transform.pos then
-    local consumeRetries = opts and tonumber(opts.consumeRetries) or 3
-    local consumeMaxDist = opts and tonumber(opts.consumeMaxDist) or 5.0
+    local consumeRetries = opts and tonumber(opts.consumeRetries) or 2
+    local consumeMaxDist = opts and tonumber(opts.consumeMaxDist) or 4.0
     local skipSafeTeleport = opts and opts.consumeSkipSafeTeleport
     if skipSafeTeleport == nil then
-      skipSafeTeleport = false
+      skipSafeTeleport = true
     end
     usedRetries = consumeRetries
     local ok = teleportWithVerify(veh, transform.pos, transform.rot, {
@@ -497,8 +731,8 @@ function M.consume(eventName, transform, opts)
       skipSafeTeleport = skipSafeTeleport,
     })
     if not ok then
-      log("Consume failed: teleport verification failed.")
-      S.lastFailure = "consume teleport verification failed"
+      log("Claim failed: teleport verification failed.")
+      S.lastFailure = "claim teleport verification failed"
       return nil, "teleport_verification_failed"
     end
   end
@@ -508,10 +742,40 @@ function M.consume(eventName, transform, opts)
   S.preloaded.placed = "event"
   S.preloaded.lastUsedAt = os.clock()
   S.preloaded.eventName = eventName or S.preloaded.eventName
+  S.ownerEventName = eventName or S.preloaded.eventName
+  S.ownerVehId = id
+  clearClaimState(eventName)
+  S.ownerSince = os.clock()
   S.stats.consumeCount = (S.stats.consumeCount or 0) + 1
   S.stats.consumeRetries = (S.stats.consumeRetries or 0) + usedRetries
+  S.stats.claimCount = (S.stats.claimCount or 0) + 1
   S.lastFailure = nil
   return id, nil
+end
+
+function M.consume(eventName, transform, opts)
+  return M.claim(eventName, transform, opts)
+end
+
+function M.release(eventName, vehId, opts)
+  if S.ownerEventName and eventName and S.ownerEventName ~= eventName then
+    return false, "owner_mismatch"
+  end
+  if S.ownerVehId and vehId and S.ownerVehId ~= vehId then
+    return false, "owner_vehicle_mismatch"
+  end
+
+  S.ownerEventName = nil
+  S.ownerVehId = nil
+  S.ownerSince = nil
+
+  clearClaimState(eventName)
+  local ok = M.stash(eventName, vehId, opts)
+  if ok then
+    S.stats.releaseCount = (S.stats.releaseCount or 0) + 1
+    return true, nil
+  end
+  return false, S.lastFailure or "release_failed"
 end
 
 function M.stash(eventName, vehId, opts)
@@ -556,7 +820,7 @@ function M.stash(eventName, vehId, opts)
 
   if placed ~= "preloadParking" then
     stashRetries = 3
-    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0 })
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0, skipSafeTeleport = true })
     if not ok then
       log("Stash failed: teleport verification failed.")
       S.lastFailure = "stash teleport verification failed"
@@ -585,6 +849,9 @@ function M.stash(eventName, vehId, opts)
   S.stats.stashCount = (S.stats.stashCount or 0) + 1
   S.stats.stashRetries = (S.stats.stashRetries or 0) + stashRetries
   S.lastFailure = nil
+  S.ownerEventName = nil
+  S.ownerVehId = nil
+  S.ownerSince = nil
   return true
 end
 
@@ -599,7 +866,7 @@ end
 function M.update(dtSim)
   local now = os.clock()
 
-  if S.preloaded and not isPreloadedEntryValid(S.preloaded) then
+  if S.preloaded and not S.ownerEventName and not isPreloadedEntryValid(S.preloaded) then
     local pending = {
       eventName = S.preloaded.eventName,
       model = S.preloaded.model,
@@ -649,6 +916,10 @@ function M.getPreloadDebugInfo()
     spawnPointFarEnough = state and state.spawnPointFarEnough or false,
     lastFailure = state and state.lastFailure or nil,
     stats = state and state.stats or nil,
+    ownerEventName = state and state.ownerEventName or nil,
+    ownerVehId = state and state.ownerVehId or nil,
+    claimState = state and state.claimStateByEvent or nil,
+    registryCount = state and state.registryCount or 0,
   }
 end
 
