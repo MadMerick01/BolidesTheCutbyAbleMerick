@@ -46,7 +46,6 @@ local R = {
   pendingStartDeadline = nil,
   pendingStartNextAttemptAt = nil,
   pendingStartAttempts = 0,
-  pendingStartTimeoutExtensions = 0,
 }
 
 local ROBBER_MODEL = "roamer"
@@ -56,8 +55,6 @@ local ROBBER_SHOT_EXPLOSION_FORCE = 30.0
 local ROBBER_SHOT_EXPLOSION_RADIUS = 1.0
 local PRELOAD_START_TIMEOUT_SEC = 30.0
 local PRELOAD_RETRY_INTERVAL_SEC = 0.25
-local ALLOW_COLD_SPAWN_FALLBACK = false
-local MAX_PRELOAD_TIMEOUT_EXTENSIONS = 2
 
 
 local function log(msg)
@@ -151,7 +148,6 @@ local function resetRuntime()
   R.pendingStartDeadline = nil
   R.pendingStartNextAttemptAt = nil
   R.pendingStartAttempts = 0
-  R.pendingStartTimeoutExtensions = 0
 end
 
 local function chooseFkbPos(spacing, maxAgeSec)
@@ -744,10 +740,6 @@ function M.isActive()
   return R.active == true
 end
 
-function M.isPendingStart()
-  return R.pendingStart == true
-end
-
 function M.triggerManual()
   if R.active then
     log("Already active.")
@@ -786,13 +778,12 @@ function M.triggerManual()
   R.pendingStartDeadline = os.clock() + PRELOAD_START_TIMEOUT_SEC
   R.pendingStartNextAttemptAt = os.clock()
   R.pendingStartAttempts = 0
-  R.pendingStartTimeoutExtensions = 0
   R.spawnMethod = nil
   R.preloadEventName = nil
   setHud(
     "event",
     "Stay Alert",
-    "Waiting for robber preload handoff.",
+    nil,
     nil
   )
   if consumeErr then
@@ -848,8 +839,8 @@ function M.endEvent(reason)
     if v then
       if PreloadEvent and PreloadEvent.stash then
         preloadName = preloadName or "RobberShotgun"
-        local okCall, stashed = pcall(PreloadEvent.stash, preloadName, id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
-        if (not okCall) or stashed ~= true then
+        local ok = pcall(PreloadEvent.stash, preloadName, id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
+        if not ok then
           pcall(function() v:delete() end)
         end
       else
@@ -866,50 +857,27 @@ function M.update(dtSim)
 
   if R.pendingStart and not R.active then
     if R.pendingStartDeadline and now >= R.pendingStartDeadline then
-      if ALLOW_COLD_SPAWN_FALLBACK then
-        local tf = R.pendingStartTransform
-        local id = tf and spawnVehicleAt(tf) or nil
-        if id then
-          R.spawnMethod = "spawnFallbackAfterPending"
-          R.preloadEventName = nil
-          R.pendingStart = false
-          R.pendingStartTransform = nil
-          R.pendingStartDeadline = nil
-          R.pendingStartNextAttemptAt = nil
-          R.pendingStartAttempts = 0
-          log("Pending start timed out; used fallback spawn.")
-          beginActiveRun(id)
-        else
-          resetRuntime()
-          setHud(
-            "safe",
-            "Threat cleared.",
-            "Resume route.",
-            nil
-          )
-          log("Pending start failed: fallback spawn unavailable.")
-        end
+      local tf = R.pendingStartTransform
+      local id = tf and spawnVehicleAt(tf) or nil
+      if id then
+        R.spawnMethod = "spawnFallbackAfterPending"
+        R.preloadEventName = nil
+        R.pendingStart = false
+        R.pendingStartTransform = nil
+        R.pendingStartDeadline = nil
+        R.pendingStartNextAttemptAt = nil
+        R.pendingStartAttempts = 0
+        log("Pending start timed out; used fallback spawn.")
+        beginActiveRun(id)
       else
-        R.pendingStartTimeoutExtensions = (R.pendingStartTimeoutExtensions or 0) + 1
-        if R.pendingStartTimeoutExtensions <= MAX_PRELOAD_TIMEOUT_EXTENSIONS then
-          R.pendingStartDeadline = now + PRELOAD_START_TIMEOUT_SEC
-          setHud(
-            "event",
-            "Preload delayed",
-            "Robber event will resume once handoff is ready.",
-            nil
-          )
-          log("Pending start timed out; cold spawn fallback disabled (continuing preload wait).")
-        else
-          resetRuntime()
-          setHud(
-            "safe",
-            "Threat cleared.",
-            "Robber preload unavailable; event skipped to avoid stall.",
-            nil
-          )
-          log("Pending start aborted after repeated preload timeouts.")
-        end
+        resetRuntime()
+        setHud(
+          "safe",
+          "Threat cleared.",
+          "Resume route.",
+          nil
+        )
+        log("Pending start failed: fallback spawn unavailable.")
       end
       return
     end
@@ -928,13 +896,6 @@ function M.update(dtSim)
         log("Pending start resolved via preload handoff.")
         beginActiveRun(id)
         return
-      end
-
-      if PreloadEvent and PreloadEvent.request then
-        local spec = M.getPreloadSpec()
-        if spec then
-          pcall(PreloadEvent.request, spec)
-        end
       end
 
       R.pendingStartNextAttemptAt = now + PRELOAD_RETRY_INTERVAL_SEC
