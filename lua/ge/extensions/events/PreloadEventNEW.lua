@@ -462,11 +462,22 @@ function M.getDebugState()
 end
 
 function M.consume(eventName, transform, opts)
-  if not S.preloaded then return nil, "no_preloaded_vehicle" end
-  if eventName and S.preloaded.eventName ~= eventName then
+  local entry = S.preloaded
+  if (not entry) and opts and opts.model then
+    entry = findEntryBySpec(opts.model, opts.config)
+  end
+  if not entry and S.activeSpecKey then
+    entry = S.preloadedBySpec[S.activeSpecKey]
+  end
+  if not entry then
+    return nil, "no_preloaded_vehicle"
+  end
+  S.preloaded = entry
+
+  if eventName and entry.eventName ~= eventName then
     local expectedModel = opts and opts.model or nil
     local expectedConfig = opts and opts.config or nil
-    if expectedModel ~= nil and expectedModel == S.preloaded.model and expectedConfig == S.preloaded.config then
+    if expectedModel ~= nil and expectedModel == entry.model and expectedConfig == entry.config then
       -- Allow shared preloads when the vehicle spec matches.
     else
       return nil, "event_mismatch"
@@ -503,7 +514,7 @@ function M.consume(eventName, transform, opts)
     end
   end
 
-  local id = S.preloaded.vehId
+  local id = entry.vehId
   S.pending = nil
   S.preloaded.placed = "event"
   S.preloaded.lastUsedAt = os.clock()

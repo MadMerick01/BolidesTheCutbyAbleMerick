@@ -959,6 +959,10 @@ function M.isActive()
   return R.active == true
 end
 
+function M.isPendingStart()
+  return R.pendingStart == true and R.active ~= true
+end
+
 function M.triggerManual()
   if R.active then
     log("Already active.")

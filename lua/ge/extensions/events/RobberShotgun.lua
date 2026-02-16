@@ -55,6 +55,7 @@ local ROBBER_SHOT_EXPLOSION_FORCE = 30.0
 local ROBBER_SHOT_EXPLOSION_RADIUS = 1.0
 local PRELOAD_START_TIMEOUT_SEC = 30.0
 local PRELOAD_RETRY_INTERVAL_SEC = 0.25
+local ALLOW_COLD_SPAWN_FALLBACK = false
 
 
 local function log(msg)
@@ -740,6 +741,10 @@ function M.isActive()
   return R.active == true
 end
 
+function M.isPendingStart()
+  return R.pendingStart == true and R.active ~= true
+end
+
 function M.triggerManual()
   if R.active then
     log("Already active.")
@@ -857,27 +862,39 @@ function M.update(dtSim)
 
   if R.pendingStart and not R.active then
     if R.pendingStartDeadline and now >= R.pendingStartDeadline then
-      local tf = R.pendingStartTransform
-      local id = tf and spawnVehicleAt(tf) or nil
-      if id then
-        R.spawnMethod = "spawnFallbackAfterPending"
-        R.preloadEventName = nil
-        R.pendingStart = false
-        R.pendingStartTransform = nil
-        R.pendingStartDeadline = nil
-        R.pendingStartNextAttemptAt = nil
-        R.pendingStartAttempts = 0
-        log("Pending start timed out; used fallback spawn.")
-        beginActiveRun(id)
+      if ALLOW_COLD_SPAWN_FALLBACK then
+        local tf = R.pendingStartTransform
+        local id = tf and spawnVehicleAt(tf) or nil
+        if id then
+          R.spawnMethod = "spawnFallbackAfterPending"
+          R.preloadEventName = nil
+          R.pendingStart = false
+          R.pendingStartTransform = nil
+          R.pendingStartDeadline = nil
+          R.pendingStartNextAttemptAt = nil
+          R.pendingStartAttempts = 0
+          log("Pending start timed out; used fallback spawn.")
+          beginActiveRun(id)
+        else
+          resetRuntime()
+          setHud(
+            "safe",
+            "Threat cleared.",
+            "Resume route.",
+            nil
+          )
+          log("Pending start failed: fallback spawn unavailable.")
+        end
       else
-        resetRuntime()
+        R.pendingStartDeadline = now + PRELOAD_START_TIMEOUT_SEC
+        R.pendingStartNextAttemptAt = now + PRELOAD_RETRY_INTERVAL_SEC
         setHud(
-          "safe",
-          "Threat cleared.",
-          "Resume route.",
+          "event",
+          "Preload delayed",
+          "Waiting for handoff to avoid stutter.",
           nil
         )
-        log("Pending start failed: fallback spawn unavailable.")
+        log("Pending start window extended; cold spawn fallback disabled.")
       end
       return
     end
