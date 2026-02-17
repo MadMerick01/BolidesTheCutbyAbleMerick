@@ -571,10 +571,16 @@ local function updateStartupPipeline()
 
   if R.startupStage == "aiStart" then
     if R.spawnedId then
-      startFollowAI(R.spawnedId)
-      R.aiStarted = true
+      local ok = startFollowAI(R.spawnedId)
+      if ok then
+        R.aiStarted = true
+        advanceStartupStage("audioPlay", STARTUP_DELAY_AUDIO_PLAY_TICKS)
+      else
+        R.startupTicks = 3
+      end
+    else
+      R.startupTicks = 3
     end
-    advanceStartupStage("audioPlay", STARTUP_DELAY_AUDIO_PLAY_TICKS)
     return
   end
 
@@ -634,6 +640,27 @@ local function getPlayerVeh()
   if be and be.getPlayerVehicle then
     return be:getPlayerVehicle(0)
   end
+  return nil
+end
+
+local function safeVehicleId(v)
+  if not v or not v.getID then return nil end
+  local ok, id = pcall(function() return v:getID() end)
+  return (ok and type(id) == "number") and id or nil
+end
+
+local function safeVehiclePos(v)
+  if not v or not v.getPosition then return nil end
+  local ok, pos = pcall(function() return v:getPosition() end)
+  return ok and pos or nil
+end
+
+local function resolvePlayerVehicleId()
+  local pv = getPlayerVeh()
+  local id = safeVehicleId(pv)
+  if id and id > 0 then return id end
+  id = ((be and be.getPlayerVehicleID) and be:getPlayerVehicleID(0)) or nil
+  if type(id) == "number" and id > 0 then return id end
   return nil
 end
 
@@ -914,13 +941,13 @@ startFollowAI = function(robberId)
   local veh = getObjById(robberId)
   if not veh then
     log("ERROR: robber vehicle object missing after spawn (id=" .. tostring(robberId) .. ")")
-    return
+    return false
   end
 
-  local targetId = (be and be.getPlayerVehicleID) and be:getPlayerVehicleID(0) or nil
-  if not targetId or targetId <= 0 then
-    log("ERROR: could not resolve player targetId for AI.")
-    return
+  local targetId = resolvePlayerVehicleId()
+  if not targetId then
+    log("Robber AI: waiting for valid player targetId...")
+    return false
   end
 
   queueAI_ChaseConservative(veh, targetId)
@@ -928,6 +955,7 @@ startFollowAI = function(robberId)
   R.waitForFlee = false
   R.waitTimer = 0
   log("Robber AI: FOLLOW (limit, max20, aggr0.1, stop@10m). targetId=" .. tostring(targetId))
+  return true
 end
 
 local function switchToFleeAI(robberId)
@@ -937,8 +965,8 @@ local function switchToFleeAI(robberId)
     return
   end
 
-  local targetId = (be and be.getPlayerVehicleID) and be:getPlayerVehicleID(0) or nil
-  if not targetId or targetId <= 0 then
+  local targetId = resolvePlayerVehicleId()
+  if not targetId then
     log("ERROR: could not resolve player targetId for flee.")
     return
   end
@@ -1271,7 +1299,7 @@ function M.update(dtSim)
   if not pv then return end
 
   local rp = robber:getPosition()
-  local pp = pv:getPosition()
+  local pp = safeVehiclePos(pv)
   if not (rp and pp) then return end
 
   local d = (rp - pp):length()
@@ -1393,7 +1421,7 @@ function M.update(dtSim)
   if (not R.empFired) and R.phase ~= "flee" and d <= 18.0 then
     R.empFired = true
     R.empFiredAt = now
-    R.empPlayerId = (pv.getID and pv:getID()) or ((be and be.getPlayerVehicleID) and be:getPlayerVehicleID(0)) or nil
+    R.empPlayerId = safeVehicleId(pv) or ((be and be.getPlayerVehicleID) and be:getPlayerVehicleID(0)) or nil
     R.empFootstepsAt = (R.empFiredAt or 0) + 2.0
     R.empFootstepsPlayed = false
     R.empBrakeEnd = (R.empFiredAt or 0) + 2.0

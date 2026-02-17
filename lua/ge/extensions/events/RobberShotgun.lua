@@ -306,6 +306,19 @@ local function getPlayerVeh()
   return nil
 end
 
+local function safeVehicleId(v)
+  if not v or not v.getID then return nil end
+  local ok, id = pcall(function() return v:getID() end)
+  return (ok and type(id) == "number" and id > 0) and id or nil
+end
+
+local function resolvePlayerVehicleId()
+  local id = safeVehicleId(getPlayerVeh())
+  if id then return id end
+  id = ((be and be.getPlayerVehicleID) and be:getPlayerVehicleID(0)) or nil
+  return (type(id) == "number" and id > 0) and id or nil
+end
+
 local SHOT_AUDIO = {
   file = "/art/sound/bolides/distantgunshot.wav",
   name = "robberShotgunShot",
@@ -530,19 +543,20 @@ startFollowAI = function(robberId)
   local veh = getObjById(robberId)
   if not veh then
     log("ERROR: robber vehicle object missing after spawn (id=" .. tostring(robberId) .. ")")
-    return
+    return false
   end
 
-  local targetId = (be and be.getPlayerVehicleID) and be:getPlayerVehicleID(0) or nil
-  if not targetId or targetId <= 0 then
-    log("ERROR: could not resolve player targetId for AI.")
-    return
+  local targetId = resolvePlayerVehicleId()
+  if not targetId then
+    log("RobberShotgun AI: waiting for valid player targetId...")
+    return false
   end
 
   queueAI_FollowLegal(veh, targetId)
   R.phase = "follow"
   R.nextShotAt = nil
   log("RobberShotgun AI: FOLLOW (legal, lane changes, avoid cars/crash). targetId=" .. tostring(targetId))
+  return true
 end
 
 local function switchToFleeAI(robberId)
@@ -552,8 +566,8 @@ local function switchToFleeAI(robberId)
     return
   end
 
-  local targetId = (be and be.getPlayerVehicleID) and be:getPlayerVehicleID(0) or nil
-  if not targetId or targetId <= 0 then
+  local targetId = resolvePlayerVehicleId()
+  if not targetId then
     log("ERROR: could not resolve player targetId for flee.")
     return
   end
@@ -699,10 +713,16 @@ local function updateStartupPipeline()
 
   if R.startupStage == "aiStart" then
     if R.spawnedId then
-      startFollowAI(R.spawnedId)
-      R.aiStarted = true
+      local ok = startFollowAI(R.spawnedId)
+      if ok then
+        R.aiStarted = true
+        advanceStartupStage("audioPlay", STARTUP_DELAY_AUDIO_PLAY_TICKS)
+      else
+        R.startupTicks = 3
+      end
+    else
+      R.startupTicks = 3
     end
-    advanceStartupStage("audioPlay", STARTUP_DELAY_AUDIO_PLAY_TICKS)
     return
   end
 
