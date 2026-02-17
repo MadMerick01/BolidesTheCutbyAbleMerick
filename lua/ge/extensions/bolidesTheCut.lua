@@ -14,7 +14,6 @@ local BoldiePacing = require("lua/ge/extensions/events/BoldiePacing")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
 local BulletDamage = require("lua/ge/extensions/events/BulletDamage")
-local PreloadEvent = require("lua/ge/extensions/events/PreloadEventNEW")
 local FirstPersonShoot = require("lua/ge/extensions/FirstPersonShoot")
 local DeflateRandomTyre = require("lua/ge/extensions/events/deflateRandomTyre")
 local CareerMoney = require("CareerMoney")
@@ -228,36 +227,7 @@ local function getHudPauseActive()
 end
 
 local function getRobberPreloaded()
-  if not PreloadEvent or not PreloadEvent.hasPreloaded then
-    return false
-  end
-  local ok, res = pcall(PreloadEvent.hasPreloaded, "RobberEMP")
-  if ok and res then
-    return true
-  end
-  ok, res = pcall(PreloadEvent.hasPreloaded, "RobberShotgun")
-  return ok and res or false
-end
-
-local function describePreloadPlacement()
-  if not PreloadEvent or not PreloadEvent.getDebugState then
-    return "Unknown"
-  end
-  local ok, state = pcall(PreloadEvent.getDebugState)
-  if not ok or not state or not state.preloaded then
-    return "Unknown"
-  end
-  local placed = tostring(state.placed or "unknown")
-  local labels = {
-    breadcrumbPreload = "Breadcrumb preload (300m back @ 800m)",
-    preloadParking = "Preload parking spot (>=300m)",
-    fixedPreload = "Fixed map preload",
-    fallbackBreadcrumb300m = "Fallback breadcrumb (300m)",
-    fallbackBreadcrumb = "Fallback breadcrumb",
-    backBreadcrumb300m = "Back breadcrumb (300m)",
-    backBreadcrumb = "Back breadcrumb",
-  }
-  return labels[placed] or placed
+  return false
 end
 
 function M.toggleHudPause()
@@ -281,34 +251,6 @@ function M.toggleHudPause()
 end
 
 function M.preloadRobberFromHud()
-  local hasRobber = false
-  if RobberEMP and RobberEMP.getRobberVehicleId then
-    hasRobber = type(RobberEMP.getRobberVehicleId()) == "number"
-  end
-  if not hasRobber and RobberShotgun and RobberShotgun.getRobberVehicleId then
-    hasRobber = type(RobberShotgun.getRobberVehicleId()) == "number"
-  end
-
-  if hasRobber or getRobberPreloaded() then
-    markHudTrialDirty()
-    return
-  end
-
-  if PreloadEvent and PreloadEvent.requestByEvent then
-    if PreloadEvent and PreloadEvent.setUiGateOverride then
-      pcall(PreloadEvent.setUiGateOverride, true)
-    end
-    pcall(PreloadEvent.requestByEvent, "RobberEMP")
-  elseif RobberEMP and RobberEMP.getPreloadSpec and PreloadEvent and PreloadEvent.request then
-    local spec = RobberEMP.getPreloadSpec()
-    if spec then
-      if PreloadEvent and PreloadEvent.setUiGateOverride then
-        pcall(PreloadEvent.setUiGateOverride, true)
-      end
-      pcall(PreloadEvent.request, spec)
-    end
-  end
-
   markHudTrialDirty()
 end
 
@@ -459,45 +401,12 @@ local function sendPopupPayload(force)
 end
 
 local function isPopupPreloadReady()
-  if not S.popupActive or not S.popupWaitingForPreload then
-    return true
-  end
-  if not PreloadEvent then
-    return true
-  end
-  if S.popupPreloadEventName and PreloadEvent.hasPreloaded then
-    local ok, res = pcall(PreloadEvent.hasPreloaded, S.popupPreloadEventName)
-    if ok and res then
-      return true
-    end
-  end
-  if PreloadEvent.getDebugState then
-    local ok, state = pcall(PreloadEvent.getDebugState)
-    if ok and state then
-      if not state.pending then
-        return true
-      end
-      if S.popupPreloadEventName and state.pending ~= S.popupPreloadEventName then
-        return true
-      end
-      if state.preloadInProgress then
-        return false
-      end
-      if state.attemptCount and state.maxAttempts and state.attemptCount >= state.maxAttempts then
-        return true
-      end
-    end
-  end
-  return false
+  return true
 end
 
 local function finalizePopup(reason)
   local msg = S.popupActive
   local pauseState = S.popupPauseState
-
-  if PreloadEvent and PreloadEvent.setUiGateOverride then
-    pcall(PreloadEvent.setUiGateOverride, false)
-  end
 
   S.popupActive = nil
   S.popupDismissed = false
@@ -551,22 +460,6 @@ function M._activateNextPopup()
     S.popupPauseState = nil
   end
 
-  if msg.preloadSpec or msg.nextEventName then
-    local ok = false
-    if msg.preloadSpec then
-      ok = M.requestEventPreload(msg.preloadSpec)
-    elseif msg.nextEventName then
-      ok = M.requestEventPreloadByName(msg.nextEventName, msg.preloadOpts)
-    end
-    if ok then
-      S.popupWaitingForPreload = true
-      S.popupPreloadEventName = msg.nextEventName or (msg.preloadSpec and msg.preloadSpec.eventName) or nil
-      if PreloadEvent and PreloadEvent.setUiGateOverride then
-        pcall(PreloadEvent.setUiGateOverride, true)
-      end
-    end
-  end
-
   ensureHudTrialAppVisible(true)
   markPopupDirty()
   sendPopupPayload(true)
@@ -606,18 +499,6 @@ function M.showPopupMessage(args)
   return true
 end
 
-local function updatePopupPreloadSuccessMessage()
-  local msg = S.popupActive
-  if not msg or not msg.preloadSuccessBody then
-    return false
-  end
-  local placement = describePreloadPlacement()
-  local label = msg.preloadSuccessPlacementLabel or "Preload position:"
-  msg.body = string.format("%s\n%s %s", msg.preloadSuccessBody, label, placement)
-  msg.preloadStatus = "Preload complete."
-  msg.canContinue = true
-  return true
-end
 
 function M._popupContinue()
   if not S.popupActive then
@@ -1220,8 +1101,6 @@ end
 local function buildHudTrialPayload()
   ensureHudState()
   local walletAmount = tonumber(S.hudWallet) or 0
-  local preloadAvailable = PreloadEvent and PreloadEvent.isPreloadPointAvailable and PreloadEvent.isPreloadPointAvailable() or false
-  local preloadInfo = PreloadEvent and PreloadEvent.getPreloadDebugInfo and PreloadEvent.getPreloadDebugInfo() or nil
   local empPending = RobberEMP and RobberEMP.getPendingStartState and RobberEMP.getPendingStartState() or nil
   local shotgunPending = RobberShotgun and RobberShotgun.getPendingStartState and RobberShotgun.getPendingStartState() or nil
 
@@ -1229,8 +1108,6 @@ local function buildHudTrialPayload()
     if type(ts) ~= "number" then return nil end
     return math.max(0, ts - os.clock())
   end
-
-  local preloadStats = preloadInfo and preloadInfo.stats or nil
 
   return {
     title = "Bolides: The Cut",
@@ -1244,27 +1121,27 @@ local function buildHudTrialPayload()
     hasPlayerVehicle = getPlayerVeh() ~= nil,
     paused = getHudPauseActive(),
     preloaded = getRobberPreloaded(),
-    preloadAvailable = preloadAvailable,
+    preloadAvailable = false,
     preloadDebug = {
-      ready = preloadInfo and preloadInfo.ready or false,
-      owner = preloadInfo and preloadInfo.owner or nil,
-      specKey = preloadInfo and preloadInfo.specKey or nil,
-      pending = preloadInfo and preloadInfo.pending or nil,
-      placed = preloadInfo and preloadInfo.placed or nil,
-      anchorReady = preloadInfo and preloadInfo.spawnPointReady or false,
-      anchorDistance = preloadInfo and preloadInfo.spawnPointDistance or nil,
-      anchorFarEnough = preloadInfo and preloadInfo.spawnPointFarEnough or false,
-      lastFailure = preloadInfo and preloadInfo.lastFailure or nil,
-      consumeCount = preloadStats and preloadStats.consumeCount or 0,
-      stashCount = preloadStats and preloadStats.stashCount or 0,
-      parkingFallbacks = preloadStats and preloadStats.parkingFallbacks or 0,
+      ready = false,
+      owner = nil,
+      specKey = nil,
+      pending = nil,
+      placed = nil,
+      anchorReady = false,
+      anchorDistance = nil,
+      anchorFarEnough = false,
+      lastFailure = nil,
+      consumeCount = 0,
+      stashCount = 0,
+      parkingFallbacks = 0,
       empPending = empPending and empPending.pending or false,
       empPendingAttempts = empPending and empPending.attempts or 0,
       empPendingEta = secondsUntil(empPending and empPending.deadline or nil),
       shotgunPending = shotgunPending and shotgunPending.pending or false,
       shotgunPendingAttempts = shotgunPending and shotgunPending.attempts or 0,
       shotgunPendingEta = secondsUntil(shotgunPending and shotgunPending.deadline or nil),
-      coldSpawnAllowed = false,
+      coldSpawnAllowed = true,
     },
     pacingMode = BoldiePacing and BoldiePacing.getMode and BoldiePacing.getMode() or (CFG.pacingModeDefault or "real"),
     pendingPacingMode = BoldiePacing and BoldiePacing.getPendingMode and BoldiePacing.getPendingMode() or nil,
@@ -1938,30 +1815,7 @@ function M.onExtensionLoaded()
     BoldiePacing.init(CFG, EVENT_HOST, {
       RobberEMP = RobberEMP,
       RobberShotgun = RobberShotgun,
-    }, function(nextName, opts)
-      return M.requestEventPreloadByName(nextName, opts)
-    end)
-  end
-  if PreloadEvent and PreloadEvent.init then
-    PreloadEvent.init(CFG, EVENT_HOST)
-    if PreloadEvent.registerSpec then
-      if RobberEMP and RobberEMP.getPreloadSpec then
-        local spec = RobberEMP.getPreloadSpec()
-        if spec then pcall(PreloadEvent.registerSpec, spec) end
-      end
-      if RobberShotgun and RobberShotgun.getPreloadSpec then
-        local spec = RobberShotgun.getPreloadSpec()
-        if spec then pcall(PreloadEvent.registerSpec, spec) end
-      end
-    end
-    if PreloadEvent.requestByEvent then
-      pcall(PreloadEvent.requestByEvent, "RobberEMP")
-    elseif RobberEMP and RobberEMP.getPreloadSpec and PreloadEvent.request then
-      local spec = RobberEMP.getPreloadSpec()
-      if spec then
-        pcall(PreloadEvent.request, spec)
-      end
-    end
+    }, nil)
   end
 
   if FirstPersonShoot and FirstPersonShoot.init then
@@ -2050,11 +1904,7 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
 
   if S.popupActive and S.popupWaitingForPreload then
     if isPopupPreloadReady() then
-      updatePopupPreloadSuccessMessage()
       S.popupWaitingForPreload = false
-      if PreloadEvent and PreloadEvent.setUiGateOverride then
-        pcall(PreloadEvent.setUiGateOverride, false)
-      end
       if S.popupDismissed then
         finalizePopup("continue")
       else
@@ -2090,44 +1940,14 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if BoldiePacing and BoldiePacing.update then
     BoldiePacing.update(dtSim)
   end
-  if PreloadEvent and PreloadEvent.update then
-    PreloadEvent.update(dtSim)
-  end
 end
 
 function M.requestEventPreload(spec)
-  if not (PreloadEvent and PreloadEvent.request) then
-    return false
-  end
-  return PreloadEvent.request(spec)
+  return false
 end
 
 function M.requestEventPreloadByName(name, opts)
-  if not name then return false end
-  if PreloadEvent and PreloadEvent.requestByEvent then
-    local ok, res = pcall(PreloadEvent.requestByEvent, name, opts)
-    if ok and res ~= false then
-      return true
-    end
-  end
-
-  local spec = nil
-  if name == "RobberEMP" and RobberEMP and RobberEMP.getPreloadSpec then
-    spec = RobberEMP.getPreloadSpec()
-  elseif name == "RobberShotgun" and RobberShotgun and RobberShotgun.getPreloadSpec then
-    spec = RobberShotgun.getPreloadSpec()
-  end
-  if not spec then
-    return false
-  end
-  if type(opts) == "table" then
-    for k, v in pairs(opts) do
-      if spec[k] == nil then
-        spec[k] = v
-      end
-    end
-  end
-  return M.requestEventPreload(spec)
+  return false
 end
 
 function M.startEvent(name, cfg)
