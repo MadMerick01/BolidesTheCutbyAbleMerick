@@ -13,9 +13,9 @@ Your decisions determine whether you survive, fight back, or turn danger into pr
 
 ### Strategic Vehicle Configuration
 
-Vehicle setup is not cosmetic — it is functional engineering.
+Vehicle setup is critical to your progress — it is functional engineering.
 
-Your build must complete standard career work — cargo transport, value delivery, contracts — while also surviving and responding to hostile encounters.
+Your build must complete standard career work — cargo transport, value delivery, contracts etc. — while also surviving and responding to hostile encounters.
 
 A pure work configuration may maximise income but increase vulnerability.
 A defensive build may improve survivability but reduce efficiency, range, or payload.
@@ -56,21 +56,20 @@ https://github.com/MadMerick01/BolidesTheCutbyAbleMerick/releases/tag/Public_Rel
 
 -----------------------------------------------------
 
-In standard BeamNG.drive RLS or Vanilla career, you build wealth through planning and discipline. Time Trials & Competition, Drag, Rally, Circuit, Drift, and Rock crawling events, 
-Mechanic Workshop, Police & Law Enforcement, Deliver materials, Parcels, Restaurant orders, Warehouse goods, Repo Missions, Taxi Work and Garage Delivery.
+In standard BeamNG.drive RLS or Vanilla career, you build wealth through planning and discipline.
 
 **Bolides – The Cut exists to disrupt that.**
 
 As you move value across the map, criminal events may unfold:
 - Ambushes (EMP disables your vehicle to be robbed)
-- Theft (up to half money total in your wallet)
-- Pursuit of Bolide Robber to intercept/disable to gain money back (plus possible loot)
+- Theft (Up to half career money in your wallet)
+- Pursuit of Bolide Robber to intercept/disable to gain money back (plus possible extra loot or ammumition)
 - Bullet damage at the worst possible moment
 - Intimidation
 - Drive by shooting
 - Pursuit by armed Bolide Vehicle
 - NEXT UPDATE: ability to purchase EMP charges and ammo (in RC 0.9 obtain these from intercepting Bolide vehicles)
-- many more planned features
+- many more planned hostile encounters with risk/reward mechanics
 
 The Bolides are a roaming crime gang led by **Bonito Bolide**. Bonito Bolide is the founder of **Bolide Motors** and the unseen head of
 the Bolides crime network. Publicly, he is known as an industrialist with property holdings in Italy and interests in high-performance vehicle manufacturing. Privately, his fortune is reinforced through organised criminal operations targeting high-value transport and emerging career operators.
@@ -80,7 +79,7 @@ If you are making money on the road, Bonito Bolide is already aware of you.
 --------------------------------------------------------------------------------------
  
 **Custom Lua AI switching behaviour based on forward thinking**.
-The Bolides use custom lua ai mode and constraint switching to enable for example realistic and safe downhill chases while still preserving good top speed and retention of momentum in corners. They limit speed when appropriate, lane change and avoid traffic and obstacles. Essentially the Bolides are better drivers than 'flee' mode vanilla. Part of the inspiration of this mod originated in my curious digging into the weeds of the Beamng.drive AI and finding a surprisingly robust set of parameters and road ahead information. Once the core parts of the mod are more robustly implemented I intend to return to keep refining Custom Bolide AI further. 
+The Bolides use a custom lua ai mode and constraint switching to enable for example realistic and safe downhill chases while still preserving good top speed and conservation of momentum in corners. They limit speed when appropriate, lane change and avoid traffic and obstacles. Essentially the Bolides are better drivers than vanilla 'flee' mode. Part of the inspiration of this mod originated in my curious digging into the weeds of the Beamng.drive AI and finding a surprisingly robust set of parameters and road ahead information. Once the core parts of the mod are more robustly implemented I intend to return to keep refining Custom Bolide AI further. 
 
 -------------------------------------------------------------------------------------
 
