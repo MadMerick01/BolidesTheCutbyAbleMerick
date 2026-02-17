@@ -169,17 +169,47 @@ local function teleportWithVerify(veh, pos, rot, opts)
   opts = opts or {}
   local retries = tonumber(opts.retries) or 3
   local maxDist = tonumber(opts.maxDist) or 8.0
-  local settleTicks = math.max(1, math.floor(tonumber(opts.settleTicks) or 30))
+  local settleWindowSec = math.max(0.0, tonumber(opts.settleWindowSec) or 0.25)
+  local skipSafeTeleport = opts.skipSafeTeleport == true
+  local logger = opts.logger
 
-  for _ = 1, retries do
+  local function fmtVec(v)
+    if not v then return "(nil)" end
+    return string.format("(%.2f, %.2f, %.2f)", v.x or 0, v.y or 0, v.z or 0)
+  end
+
+  local function logAttempt(attemptIdx, status, current, missDistance)
+    if type(logger) ~= "function" then return end
+    logger(string.format(
+      "Claim teleport %s [try %d/%d] target=%s current=%s miss=%.2fm max=%.2fm safeTeleport=%s settleWindow=%.2fs",
+      tostring(status),
+      attemptIdx,
+      retries,
+      fmtVec(pos),
+      fmtVec(current),
+      tonumber(missDistance) or -1,
+      maxDist,
+      skipSafeTeleport and "off" or "on",
+      settleWindowSec
+    ))
+  end
+
+  for attemptIdx = 1, retries do
     safeTeleportVehicle(veh, pos, rot, opts)
 
-    for _ = 1, settleTicks do
+    local deadline = os.clock() + settleWindowSec
+    repeat
       local current = veh.getPosition and veh:getPosition() or nil
-      if current and (current - pos):length() <= maxDist then
+      local missDistance = current and (current - pos):length() or math.huge
+      if current and missDistance <= maxDist then
+        logAttempt(attemptIdx, "pass", current, missDistance)
         return true
       end
-    end
+    until os.clock() >= deadline
+
+    local current = veh.getPosition and veh:getPosition() or nil
+    local missDistance = current and (current - pos):length() or math.huge
+    logAttempt(attemptIdx, "fail", current, missDistance)
   end
   return false
 end
@@ -318,7 +348,7 @@ local function spawnPreloadedVehicle(opts)
   end
 
   if placed ~= "preloadParking" then
-    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 12.0, settleTicks = 30, skipSafeTeleport = false })
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 12.0, settleWindowSec = 0.25, skipSafeTeleport = false })
     if not ok then
       veh:delete()
       return nil, "preload teleport verification failed"
@@ -583,6 +613,7 @@ function M.beginClaim(eventName, transform, opts)
     config = opts.config,
     consumeRetries = opts.consumeRetries,
     consumeMaxDist = opts.consumeMaxDist,
+    consumeSettleSec = opts.consumeSettleSec,
     consumeSkipSafeTeleport = opts.consumeSkipSafeTeleport,
   }
 
@@ -724,6 +755,7 @@ function M.claim(eventName, transform, opts)
   if transform and transform.pos then
     local consumeRetries = opts and tonumber(opts.consumeRetries) or 2
     local consumeMaxDist = opts and tonumber(opts.consumeMaxDist) or 10.0
+    local consumeSettleSec = opts and tonumber(opts.consumeSettleSec) or 3.0
     local skipSafeTeleport = opts and opts.consumeSkipSafeTeleport
     if skipSafeTeleport == nil then
       skipSafeTeleport = false
@@ -732,8 +764,9 @@ function M.claim(eventName, transform, opts)
     local ok = teleportWithVerify(veh, transform.pos, transform.rot, {
       retries = consumeRetries,
       maxDist = consumeMaxDist,
-      settleTicks = 30,
+      settleWindowSec = consumeSettleSec,
       skipSafeTeleport = skipSafeTeleport,
+      logger = log,
     })
     if not ok then
       log("Claim failed: teleport verification failed.")
@@ -825,7 +858,7 @@ function M.stash(eventName, vehId, opts)
 
   if placed ~= "preloadParking" then
     stashRetries = 3
-    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 12.0, settleTicks = 30, skipSafeTeleport = false })
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 12.0, settleWindowSec = 0.25, skipSafeTeleport = false })
     if not ok then
       log("Stash failed: teleport verification failed.")
       S.lastFailure = "stash teleport verification failed"
