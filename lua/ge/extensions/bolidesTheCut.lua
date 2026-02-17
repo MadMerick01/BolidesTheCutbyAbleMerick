@@ -1098,11 +1098,52 @@ local function hudTrialPayloadKey(payload)
   }, "|")
 end
 
+
+local function getPacingEventModule(name)
+  if name == "RobberEMP" then return RobberEMP end
+  if name == "RobberShotgun" then return RobberShotgun end
+  return nil
+end
+
+local function getNextDueEventReadiness()
+  local nextName = BoldiePacing and BoldiePacing.getNextEventName and BoldiePacing.getNextEventName() or nil
+  if not nextName then
+    return false, nil, "no due event"
+  end
+
+  local eventModule = getPacingEventModule(nextName)
+  if not eventModule then
+    return false, nextName, "missing module"
+  end
+
+  if eventModule.isActive and eventModule.isActive() then
+    return true, nextName, "active"
+  end
+
+  if eventModule.getPendingStartState then
+    local pendingState = eventModule.getPendingStartState()
+    if pendingState and pendingState.pending == true then
+      return true, nextName, "pending"
+    end
+  end
+
+  if eventModule.isReadyToStart then
+    local ready, reason = eventModule.isReadyToStart()
+    if ready then
+      return true, nextName, reason or "ready"
+    end
+    return false, nextName, reason or "not ready"
+  end
+
+  return false, nextName, "readiness unknown"
+end
+
 local function buildHudTrialPayload()
   ensureHudState()
   local walletAmount = tonumber(S.hudWallet) or 0
   local empPending = RobberEMP and RobberEMP.getPendingStartState and RobberEMP.getPendingStartState() or nil
   local shotgunPending = RobberShotgun and RobberShotgun.getPendingStartState and RobberShotgun.getPendingStartState() or nil
+  local nextDueReady, nextDueEventName, nextDueReason = getNextDueEventReadiness()
 
   local function secondsUntil(ts)
     if type(ts) ~= "number" then return nil end
@@ -1121,12 +1162,12 @@ local function buildHudTrialPayload()
     hasPlayerVehicle = getPlayerVeh() ~= nil,
     paused = getHudPauseActive(),
     preloaded = getRobberPreloaded(),
-    preloadAvailable = false,
+    preloadAvailable = nextDueReady == true,
     preloadDebug = {
-      ready = false,
-      owner = nil,
+      ready = nextDueReady == true,
+      owner = nextDueEventName,
       specKey = nil,
-      pending = nil,
+      pending = nextDueReason,
       placed = nil,
       anchorReady = false,
       anchorDistance = nil,
