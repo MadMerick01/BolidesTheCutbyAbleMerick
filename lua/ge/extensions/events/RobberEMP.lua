@@ -10,7 +10,6 @@ local M = {}
 
 local EMP = require('lua/ge/extensions/events/emp')
 local CareerMoney = require("CareerMoney")
-local PreloadEvent = require("lua/ge/extensions/events/PreloadEventNEW")
 
 local CFG = nil
 local Host = nil
@@ -933,13 +932,12 @@ function M.getSpawnMethod()
 end
 
 function M.getPendingStartState()
-  local state = (PreloadEvent and PreloadEvent.getClaimState and PreloadEvent.getClaimState("RobberEMP")) or nil
   return {
-    pending = state ~= nil,
-    attempts = state and state.attempts or 0,
-    deadline = state and state.timeoutAt or nil,
-    nextAttemptAt = state and state.nextAttemptAt or nil,
-    err = state and state.lastError or nil,
+    pending = R.pendingStart == true,
+    attempts = R.pendingStartAttempts or 0,
+    deadline = R.pendingStartDeadline,
+    nextAttemptAt = R.pendingStartNextAttemptAt,
+    err = nil,
   }
 end
 
@@ -983,45 +981,19 @@ function M.triggerManual()
   log("Using FKB 200 (" .. tostring(mode) .. ")")
 
   local tf = makeSpawnTransform(pv, R.spawnPos)
-  if not (PreloadEvent and PreloadEvent.beginClaim) then
-    log("BLOCKED: preload manager unavailable.")
-    return false
-  end
-
-  local claim = PreloadEvent.beginClaim("RobberEMP", tf, {
-    requestSpec = (PreloadEvent and PreloadEvent.getRegisteredSpec and PreloadEvent.getRegisteredSpec("RobberEMP"))
-      or M.getPreloadSpec(),
-    timeoutSec = 30.0,
-    retryIntervalSec = 3.25,
-    claimOptions = {
-      model = ROBBER_MODEL,
-      config = ROBBER_CONFIG,
-      consumeRetries = 3,
-      consumeMaxDist = 10.0,
-      consumeSettleSec = 3.0,
-      consumeSkipSafeTeleport = false,
-    },
-  })
-
-  if claim and claim.id then
-    R.spawnMethod = "PreloadEvent"
-    beginActiveRun(claim.id)
-    return true
-  end
-
   R.pendingStart = true
   R.pendingStartTransform = tf
-  R.pendingStartDeadline = claim and claim.deadline or nil
-  R.pendingStartNextAttemptAt = claim and claim.nextAttemptAt or nil
-  R.pendingStartAttempts = claim and claim.attempts or 0
+  R.pendingStartDeadline = os.clock() + 3.0
+  R.pendingStartNextAttemptAt = os.clock() + 0.05
+  R.pendingStartAttempts = 0
   updateHudState({
     threat = "event",
     status = mergeStatusInstruction(
       "Stay Alert",
-      "Waiting for robber preload handoff."
+      "Preparing robber vehicle."
     ),
   })
-  log("Pending start: waiting for preload handoff.")
+  log("Pending start: deferred cold spawn armed.")
   return true
 end
 
@@ -1030,9 +1002,6 @@ function M.endEvent(opts)
   opts = opts or {}
 
   if R.pendingStart and not R.active then
-    if PreloadEvent and PreloadEvent.cancelClaim then
-      pcall(PreloadEvent.cancelClaim, "RobberEMP")
-    end
     resetPendingStart()
     if not opts.keepHudState then
       updateHudState({
@@ -1123,14 +1092,7 @@ function M.endEvent(opts)
   if type(id) == "number" then
     local v = getObjById(id)
     if v then
-      if PreloadEvent and PreloadEvent.release then
-        local ok = pcall(PreloadEvent.release, "RobberEMP", id, { model = ROBBER_MODEL, config = ROBBER_CONFIG })
-        if not ok then
-          pcall(function() v:delete() end)
-        end
-      else
-        pcall(function() v:delete() end)
-      end
+      pcall(function() v:delete() end)
     end
   end
 
@@ -1140,8 +1102,30 @@ end
 function M.update(dtSim)
 
   if R.pendingStart and not R.active then
-    if not (PreloadEvent and PreloadEvent.updateClaim) then
-      resetPendingStart()
+    local now = os.clock()
+    if R.pendingStartNextAttemptAt and now < R.pendingStartNextAttemptAt then
+      return
+    end
+
+    R.pendingStartAttempts = (R.pendingStartAttempts or 0) + 1
+
+    if R.pendingStartAttempts == 1 then
+      R.pendingStartNextAttemptAt = now + 0.10
+      return
+    end
+
+    local tf = R.pendingStartTransform
+    local spawnedId = tf and spawnVehicleAt(tf) or nil
+    resetPendingStart()
+
+    if spawnedId then
+      R.spawnMethod = "DeferredColdSpawn"
+      log("Pending start resolved via deferred cold spawn.")
+      beginActiveRun(spawnedId)
+      return
+    end
+
+    if R.pendingStartDeadline and now >= R.pendingStartDeadline then
       updateHudState({
         threat = "safe",
         status = mergeStatusInstruction(
@@ -1149,49 +1133,14 @@ function M.update(dtSim)
           "Resume route."
         ),
       })
-      log("Pending start cancelled: preload manager unavailable.")
+      log("Pending start failed: cold spawn unavailable.")
       return
     end
 
-    local claim = PreloadEvent.updateClaim("RobberEMP")
-    if claim and claim.status == "claimed" and claim.id then
-      R.spawnMethod = "PreloadEvent"
-      log("Pending start resolved via preload handoff.")
-      beginActiveRun(claim.id)
-      return
-    end
-
-    if claim and claim.status == "timeout" then
-      local fallbackTf = R.pendingStartTransform
-      local fallbackId = fallbackTf and spawnVehicleAt(fallbackTf) or nil
-      resetPendingStart()
-
-      if fallbackId then
-        R.spawnMethod = "FallbackSpawnOnTimeout"
-        log("Pending start timed out; fallback cold spawn started.")
-        beginActiveRun(fallbackId)
-        return
-      end
-
-      updateHudState({
-        threat = "event",
-        status = mergeStatusInstruction(
-          "Preload delayed",
-          "Robber event will resume once handoff is ready."
-        ),
-      })
-      log("Pending start timed out; preload not ready.")
-      return
-    end
-
-    if claim then
-      R.pendingStartAttempts = claim.attempts or R.pendingStartAttempts
-      R.pendingStartDeadline = claim.deadline or R.pendingStartDeadline
-      R.pendingStartNextAttemptAt = claim.nextAttemptAt or R.pendingStartNextAttemptAt
-      if claim.err and (R.pendingStartAttempts % 8 == 0) then
-        log("Pending start retry still waiting (" .. tostring(claim.err) .. ")")
-      end
-    end
+    R.pendingStart = true
+    R.pendingStartTransform = tf
+    R.pendingStartDeadline = now + 1.0
+    R.pendingStartNextAttemptAt = now + 0.25
   end
 
   if not R.active then
