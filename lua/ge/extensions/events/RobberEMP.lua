@@ -466,6 +466,8 @@ local function mergeStatusInstruction(status, instruction)
   return string.format("%s\n%s", status, instruction)
 end
 
+local updateHudState
+
 local function beginActiveRun(id)
   R.active = true
   R.spawnedId = id
@@ -520,7 +522,7 @@ local function beginActiveRun(id)
   })
 end
 
-local function updateHudState(payload)
+updateHudState = function(payload)
   if not payload then return end
 
   local hasDelta = payload.moneyDelta or payload.inventoryDelta or payload.dangerReason
