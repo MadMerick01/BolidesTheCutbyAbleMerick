@@ -37,8 +37,9 @@ local R = {
   closeTimer = 0,
   robberSlowTimer = 0,
   robberStationaryTimer = 0,
-  pendingAiFrames = 0,
   aiStarted = false,
+  startupStage = nil,
+  startupTicks = 0,
 
   pendingStart = false,
   pendingStartTransform = nil,
@@ -53,6 +54,10 @@ local ROBBER_SHOT_FORCE_MULTIPLIER = 0.35
 local ROBBER_SHOT_EXPLOSION_FORCE = 30.0
 local ROBBER_SHOT_EXPLOSION_RADIUS = 1.0
 
+local STARTUP_DELAY_POST_SPAWN_TICKS = 1
+local STARTUP_DELAY_AUDIO_ENSURE_TICKS = 1
+local STARTUP_DELAY_AI_START_TICKS = 1
+local STARTUP_DELAY_AUDIO_PLAY_TICKS = 2
 
 local function log(msg)
   R.status = msg or ""
@@ -138,8 +143,9 @@ local function resetRuntime()
   R.closeTimer = 0
   R.robberSlowTimer = 0
   R.robberStationaryTimer = 0
-  R.pendingAiFrames = 0
   R.aiStarted = false
+  R.startupStage = nil
+  R.startupTicks = 0
   R.pendingStart = false
   R.pendingStartTransform = nil
   R.pendingStartDeadline = nil
@@ -518,7 +524,9 @@ local function queueAI_Flee(veh, targetId)
   ]]):format(targetId))
 end
 
-local function startFollowAI(robberId)
+local startFollowAI
+
+startFollowAI = function(robberId)
   local veh = getObjById(robberId)
   if not veh then
     log("ERROR: robber vehicle object missing after spawn (id=" .. tostring(robberId) .. ")")
@@ -531,20 +539,9 @@ local function startFollowAI(robberId)
     return
   end
 
-  local playerVeh = getPlayerVeh()
-  local audio = getAudioHelper()
-  if playerVeh and audio and audio.ensureSources then
-    audio.ensureSources(playerVeh, {
-      { file = AUDIO.eventStartFile, name = AUDIO.eventStartName },
-    })
-  end
   queueAI_FollowLegal(veh, targetId)
   R.phase = "follow"
   R.nextShotAt = nil
-
-  if playerVeh and audio and audio.playId then
-    audio.playId(playerVeh, AUDIO.eventStartName, AUDIO.eventStartVol, AUDIO.eventStartPitch, AUDIO.eventStartFile)
-  end
   log("RobberShotgun AI: FOLLOW (legal, lane changes, avoid cars/crash). targetId=" .. tostring(targetId))
 end
 
@@ -642,19 +639,80 @@ local function beginActiveRun(id)
   R.nextShotAt = nil
   R.shotsStarted = false
   R.fleeNotified = false
-  R.pendingAiFrames = 0
   R.aiStarted = false
 
   R.spawnClock = os.clock()
   R.spawnSnapped = false
 
-  R.pendingAiFrames = 2
+  R.startupStage = "postSpawn"
+  R.startupTicks = STARTUP_DELAY_POST_SPAWN_TICKS
   setHud(
     "event",
     "A vehicle is tailing you",
     "Keep moving. Watch your mirrors.",
     nil
   )
+end
+
+local function advanceStartupStage(stage, delayTicks)
+  R.startupStage = stage
+  R.startupTicks = math.max(tonumber(delayTicks) or 0, 0)
+end
+
+local function startupEnsureAudio()
+  local playerVeh = getPlayerVeh()
+  local audio = getAudioHelper()
+  if playerVeh and audio and audio.ensureSources then
+    audio.ensureSources(playerVeh, {
+      { file = AUDIO.eventStartFile, name = AUDIO.eventStartName },
+    })
+  end
+end
+
+local function startupPlayEventStartAudio()
+  local playerVeh = getPlayerVeh()
+  local audio = getAudioHelper()
+  if playerVeh and audio and audio.playId then
+    audio.playId(playerVeh, AUDIO.eventStartName, AUDIO.eventStartVol, AUDIO.eventStartPitch, AUDIO.eventStartFile)
+  end
+end
+
+local function updateStartupPipeline()
+  if not R.active then return end
+  if not R.startupStage or R.startupStage == "done" then return end
+
+  if (R.startupTicks or 0) > 0 then
+    R.startupTicks = R.startupTicks - 1
+    return
+  end
+
+  if R.startupStage == "postSpawn" then
+    advanceStartupStage("audioEnsure", STARTUP_DELAY_AUDIO_ENSURE_TICKS)
+    return
+  end
+
+  if R.startupStage == "audioEnsure" then
+    startupEnsureAudio()
+    advanceStartupStage("aiStart", STARTUP_DELAY_AI_START_TICKS)
+    return
+  end
+
+  if R.startupStage == "aiStart" then
+    if R.spawnedId then
+      startFollowAI(R.spawnedId)
+      R.aiStarted = true
+    end
+    advanceStartupStage("audioPlay", STARTUP_DELAY_AUDIO_PLAY_TICKS)
+    return
+  end
+
+  if R.startupStage == "audioPlay" then
+    startupPlayEventStartAudio()
+    advanceStartupStage("done", 0)
+    return
+  end
+
+  advanceStartupStage("done", 0)
 end
 
 function M.init(hostCfg, hostApi)
@@ -858,13 +916,7 @@ function M.update(dtSim)
 
   if not R.active then return end
 
-  if not R.aiStarted and R.pendingAiFrames and R.pendingAiFrames > 0 then
-    R.pendingAiFrames = R.pendingAiFrames - 1
-    if R.pendingAiFrames <= 0 and R.spawnedId then
-      startFollowAI(R.spawnedId)
-      R.aiStarted = true
-    end
-  end
+  updateStartupPipeline()
 
   local robber = getObjById(R.spawnedId)
   if not robber then

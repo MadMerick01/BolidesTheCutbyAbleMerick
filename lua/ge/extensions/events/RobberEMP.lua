@@ -61,14 +61,20 @@ local R = {
   hudThreat = nil,
   hudStatus = nil,
   hudStatusBase = nil,
-  pendingAiFrames = 0,
   aiStarted = false,
+  startupStage = nil,
+  startupTicks = 0,
   pendingStart = false,
   pendingStartTransform = nil,
   pendingStartDeadline = nil,
   pendingStartNextAttemptAt = nil,
   pendingStartAttempts = 0,
 }
+
+local STARTUP_DELAY_POST_SPAWN_TICKS = 1
+local STARTUP_DELAY_AUDIO_ENSURE_TICKS = 1
+local STARTUP_DELAY_AI_START_TICKS = 1
+local STARTUP_DELAY_AUDIO_PLAY_TICKS = 2
 
 local ROBBER_MODEL = "roamer"
 local ROBBER_CONFIG = "robber_light.pc"
@@ -467,6 +473,7 @@ local function mergeStatusInstruction(status, instruction)
 end
 
 local updateHudState
+local startFollowAI
 
 local function beginActiveRun(id)
   R.active = true
@@ -509,8 +516,9 @@ local function beginActiveRun(id)
   R.hudThreat = nil
   R.hudStatus = nil
   R.hudStatusBase = nil
-  R.pendingAiFrames = 2
   R.aiStarted = false
+  R.startupStage = "postSpawn"
+  R.startupTicks = STARTUP_DELAY_POST_SPAWN_TICKS
   resetPendingStart()
 
   updateHudState({
@@ -520,6 +528,63 @@ local function beginActiveRun(id)
       "Stay alert and control your speed."
     ),
   })
+end
+
+local function advanceStartupStage(stage, delayTicks)
+  R.startupStage = stage
+  R.startupTicks = math.max(tonumber(delayTicks) or 0, 0)
+end
+
+local function startupEnsureAudio()
+  local pv = getPlayerVeh()
+  if pv then
+    Audio.ensureAll(pv)
+  end
+end
+
+local function startupPlayEventStartAudio()
+  local pv = getPlayerVeh()
+  if pv then
+    Audio.playId(pv, AUDIO.eventStartName, AUDIO.eventStartVol, AUDIO.eventStartPitch, AUDIO.eventStartFile)
+  end
+end
+
+local function updateStartupPipeline()
+  if not R.active then return end
+  if not R.startupStage or R.startupStage == "done" then return end
+
+  if (R.startupTicks or 0) > 0 then
+    R.startupTicks = R.startupTicks - 1
+    return
+  end
+
+  if R.startupStage == "postSpawn" then
+    advanceStartupStage("audioEnsure", STARTUP_DELAY_AUDIO_ENSURE_TICKS)
+    return
+  end
+
+  if R.startupStage == "audioEnsure" then
+    startupEnsureAudio()
+    advanceStartupStage("aiStart", STARTUP_DELAY_AI_START_TICKS)
+    return
+  end
+
+  if R.startupStage == "aiStart" then
+    if R.spawnedId then
+      startFollowAI(R.spawnedId)
+      R.aiStarted = true
+    end
+    advanceStartupStage("audioPlay", STARTUP_DELAY_AUDIO_PLAY_TICKS)
+    return
+  end
+
+  if R.startupStage == "audioPlay" then
+    startupPlayEventStartAudio()
+    advanceStartupStage("done", 0)
+    return
+  end
+
+  advanceStartupStage("done", 0)
 end
 
 updateHudState = function(payload)
@@ -845,7 +910,7 @@ local function applyFleeProfile(robberVeh, targetId, profile)
   R.fleeProfile = profile
 end
 
-local function startFollowAI(robberId)
+startFollowAI = function(robberId)
   local veh = getObjById(robberId)
   if not veh then
     log("ERROR: robber vehicle object missing after spawn (id=" .. tostring(robberId) .. ")")
@@ -858,18 +923,10 @@ local function startFollowAI(robberId)
     return
   end
 
-  local playerVeh = getPlayerVeh()
-  if playerVeh then
-    Audio.ensureAll(playerVeh)
-  end
   queueAI_ChaseConservative(veh, targetId)
   R.phase = "chase"
   R.waitForFlee = false
   R.waitTimer = 0
-
-  if playerVeh then
-    Audio.playId(playerVeh, AUDIO.eventStartName, AUDIO.eventStartVol, AUDIO.eventStartPitch, AUDIO.eventStartFile)
-  end
   log("Robber AI: FOLLOW (limit, max20, aggr0.1, stop@10m). targetId=" .. tostring(targetId))
 end
 
@@ -1086,8 +1143,9 @@ function M.endEvent(opts)
   R.hudThreat = nil
   R.hudStatus = nil
   R.hudStatusBase = nil
-  R.pendingAiFrames = 0
   R.aiStarted = false
+  R.startupStage = nil
+  R.startupTicks = 0
   resetPendingStart()
 
   if not opts.keepGuiMessage then
@@ -1167,13 +1225,7 @@ function M.update(dtSim)
     return
   end
 
-  if not R.aiStarted and R.pendingAiFrames and R.pendingAiFrames > 0 then
-    R.pendingAiFrames = R.pendingAiFrames - 1
-    if R.pendingAiFrames <= 0 and R.spawnedId then
-      startFollowAI(R.spawnedId)
-      R.aiStarted = true
-    end
-  end
+  updateStartupPipeline()
 
   -- EMP timers + planets cleanup are handled by the main extension update loop.
 
@@ -1201,6 +1253,8 @@ function M.update(dtSim)
     R.hideDistance = false
     R.postSuccessMessageAt = nil
     R.robberStationaryTimer = 0
+    R.startupStage = nil
+    R.startupTicks = 0
     setGuiStatusMessage(nil)
     updateHudState({
       threat = "safe",
