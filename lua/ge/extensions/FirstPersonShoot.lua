@@ -9,8 +9,9 @@ local CFG = {
   maxDistance = 250.0,
   shotCooldownSec = 0.35,
   recoilPitchKick = 4.0,
-  crosshairSize = 7.0,
-  crosshairThickness = 2.0,
+  crosshairSize = 14.0,
+  crosshairThickness = 3.0,
+  crosshairColor = 0xFF00BFFF, -- Amber (#FFBF00) in ImGui packed ABGR
   rayStartOffset = 3.0,
   targetSnapRadius = 6.0,
   accuracyRadius = 1.5,
@@ -444,7 +445,7 @@ local function _drawCrosshair(imgui)
 
   local size = CFG.crosshairSize
   local thickness = CFG.crosshairThickness
-  local color = imgui.GetColorU321(imgui.Col_Text, 1.0)
+  local color = CFG.crosshairColor or imgui.GetColorU321(imgui.Col_Text, 1.0)
   local center = imgui.ImVec2(pos.x, pos.y)
 
   local left = imgui.ImVec2(pos.x - size, pos.y)
