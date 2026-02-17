@@ -84,7 +84,10 @@ end
 
 local function formatStatusWithDistance(status, distance)
   if not status or status == "" then return status end
-  local distMeters = math.floor((distance or 0) + 0.5)
+  if type(distance) ~= "number" or distance < 0 or distance ~= distance then
+    return status
+  end
+  local distMeters = math.floor(distance + 0.5)
   return string.format("%s\nDistance to contact: %dm", status, distMeters)
 end
 

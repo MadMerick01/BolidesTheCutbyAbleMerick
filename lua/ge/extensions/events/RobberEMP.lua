@@ -610,7 +610,11 @@ updateHudState = function(payload)
   end
   local statusToSend = nil
   if R.hudStatusBase then
-    statusToSend = formatStatusWithDistance(R.hudStatusBase, R.distToPlayer)
+    if R.hideDistance then
+      statusToSend = R.hudStatusBase
+    else
+      statusToSend = formatStatusWithDistance(R.hudStatusBase, R.distToPlayer)
+    end
   end
   if statusToSend and statusToSend ~= R.hudStatus then
     R.hudStatus = statusToSend
@@ -1598,6 +1602,7 @@ function M.update(dtSim)
       elseif extensions and extensions.bolidesTheCut and extensions.bolidesTheCut.showMissionMessage then
         extensions.bolidesTheCut.showMissionMessage(msgArgs)
       end
+      R.hideDistance = true
       updateHudState({
         threat = "safe",
         status = mergeStatusInstruction(
@@ -1611,7 +1616,6 @@ function M.update(dtSim)
         "you got your money back\nand you found $%d cash in the robbers glovebox",
         R.cashFound
       )
-      R.hideDistance = true
       R.postSuccessMessageAt = now
       updateGuiDistanceMessage(d)
 
