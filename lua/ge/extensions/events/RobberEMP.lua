@@ -992,12 +992,13 @@ function M.triggerManual()
     requestSpec = (PreloadEvent and PreloadEvent.getRegisteredSpec and PreloadEvent.getRegisteredSpec("RobberEMP"))
       or M.getPreloadSpec(),
     timeoutSec = 30.0,
-    retryIntervalSec = 0.25,
+    retryIntervalSec = 3.25,
     claimOptions = {
       model = ROBBER_MODEL,
       config = ROBBER_CONFIG,
       consumeRetries = 3,
       consumeMaxDist = 10.0,
+      consumeSettleSec = 3.0,
       consumeSkipSafeTeleport = false,
     },
   })

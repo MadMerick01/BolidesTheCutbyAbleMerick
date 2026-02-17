@@ -667,13 +667,14 @@ local function tryConsumePreload(transform)
     requestSpec = (PreloadEvent and PreloadEvent.getRegisteredSpec and PreloadEvent.getRegisteredSpec("RobberShotgun"))
       or (M.getPreloadSpec and M.getPreloadSpec() or nil),
     timeoutSec = 30.0,
-    retryIntervalSec = 0.25,
+    retryIntervalSec = 3.25,
     claimOptions = {
       model = ROBBER_MODEL,
       config = ROBBER_CONFIG,
       consumeRetries = 3,
-      consumeMaxDist = 5.0,
-      consumeSkipSafeTeleport = true,
+      consumeMaxDist = 10.0,
+      consumeSettleSec = 3.0,
+      consumeSkipSafeTeleport = false,
     },
   })
 
@@ -873,7 +874,17 @@ function M.update(dtSim)
     end
 
     if claim and claim.status == "timeout" then
+      local fallbackTf = R.pendingStartTransform
+      local fallbackId = fallbackTf and spawnVehicleAt(fallbackTf) or nil
       resetRuntime()
+
+      if fallbackId then
+        R.spawnMethod = "FallbackSpawnOnTimeout"
+        log("Pending start timed out; fallback cold spawn started.")
+        beginActiveRun(fallbackId)
+        return
+      end
+
       setHud(
         "safe",
         "Threat cleared.",
