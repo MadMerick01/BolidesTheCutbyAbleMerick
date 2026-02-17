@@ -462,6 +462,8 @@ local function resetPendingStart()
   R.pendingStartAttempts = 0
 end
 
+local getPlayerVeh
+
 local function mergeStatusInstruction(status, instruction)
   if not instruction or instruction == "" then
     return status
@@ -633,7 +635,7 @@ local function updateGuiDistanceMessage(distance)
   setGuiStatusMessage(string.format("%s\nDistance to contact: %dm", R.guiBaseMessage, distMeters))
 end
 
-local function getPlayerVeh()
+getPlayerVeh = function()
   if Host and Host.getPlayerVeh then
     return Host.getPlayerVeh()
   end
