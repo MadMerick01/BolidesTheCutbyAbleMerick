@@ -9,7 +9,7 @@ Bolides – The Cut is a career expansion for BeamNG.drive that introduces the B
 
 EMP attacks. Theft of Career Money. Armed combat by pistol. Mechanical bullet damage with real consequences to driveability and repair costs.
 
-Your decisions determine whether you survive, fight back, or turn danger into profit.
+Your decisions determine whether you survive, fight back, or turn danger into profit. Ammo is scarce, use it sparingly
 
 ### Strategic Vehicle Configuration
 
