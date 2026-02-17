@@ -997,7 +997,7 @@ function M.triggerManual()
       model = ROBBER_MODEL,
       config = ROBBER_CONFIG,
       consumeRetries = 3,
-      consumeMaxDist = 5.0,
+      consumeMaxDist = 10.0,
       consumeSkipSafeTeleport = false,
     },
   })

@@ -168,13 +168,17 @@ local function teleportWithVerify(veh, pos, rot, opts)
   if not veh or not pos then return false end
   opts = opts or {}
   local retries = tonumber(opts.retries) or 3
-  local maxDist = tonumber(opts.maxDist) or 5.0
+  local maxDist = tonumber(opts.maxDist) or 8.0
+  local settleTicks = math.max(1, math.floor(tonumber(opts.settleTicks) or 30))
 
   for _ = 1, retries do
     safeTeleportVehicle(veh, pos, rot, opts)
-    local current = veh.getPosition and veh:getPosition() or nil
-    if current and (current - pos):length() <= maxDist then
-      return true
+
+    for _ = 1, settleTicks do
+      local current = veh.getPosition and veh:getPosition() or nil
+      if current and (current - pos):length() <= maxDist then
+        return true
+      end
     end
   end
   return false
@@ -314,7 +318,7 @@ local function spawnPreloadedVehicle(opts)
   end
 
   if placed ~= "preloadParking" then
-    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0, skipSafeTeleport = false })
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 12.0, settleTicks = 30, skipSafeTeleport = false })
     if not ok then
       veh:delete()
       return nil, "preload teleport verification failed"
@@ -719,7 +723,7 @@ function M.claim(eventName, transform, opts)
   local usedRetries = 0
   if transform and transform.pos then
     local consumeRetries = opts and tonumber(opts.consumeRetries) or 2
-    local consumeMaxDist = opts and tonumber(opts.consumeMaxDist) or 4.0
+    local consumeMaxDist = opts and tonumber(opts.consumeMaxDist) or 10.0
     local skipSafeTeleport = opts and opts.consumeSkipSafeTeleport
     if skipSafeTeleport == nil then
       skipSafeTeleport = false
@@ -728,6 +732,7 @@ function M.claim(eventName, transform, opts)
     local ok = teleportWithVerify(veh, transform.pos, transform.rot, {
       retries = consumeRetries,
       maxDist = consumeMaxDist,
+      settleTicks = 30,
       skipSafeTeleport = skipSafeTeleport,
     })
     if not ok then
@@ -820,7 +825,7 @@ function M.stash(eventName, vehId, opts)
 
   if placed ~= "preloadParking" then
     stashRetries = 3
-    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 5.0, skipSafeTeleport = false })
+    local ok = teleportWithVerify(veh, transform.pos, transform.rot, { retries = 3, maxDist = 12.0, settleTicks = 30, skipSafeTeleport = false })
     if not ok then
       log("Stash failed: teleport verification failed.")
       S.lastFailure = "stash teleport verification failed"
