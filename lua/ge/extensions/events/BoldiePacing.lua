@@ -3,7 +3,6 @@ local M = {}
 local CFG = nil
 local Host = nil
 local Events = {}
-local PreloadRequest = nil
 
 local STATE = {
   activeMode = "real",
@@ -14,8 +13,6 @@ local STATE = {
   nextIndex = 1,
   retryDelay = 0.5,
   retryTimer = 0,
-  preloadRequested = false,
-  preloadDelaySec = 60,
 }
 
 local EVENT_ORDER = {
@@ -58,7 +55,6 @@ local function beginCountdownForMode(mode)
   STATE.activeMode = normalizeMode(mode)
   STATE.intervalSec = sampleIntervalSec(STATE.activeMode)
   STATE.countdown = STATE.intervalSec
-  STATE.preloadRequested = false
 end
 
 local function applyPendingModeIfNeeded()
@@ -116,11 +112,10 @@ local function isEventPendingStart(name)
   return false
 end
 
-function M.init(hostCfg, hostApi, eventModules, preloadRequestFn)
+function M.init(hostCfg, hostApi, eventModules)
   CFG = hostCfg
   Host = hostApi
   Events = eventModules or Events
-  PreloadRequest = preloadRequestFn
 
   STATE.activeMode = normalizeMode((CFG and CFG.pacingModeDefault) or STATE.activeMode)
   beginCountdownForMode(STATE.activeMode)
@@ -128,7 +123,6 @@ function M.init(hostCfg, hostApi, eventModules, preloadRequestFn)
   STATE.activeEventName = nil
   STATE.retryTimer = 0
   STATE.nextIndex = 1
-  STATE.preloadDelaySec = (CFG and CFG.preloadInitialDelaySec) or STATE.preloadDelaySec or 60
 end
 
 function M.getCountdown()
@@ -187,18 +181,6 @@ function M.update(dtSim)
     return
   end
 
-  if not STATE.preloadRequested and type(PreloadRequest) == "function" then
-    local nextName = M.getNextEventName()
-    if nextName then
-      PreloadRequest(nextName, {
-        windowStart = os.clock(),
-        windowSeconds = STATE.intervalSec,
-        minDelay = STATE.preloadDelaySec,
-      })
-      STATE.preloadRequested = true
-    end
-  end
-
   if STATE.countdown > 0 then
     STATE.countdown = math.max(0, STATE.countdown - dtSim)
     return
@@ -222,7 +204,6 @@ function M.update(dtSim)
       STATE.activeEventName = nextName
       STATE.retryTimer = 0
       STATE.nextIndex = (STATE.nextIndex % #EVENT_ORDER) + 1
-      STATE.preloadRequested = false
     else
       STATE.retryTimer = STATE.retryDelay
       STATE.countdown = 0
