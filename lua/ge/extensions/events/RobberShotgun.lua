@@ -708,6 +708,20 @@ function M.isActive()
   return R.active == true
 end
 
+function M.isReadyToStart()
+  local pv = (Host and Host.getPlayerVeh and Host.getPlayerVeh()) or (be and be.getPlayerVehicle and be:getPlayerVehicle(0))
+  if not pv then
+    return false, "no player vehicle"
+  end
+
+  local fkbPos, mode = chooseFkbPos(200, 10.0)
+  if not fkbPos then
+    return false, mode or "fkb not ready"
+  end
+
+  return true, mode or "ready"
+end
+
 function M.triggerManual()
   if R.active then
     log("Already active.")
