@@ -456,6 +456,16 @@ local function resetPendingStart()
   R.pendingStartAttempts = 0
 end
 
+local function mergeStatusInstruction(status, instruction)
+  if not instruction or instruction == "" then
+    return status
+  end
+  if not status or status == "" then
+    return instruction
+  end
+  return string.format("%s\n%s", status, instruction)
+end
+
 local function beginActiveRun(id)
   R.active = true
   R.spawnedId = id
@@ -508,16 +518,6 @@ local function beginActiveRun(id)
       "Stay alert and control your speed."
     ),
   })
-end
-
-local function mergeStatusInstruction(status, instruction)
-  if not instruction or instruction == "" then
-    return status
-  end
-  if not status or status == "" then
-    return instruction
-  end
-  return string.format("%s\n%s", status, instruction)
 end
 
 local function updateHudState(payload)
