@@ -17,6 +17,7 @@ local STATE = {
 
 local EVENT_ORDER = {
   "RobberEMP",
+  "RobberBoss",
   "RobberShotgun",
 }
 

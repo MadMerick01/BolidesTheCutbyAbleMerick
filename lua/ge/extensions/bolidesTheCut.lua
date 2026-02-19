@@ -4,12 +4,14 @@
 --   lua/ge/extensions/breadcrumbs.lua
 --   lua/ge/extensions/events/RobberEMP.lua
 --   lua/ge/extensions/events/RobberShotgun.lua
+--   lua/ge/extensions/events/RobberBoss.lua
 
 local M = {}
 
 local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
 local RobberEMP = require("lua/ge/extensions/events/RobberEMP")
 local RobberShotgun = require("lua/ge/extensions/events/RobberShotgun")
+local RobberBoss = require("lua/ge/extensions/events/RobberBoss")
 local BoldiePacing = require("lua/ge/extensions/events/BoldiePacing")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
@@ -549,6 +551,7 @@ local function getThreatState()
 
   checkEvent(RobberEMP, CFG.threatDistanceRobber)
   checkEvent(RobberShotgun, CFG.threatDistanceRobber)
+  checkEvent(RobberBoss, CFG.threatDistanceRobber)
   checkEvent(FireAttack, CFG.threatDistanceFireAttack)
 
   if imminent then
@@ -1102,6 +1105,7 @@ end
 local function getPacingEventModule(name)
   if name == "RobberEMP" then return RobberEMP end
   if name == "RobberShotgun" then return RobberShotgun end
+  if name == "RobberBoss" then return RobberBoss end
   return nil
 end
 
@@ -1849,6 +1853,9 @@ function M.onExtensionLoaded()
   if RobberShotgun and RobberShotgun.init then
     RobberShotgun.init(CFG, EVENT_HOST)
   end
+  if RobberBoss and RobberBoss.init then
+    RobberBoss.init(CFG, EVENT_HOST)
+  end
   if FireAttack and FireAttack.init then
     FireAttack.init(CFG, EVENT_HOST)
   end
@@ -1856,6 +1863,7 @@ function M.onExtensionLoaded()
     BoldiePacing.init(CFG, EVENT_HOST, {
       RobberEMP = RobberEMP,
       RobberShotgun = RobberShotgun,
+      RobberBoss = RobberBoss,
     }, nil)
   end
 
@@ -1975,6 +1983,9 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if RobberShotgun and RobberShotgun.update then
     RobberShotgun.update(dtSim)
   end
+  if RobberBoss and RobberBoss.update then
+    RobberBoss.update(dtSim)
+  end
   if FireAttack and FireAttack.update then
     FireAttack.update(dtSim)
   end
@@ -1998,6 +2009,9 @@ function M.startEvent(name, cfg)
   if name == "RobberShotgun" then
     return RobberShotgun.triggerManual()
   end
+  if name == "RobberBoss" then
+    return RobberBoss.triggerManual()
+  end
   if name == "FireAttack" then
     return FireAttack.triggerManual()
   end
@@ -2011,6 +2025,10 @@ function M.stopEvent(name)
   end
   if name == "RobberShotgun" then
     RobberShotgun.endEvent()
+    return true
+  end
+  if name == "RobberBoss" then
+    RobberBoss.endEvent()
     return true
   end
   if name == "FireAttack" then
