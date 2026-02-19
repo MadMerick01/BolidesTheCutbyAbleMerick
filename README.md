@@ -105,60 +105,6 @@ Weapons and equipment may be obtained from the Bolides themselves, including:
 
 -----------------------------------------------------
 
-### Public & Extended Editions
-
-Bolides – The Cut is available as a free public release, offering the full core
-experience — criminal encounters, risk, and consequence within Career Mode.
-
-An **Extended Edition** (COMING SOON) via Patreon for players who want deeper
-strategic control and expanded systems, including features such as
-in-world purchasing of weapons ammo and equipment. New features. Constantly updated with new events
-
-Both editions are stable and supported. Patreon will directly fund continued
-development and long-term expansion of the project.
-
------------------------------------------------------
-
-### Public Edition
-- Core Bolides encounters  
-- Gang ambush events  
-- Weapon looting  
-- Risk-driven gameplay  
------------------------------------------------------
-
-### Extended Edition (COMING SOON)
-- Everything in Public Edition  
-- Weapon & ammo purchasing  
-- Support the Dev  
-- New Hoostile Bolides Events Added
-- Bug fix on Beamng update happens here first
-- Bolide AI actively iterated here (will be transferred to Public on major updates)
-- Spawn, Breadcrumbs and Performance actively iterated
-- Integration of New mods/gameplay
-------------------------------------------------------   
-
-### Current release focus
-
-The initial release focuses on:
-- Bug Testing
-- Gang encounters
-- Robbery
-- Vehicle damage via gunfire
-- Player ability to obtain EMP and Pistol
-- Strategic use of hard to come by ammo and charges
-
-The system is intentionally modular and expandable.
-
-### Looking ahead
-
-Bolides – The Cut is built on a modular foundation, allowing new hostile crime events,  
-AI behaviours, and defensive tools to be introduced.
-
-Future updates to Expanded Edition will add encounter variety and strategic depth while  
-maintaining compatibility with existing career systems.
-
------------------------------------------------------
-
 ### Community & Support
 
 - 🎥 **YouTube** — Watch gameplay and dev
@@ -168,8 +114,6 @@ maintaining compatibility with existing career systems.
 - 💬 **Discord** — Join development discussion, report issues, and give feedback  
   https://discord.gg/SpJv4UaY7m
 
-- ❤️ **Patreon** — Support development and gain access to Extended Edition  
-  https://patreon.com/AbleMerick
 
 Bolides – The Cut does not replace career mode.  
 It makes surviving it harder.
