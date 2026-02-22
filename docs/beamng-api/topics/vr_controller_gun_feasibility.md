@@ -1,92 +1,118 @@
-# VR controller gun feasibility (BeamNG 0.38 dump)
+# VR pistol implementation plan (BeamNG 0.38 dump + `docs/Vr_files` review)
+
+## Scope for this phase
+- **Pistol only** (no rock/throw behavior in this phase).
+- **Functional holding only**:
+  - “Holding” is represented by HUD/inventory equip state (`hudEquippedWeapon == "pistol"`).
+  - No weapon mesh, no hand-attached prop, no physical pickup interaction yet.
 
 ## Short answer
-Yes, this looks **feasible with the current mod architecture**, as long as the VR right-hand pointer/trigger continue to emulate mouse aim + left-click in BeamNG VR. The mod’s shotgun already aims using the camera mouse ray and fires on mouse button 0, and it applies full `BulletDamage` damage when a vehicle is hit.
+Yes, this is feasible with the current architecture, but we should enforce strict mode separation:
 
-The main limitation is that the 0.38 API dump does **not** expose an obvious, documented way to read VR controller pose or trigger state directly from Lua. That means the safest plan is to lean on the existing mouse-based path (which matches your VR experience so far) rather than trying to wire controller data ourselves.
+- **Desktop (flat-screen):** keep existing camera+mouse flow unchanged.
+- **VR with tracked controller:** aim and fire from right-hand controller pointer + trigger action.
+- **VR without valid controller tracking:** block firing (no mouse fallback in VR).
 
-## What the current gun actually needs
-The player shotgun implementation in this repo uses:
+This is required because camera-origin mouse rays are not aligned with right-hand pointer origin in VR.
 
-1. **Camera-based aiming** via mouse-ray helpers.
-   - It uses `getCameraPosition()` plus `getCameraMouseRay()` to compute the shot ray direction.
-   - It raycasts using `castRay(...)` (guarded) and falls back to `cameraMouseRayCast(true)`.
-2. **Mouse click to fire**.
-   - It fires when `ui_imgui.IsMouseClicked(0)` returns true.
-3. **Damage application** through the shared damage helper.
-   - It calls `BulletDamage.trigger({ ..., applyDamage = true })` (explicitly set in the shotgun code).
-   - `BulletDamage` applies extra effects when `applyDamage` is true.
+---
 
-Implication: if the VR controller pointer drives the mouse cursor/ray, and the VR trigger maps to mouse button 0, the existing shotgun path should work with no engine-level VR API required.
+## What the new `docs/Vr_files` confirms
 
-## What the VR docs + dump confirm (and don’t)
+### 1) OpenXR state is available for runtime gating
+`docs/Vr_files/openxr.lua` exposes state fields like:
+- `enabled`
+- `sessionRunning`
+- `headsetActive`
+- `controller0Active` / `controller1Active`
+- `controller0poseValid` / `controller1poseValid`
 
-### Confirmed: VR runtime + settings exist
-The dump confirms a global `OpenXR` table and several VR settings including controller-related toggles:
+These are enough to gate behavior by mode (desktop vs VR tracked vs VR untracked).
 
-- `OpenXR.*` functions exist (enable/toggle/center/camera pose predicted, etc.).
-- VR settings include:
-  - `openXRuseControllers`
-  - `openXRhandPoseDirectionDegrees`
-  - `openXRhandPoseMultiplier`
+### 2) Action system supports explicit gameplay trigger flow
+`docs/Vr_files/actions.lua` confirms action-trigger APIs:
+- `triggerDown(actionName)`
+- `triggerUp(actionName)`
+- `triggerDownUp(actionName)`
 
-These indicate VR controllers are a first-class feature in the engine, even if the Lua surface is thin.
+So adding a dedicated gameplay action (`btc_fireWeapon`) is consistent with the engine input architecture.
 
-### Confirmed: input synthesis hooks exist
-The dump shows multiple ways to synthesize or trigger inputs:
+### 3) Virtual input exists but should remain fallback-only
+`docs/Vr_files/virtualInput.lua` confirms synthetic input device/event APIs via `getVirtualInputManager()`.
+Use this only if action-map flow cannot satisfy VR trigger routing.
 
-- `core_input_virtualInput.createDevice(...)`
-- `core_input_virtualInput.emit(...)`
-- `core_input_virtualInput.deleteDevice(...)`
-- `getVirtualInputManager(...)`
-- `core_input_actions.triggerDown(...) / triggerUp(...) / triggerDownUp(...)`
-- `triggerInputAction(...)`
-- `ActionMap.triggerBindingByNameDigital(...)`
-- `ActionMap.triggerBindingByNameAnalogue(...)`
+### 4) OpenXR actions are already bound through standard action maps
+`docs/Vr_files/openxr.json` and `keyboard_openxr.json` show OpenXR-related actions are normal action-map citizens, which supports adding our own mod action for firing.
 
-These are promising as fallback levers if we need to emulate a click or action.
+---
 
-### Not confirmed: direct VR controller pose/buttons in Lua
-What we do *not* see in the dump:
+## Hard mode separation (implementation rule)
 
-- No clearly named functions such as `OpenXR.getControllerPose`, `OpenXR.getHandPose`, `OpenXR.getActionState`, etc.
-- No obvious VR-controller-specific input functions beyond the general input/action-map systems.
+## A) Desktop / flat-screen (no VR session or no tracked VR controllers)
+- **Aim source:** existing camera→mouse raycast path (`getCameraMouseRay`, current `FirstPersonShoot` flow).
+- **Fire input:** mouse click.
+- **Behavior:** unchanged from current desktop implementation.
 
-So from a “verified API” perspective, it would be risky to design a solution that depends on direct controller pose/button reads in Lua.
+## B) VR active + right controller tracked and pose valid
+- **Aim source:** right-hand VR pointer ray (controller pointer/cursor ray).
+- **Fire input:** dedicated action (`btc_fireWeapon`) bound to VR trigger.
+- **Behavior:** mouse firing is ignored/disabled in this mode.
 
-## Feasibility assessment
+## C) VR active but right controller not tracked or pose invalid
+- **Aim source:** none (invalid).
+- **Fire input:** ignored.
+- **Behavior:** no firing; optional debug/toast like “Controller not tracked / pose invalid”.
+- **Important:** do not fallback to camera/mouse in VR.
 
-### Feasible path (high confidence)
-**Use the existing mouse-ray + mouse-click shotgun path and rely on VR controller mouse emulation.**
+---
 
-Why this is likely to work well:
-- Your in-game report already indicates the controller pointer and trigger behave like standard UI interaction (which is usually mouse-like behavior in BeamNG VR).
-- The shotgun uses mouse-ray and mouse-click surfaces that are present in the dump.
-- Damage is already wired correctly through `BulletDamage`.
+## Input architecture
+Use one internal fire-intent path, but with strict gating by mode:
 
-This approach has the best chance of working across versions because it stays within the verified, widely used input surfaces.
+- Desktop mode:
+  - `fireIntent = mouseClick`
+- VR tracked mode:
+  - `fireIntent = btc_fireWeapon action`
+- VR untracked mode:
+  - `fireIntent = false`
 
-### Stretch path (medium confidence)
-If the VR trigger does *not* register as mouse button 0 in all contexts, we can likely add a compatibility layer that programmatically fires the shot by:
+Then feed `fireIntent` into the same centralized shot execution logic (cooldown/ammo/damage) in the existing `_fireShot()` flow.
 
-- Triggering a custom action via `core_input_actions.triggerDownUp(...)`, `triggerInputAction(...)`, or `ActionMap.triggerBindingByNameDigital(...)`, and
-- Handling that action inside the mod to call the same `_fireShot()` path.
+---
 
-This still depends on action naming and binding behavior that the dump doesn’t fully document, so it would require empirical testing.
+## Why no mouse firing in VR
+In VR, the camera/headset origin differs from the right-hand pointer ray origin. If firing uses camera→mouse ray while the player is aiming with right-hand pointer, shots become spatially misaligned. Therefore, VR must use controller-pointer aiming + trigger action only when tracked.
 
-### Risky path (low confidence, not recommended first)
-Trying to aim directly from controller pose (true “gun in hand” independent of cursor) appears blocked by the verified API surface in the 0.38 dump. That would likely require undocumented APIs or engine support outside the dump.
+---
 
-## Recommended implementation plan
+## Phased plan
 
-1. **First, test the current shotgun unchanged in VR**:
-   - Unholster via the VR pointer.
-   - Aim with the right-hand pointer.
-   - Pull the trigger.
-2. If firing doesn’t register consistently:
-   - Add a small, guarded input bridge that can trigger the existing fire path via one of the verified input-trigger APIs.
-   - Keep the mouse-click path intact as the default.
-3. Only if we want “true controller pose aiming,” treat it as an engine-research task rather than a mod-only task.
+## Phase 1 (now): stable pistol input behavior
+1. Add action `btc_fireWeapon` in mod action JSON.
+2. Bind VR trigger to `btc_fireWeapon` in VR bindings.
+3. Keep desktop mouse-click firing unchanged.
+4. Add mode gate checks (VR tracked vs VR untracked).
+5. Disable/ignore mouse firing whenever VR tracked mode is active.
+6. Add optional debug log/toast for blocked fire in VR-untracked mode.
 
-## Bottom line
-Given the verified VR + input APIs in the dump and the way this mod already fires shots, the “pointer to aim + trigger to shoot” behavior looks **very feasible** *without* needing new VR-specific Lua APIs — provided BeamNG VR continues to map the controller pointer/trigger into mouse-style input in gameplay contexts.
+## Phase 2 (after validation): harden compatibility
+7. Add diagnostics around mode transitions (menu/gameplay, recenter, map reload).
+8. Keep virtual input bridge as optional fallback only if action routing fails.
+
+## Deferred (explicitly out of scope)
+- Rock/throw system.
+- Weapon mesh/hand prop attachment.
+- Physical pickup interactions.
+
+---
+
+## Immediate next tasks (small PR-ready)
+1. Create `btc_fireWeapon` action + bindings.
+2. Refactor fire input sampling to compute mode-gated `fireIntent`.
+3. Ensure `FirstPersonShoot` consumes pointer-based aim in VR tracked mode only.
+4. Add explicit no-fire behavior for VR-untracked mode.
+5. Validate with VR matrix:
+   - VR tracked in gameplay
+   - VR tracking loss/recovery
+   - menu focus transitions
+   - map reload
