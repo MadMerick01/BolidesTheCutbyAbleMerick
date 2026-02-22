@@ -1,0 +1,6 @@
+{
+  "bindings":[
+    {"control":"ctrl numpad0", "action":"enableHeadset"},
+    {"control":"ctrl numpad5", "action":"centerHeadset"}
+  ]
+}
