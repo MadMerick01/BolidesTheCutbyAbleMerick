@@ -1,98 +1,121 @@
-# VR pistol implementation plan (head-aim mode for current phase)
+# VR pistol feasibility (Phase 1: head-aim + existing fire input)
 
-## Scope for this phase
-- **Pistol only** (no rock/throw behavior in this phase).
-- **Functional holding only**:
-  - “Holding” is represented by HUD/inventory equip state (`hudEquippedWeapon == "pistol"`).
-  - No weapon mesh, no hand-attached prop, no physical pickup interaction yet.
+## Decision summary
+Yes — this is feasible in the current architecture with low risk if we keep strict mode separation:
 
-## Short answer
-Yes, this is feasible with the current architecture, and for this phase we should enforce strict mode separation:
+- **Desktop (flat-screen):** no behavior changes.
+- **VR (OpenXR session running):** compute aiming from headset pose (head-forward ray).
+- **Fire input in this phase:** keep existing mouse click path.
 
-- **Desktop (flat-screen):** keep existing camera+mouse flow unchanged.
-- **VR (OpenXR session running):** aim from headset/head-forward direction (center of view).
-- **VR input:** keep mouse click firing for this phase (same as flatscreen), only change aim ray + crosshair.
-
-This keeps desktop behavior untouched while making VR aiming spatially consistent with what the player is looking at.
+This gives us VR-correct aim behavior while preserving all existing shot, hit, and damage logic.
 
 ---
 
-## What the API/docs confirm
+## Phase-1 scope (explicit)
 
-### 1) OpenXR state is available for runtime gating
-Preferred runtime check is:
+### In scope
+- Pistol flow only.
+- “Holding pistol” represented by existing HUD/inventory equip state (`hudEquippedWeapon == "pistol"`).
+- VR head-forward aim ray when VR is active.
+- Crosshair placement driven by the active aim ray.
+
+### Out of scope (deferred)
+- Controller-pose aiming.
+- OpenXR trigger/action mapping.
+- Physical pickup/throw interactions.
+- Weapon mesh or hand-attached prop rendering.
+
+---
+
+## API basis for feasibility
+
+### 1) Runtime VR gating is available
+Preferred runtime check:
 - `render_openxr and render_openxr.isSessionRunning and render_openxr.isSessionRunning()`
 
-Fallback if needed:
-- `OpenXR.getEnable()` plus available session-running signal already used in this project.
+Fallback if required by runtime availability:
+- `OpenXR.getEnable()` and existing in-project session-running signal.
 
-### 2) Predicted camera pose exists for head-origin aim
-Use `OpenXR.getCameraPosRotPredictedXYZXYZW()` to get headset position + quaternion.
-From that quaternion, compute forward vector and use it as the VR aim direction.
+### 2) Predicted headset pose exists for aim origin/direction
+Use:
+- `OpenXR.getCameraPosRotPredictedXYZXYZW()`
 
-### 3) Existing shot/hit logic can stay unchanged
-Only the ray origin/direction source changes in VR. Downstream hit resolution/damage flow remains the same.
+From quaternion, derive forward vector and use it as the aim direction.
 
----
-
-## Implementation rule (this phase)
-
-## A) Desktop / flat-screen (VR inactive)
-- **Aim source:** existing camera→mouse raycast path (`getCameraMouseRay`, current `FirstPersonShoot` flow).
-- **Fire input:** mouse click.
-- **Behavior:** unchanged from current desktop implementation.
-
-## B) VR active (OpenXR running)
-- **Aim source:** headset predicted camera pose:
-  - origin = camera/head position
-  - direction = quaternion forward vector
-- **Fire input:** mouse click (same path as current implementation).
-- **Behavior:** only aim ray and crosshair placement change.
+### 3) Existing downstream combat path can stay unchanged
+Only replace ray **source** (origin/direction) in VR mode. Keep current hit resolution, damage application, and fire cadence logic intact.
 
 ---
 
-## Core code change
-Create `getAimRay()` and use it from both:
-- shot raycast path
-- crosshair draw path
+## Implementation contract
 
-`getAimRay()` behavior:
-- VR active -> return origin/dir from OpenXR predicted camera pose.
-- VR inactive -> return existing mouse-based ray.
+### A) Desktop / flat-screen (`VR inactive`)
+- Aim source: existing camera+mouse ray flow (`getCameraMouseRay`, current shooting path).
+- Fire input: existing mouse click.
+- Expected behavior: exactly unchanged.
 
----
-
-## Crosshair behavior
-- Desktop: keep current mouse-following crosshair exactly unchanged.
-- VR: place crosshair at ray hit point from head-forward ray.
-- If no hit: place crosshair at `origin + dir * 100` (or similar stable distance).
+### B) VR (`OpenXR session running`)
+- Aim source:
+  - origin = predicted headset/camera position
+  - direction = headset forward vector from predicted quaternion
+- Fire input: existing mouse click (same path as desktop for now).
+- Expected behavior: only ray/crosshair source changes.
 
 ---
 
+## Required code shape
+Add a shared aim accessor and use it everywhere aim is sampled:
 
-## Which fire input is better right now?
-- **For this task, mouse click is better** because it is the smallest, safest change and preserves existing behavior while we validate VR head-aim.
-- Controller trigger can be added later as a separate phase once aim behavior is confirmed stable.
-- Recommended decision now: **VR shoot = mouse click**, **VR aim = head-forward**.
+- `getAimRay()`
+  - If VR active: return head-origin/head-forward ray.
+  - If VR inactive: return existing mouse-based ray.
+
+Then route both of these call sites through `getAimRay()`:
+1. Shot raycast path.
+2. Crosshair placement path.
+
+This prevents drift between “where we shoot” and “where we draw the crosshair.”
 
 ---
 
-## Logging and debug
-In debug mode only, log active aim mode when sampling/using aim:
+## Crosshair rules
+
+- **Desktop:** preserve current mouse-following behavior.
+- **VR:** draw at hit point from head-forward aim ray.
+- If no hit: place at `origin + dir * 100` (stable fallback distance).
+
+---
+
+## Why keep mouse-click fire in Phase 1?
+- Smallest safe change set.
+- Minimizes risk to existing input stack.
+- Isolates VR validation to one variable: aim ray origin/direction.
+
+Recommended current decision:
+- **Aim:** VR head-forward when VR is active.
+- **Fire:** existing mouse-click path.
+
+---
+
+## Debug / observability
+In debug builds only, log active mode when sampling aim:
+
 - `aim=VR_HEAD`
 - `aim=FLAT_MOUSE`
 
-## Deferred (out of scope for this task)
-- Controller-pose aiming.
-- New VR trigger/action mapping.
-- Weapon mesh/hand prop/pickup interactions.
+Optional helpful debug fields:
+- ray origin (xyz)
+- ray direction (xyz)
+- whether crosshair used hit-point or fallback distance
 
 ---
 
-## Immediate next tasks (small PR-ready)
-1. Add `isVRActive()` helper using preferred OpenXR session-running check.
-2. Add `getAimRay()` (VR head-forward vs flat mouse ray).
-3. Replace direct aim sampling in shot code with `getAimRay()`.
-4. Replace crosshair placement source with `getAimRay()` in VR.
-5. Keep all existing hit/damage/fire-input logic unchanged.
-6. Add debug-only log line for current aim mode.
+## PR-ready implementation checklist
+1. Add `isVRActive()` helper using `render_openxr.isSessionRunning()` when available.
+2. Add `getAimRay()` helper (VR head-forward vs flat mouse ray).
+3. Replace direct shot aim sampling with `getAimRay()`.
+4. Replace crosshair source with `getAimRay()` in VR mode.
+5. Keep hit/damage/fire-input logic unchanged.
+6. Add debug-only aim mode logs.
+7. Verify desktop behavior is unchanged.
+8. Verify VR crosshair aligns with center-of-view target selection.
