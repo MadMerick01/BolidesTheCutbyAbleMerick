@@ -372,6 +372,22 @@ local function _extractOpenXRPose()
 end
 
 local function _quatForward(qx, qy, qz, qw)
+  if quat then
+    local q = quat(qx, qy, qz, qw)
+    local basis = vec3(0, 1, 0)
+
+    local dir = nil
+    if q.mulP then
+      dir = q:mulP(basis)
+    elseif q.rotate then
+      dir = q:rotate(basis)
+    end
+
+    if dir and dir:length() > 0.001 then
+      return dir:normalized()
+    end
+  end
+
   local fx = 2.0 * (qx * qy - qw * qz)
   local fy = 1.0 - 2.0 * (qx * qx + qz * qz)
   local fz = 2.0 * (qy * qz + qw * qx)
@@ -561,25 +577,11 @@ local function _drawCrosshair(imgui)
 
   local pos = nil
   local aimRay = _getAimRay()
-  if aimRay and aimRay.mode == "VR_HEAD" then
-    local hit, rayStartPos = _castAimRay(aimRay)
-    local _, hitPos, hitDist = _extractHitInfo(hit)
-    if not hitPos and hitDist and rayStartPos then
-      hitPos = rayStartPos + (aimRay.dir * hitDist)
-    end
-    if not hitPos then
-      hitPos = aimRay.origin + (aimRay.dir * 100.0)
-    end
-
-    local screenPos = _projectWorldToScreen(hitPos)
-    if screenPos then
-      pos = screenPos
-    elseif viewport and viewport.Pos and viewport.Size then
-      pos = {
-        x = viewport.Pos.x + (viewport.Size.x * 0.5),
-        y = viewport.Pos.y + (viewport.Size.y * 0.5),
-      }
-    end
+  if aimRay and aimRay.mode == "VR_HEAD" and viewport and viewport.Pos and viewport.Size then
+    pos = {
+      x = viewport.Pos.x + (viewport.Size.x * 0.5),
+      y = viewport.Pos.y + (viewport.Size.y * 0.5),
+    }
   else
     pos = imgui.GetMousePos and imgui.GetMousePos() or nil
   end
