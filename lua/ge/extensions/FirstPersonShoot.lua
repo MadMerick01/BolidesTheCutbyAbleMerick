@@ -242,6 +242,22 @@ local function _findSnapTargetAlongRay(rayStart, rayDir, maxDistance, playerVeh)
 end
 
 local function _getAimBlockReason()
+  -- In VR we intentionally skip camera-mode gating and allow pistol aiming/fire
+  -- as long as ammo/input conditions pass.
+  if render_openxr and render_openxr.isSessionRunning then
+    local ok, running = pcall(render_openxr.isSessionRunning)
+    if ok and running then
+      return nil
+    end
+  end
+
+  if OpenXR and OpenXR.getEnable then
+    local ok, enabled = pcall(OpenXR.getEnable)
+    if ok and enabled then
+      return nil
+    end
+  end
+
   if not core_camera or not core_camera.getActiveCamName then
     return "camera_unavailable"
   end
