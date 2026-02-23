@@ -62,7 +62,7 @@ local function _getPlayerVeh()
 end
 
 local function _resolveAudioVeh(v)
-  return _getPlayerVeh() or v
+  return v or _getPlayerVeh()
 end
 
 function Audio.ensurePooledSources(v, source)
@@ -473,6 +473,21 @@ function M.cancel(playerId)
       _queue(veh, _cmdAiRestore())
     end
     _queue(veh, "obj:setPlanets({})")
+    local stopEmpCmd = [[
+      if _G.__empAudio and _G.__empAudio.ids then
+        for _, id in pairs(_G.__empAudio.ids) do
+          if obj.setSFXSourceLooping then pcall(function() obj:setSFXSourceLooping(id, false) end) end
+          if obj.setSFXSourceLoop then pcall(function() obj:setSFXSourceLoop(id, false) end) end
+          if obj.stopSFX then pcall(function() obj:stopSFX(id) end) end
+          if obj.stopSFXSource then pcall(function() obj:stopSFXSource(id) end) end
+          if obj.stop then pcall(function() obj:stop(id) end) end
+          if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 0) end) end
+          if obj.setSFXVolume then pcall(function() obj:setSFXVolume(id, 0) end) end
+          if obj.setVolume then pcall(function() obj:setVolume(id, 0) end) end
+        end
+      end
+    ]]
+    _queue(veh, stopEmpCmd)
   end
   active[playerId] = nil
 end
