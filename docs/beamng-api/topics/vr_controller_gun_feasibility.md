@@ -1,4 +1,4 @@
-# VR pistol implementation plan (BeamNG 0.38 dump + `docs/Vr_files` review)
+# VR pistol implementation plan (head-aim mode for current phase)
 
 ## Scope for this phase
 - **Pistol only** (no rock/throw behavior in this phase).
@@ -7,112 +7,92 @@
   - No weapon mesh, no hand-attached prop, no physical pickup interaction yet.
 
 ## Short answer
-Yes, this is feasible with the current architecture, but we should enforce strict mode separation:
+Yes, this is feasible with the current architecture, and for this phase we should enforce strict mode separation:
 
 - **Desktop (flat-screen):** keep existing camera+mouse flow unchanged.
-- **VR with tracked controller:** aim and fire from right-hand controller pointer + trigger action.
-- **VR without valid controller tracking:** block firing (no mouse fallback in VR).
+- **VR (OpenXR session running):** aim from headset/head-forward direction (center of view).
+- **VR input:** keep mouse click firing for this phase (same as flatscreen), only change aim ray + crosshair.
 
-This is required because camera-origin mouse rays are not aligned with right-hand pointer origin in VR.
+This keeps desktop behavior untouched while making VR aiming spatially consistent with what the player is looking at.
 
 ---
 
-## What the new `docs/Vr_files` confirms
+## What the API/docs confirm
 
 ### 1) OpenXR state is available for runtime gating
-`docs/Vr_files/openxr.lua` exposes state fields like:
-- `enabled`
-- `sessionRunning`
-- `headsetActive`
-- `controller0Active` / `controller1Active`
-- `controller0poseValid` / `controller1poseValid`
+Preferred runtime check is:
+- `render_openxr and render_openxr.isSessionRunning and render_openxr.isSessionRunning()`
 
-These are enough to gate behavior by mode (desktop vs VR tracked vs VR untracked).
+Fallback if needed:
+- `OpenXR.getEnable()` plus available session-running signal already used in this project.
 
-### 2) Action system supports explicit gameplay trigger flow
-`docs/Vr_files/actions.lua` confirms action-trigger APIs:
-- `triggerDown(actionName)`
-- `triggerUp(actionName)`
-- `triggerDownUp(actionName)`
+### 2) Predicted camera pose exists for head-origin aim
+Use `OpenXR.getCameraPosRotPredictedXYZXYZW()` to get headset position + quaternion.
+From that quaternion, compute forward vector and use it as the VR aim direction.
 
-So adding a dedicated gameplay action (`btc_fireWeapon`) is consistent with the engine input architecture.
-
-### 3) Virtual input exists but should remain fallback-only
-`docs/Vr_files/virtualInput.lua` confirms synthetic input device/event APIs via `getVirtualInputManager()`.
-Use this only if action-map flow cannot satisfy VR trigger routing.
-
-### 4) OpenXR actions are already bound through standard action maps
-`docs/Vr_files/openxr.json` and `keyboard_openxr.json` show OpenXR-related actions are normal action-map citizens, which supports adding our own mod action for firing.
+### 3) Existing shot/hit logic can stay unchanged
+Only the ray origin/direction source changes in VR. Downstream hit resolution/damage flow remains the same.
 
 ---
 
-## Hard mode separation (implementation rule)
+## Implementation rule (this phase)
 
-## A) Desktop / flat-screen (no VR session or no tracked VR controllers)
+## A) Desktop / flat-screen (VR inactive)
 - **Aim source:** existing camera→mouse raycast path (`getCameraMouseRay`, current `FirstPersonShoot` flow).
 - **Fire input:** mouse click.
 - **Behavior:** unchanged from current desktop implementation.
 
-## B) VR active + right controller tracked and pose valid
-- **Aim source:** right-hand VR pointer ray (controller pointer/cursor ray).
-- **Fire input:** dedicated action (`btc_fireWeapon`) bound to VR trigger.
-- **Behavior:** mouse firing is ignored/disabled in this mode.
-
-## C) VR active but right controller not tracked or pose invalid
-- **Aim source:** none (invalid).
-- **Fire input:** ignored.
-- **Behavior:** no firing; optional debug/toast like “Controller not tracked / pose invalid”.
-- **Important:** do not fallback to camera/mouse in VR.
+## B) VR active (OpenXR running)
+- **Aim source:** headset predicted camera pose:
+  - origin = camera/head position
+  - direction = quaternion forward vector
+- **Fire input:** mouse click (same path as current implementation).
+- **Behavior:** only aim ray and crosshair placement change.
 
 ---
 
-## Input architecture
-Use one internal fire-intent path, but with strict gating by mode:
+## Core code change
+Create `getAimRay()` and use it from both:
+- shot raycast path
+- crosshair draw path
 
-- Desktop mode:
-  - `fireIntent = mouseClick`
-- VR tracked mode:
-  - `fireIntent = btc_fireWeapon action`
-- VR untracked mode:
-  - `fireIntent = false`
-
-Then feed `fireIntent` into the same centralized shot execution logic (cooldown/ammo/damage) in the existing `_fireShot()` flow.
+`getAimRay()` behavior:
+- VR active -> return origin/dir from OpenXR predicted camera pose.
+- VR inactive -> return existing mouse-based ray.
 
 ---
 
-## Why no mouse firing in VR
-In VR, the camera/headset origin differs from the right-hand pointer ray origin. If firing uses camera→mouse ray while the player is aiming with right-hand pointer, shots become spatially misaligned. Therefore, VR must use controller-pointer aiming + trigger action only when tracked.
+## Crosshair behavior
+- Desktop: keep current mouse-following crosshair exactly unchanged.
+- VR: place crosshair at ray hit point from head-forward ray.
+- If no hit: place crosshair at `origin + dir * 100` (or similar stable distance).
 
 ---
 
-## Phased plan
 
-## Phase 1 (now): stable pistol input behavior
-1. Add action `btc_fireWeapon` in mod action JSON.
-2. Bind VR trigger to `btc_fireWeapon` in VR bindings.
-3. Keep desktop mouse-click firing unchanged.
-4. Add mode gate checks (VR tracked vs VR untracked).
-5. Disable/ignore mouse firing whenever VR tracked mode is active.
-6. Add optional debug log/toast for blocked fire in VR-untracked mode.
+## Which fire input is better right now?
+- **For this task, mouse click is better** because it is the smallest, safest change and preserves existing behavior while we validate VR head-aim.
+- Controller trigger can be added later as a separate phase once aim behavior is confirmed stable.
+- Recommended decision now: **VR shoot = mouse click**, **VR aim = head-forward**.
 
-## Phase 2 (after validation): harden compatibility
-7. Add diagnostics around mode transitions (menu/gameplay, recenter, map reload).
-8. Keep virtual input bridge as optional fallback only if action routing fails.
+---
 
-## Deferred (explicitly out of scope)
-- Rock/throw system.
-- Weapon mesh/hand prop attachment.
-- Physical pickup interactions.
+## Logging and debug
+In debug mode only, log active aim mode when sampling/using aim:
+- `aim=VR_HEAD`
+- `aim=FLAT_MOUSE`
+
+## Deferred (out of scope for this task)
+- Controller-pose aiming.
+- New VR trigger/action mapping.
+- Weapon mesh/hand prop/pickup interactions.
 
 ---
 
 ## Immediate next tasks (small PR-ready)
-1. Create `btc_fireWeapon` action + bindings.
-2. Refactor fire input sampling to compute mode-gated `fireIntent`.
-3. Ensure `FirstPersonShoot` consumes pointer-based aim in VR tracked mode only.
-4. Add explicit no-fire behavior for VR-untracked mode.
-5. Validate with VR matrix:
-   - VR tracked in gameplay
-   - VR tracking loss/recovery
-   - menu focus transitions
-   - map reload
+1. Add `isVRActive()` helper using preferred OpenXR session-running check.
+2. Add `getAimRay()` (VR head-forward vs flat mouse ray).
+3. Replace direct aim sampling in shot code with `getAimRay()`.
+4. Replace crosshair placement source with `getAimRay()` in VR.
+5. Keep all existing hit/damage/fire-input logic unchanged.
+6. Add debug-only log line for current aim mode.
