@@ -137,6 +137,7 @@ local state = {
   aimEnabled = false,
   lastShotTime = -math.huge,
   blockedReason = nil,
+  lastAimModeLogged = nil,
 }
 
 local callbacks = {
@@ -322,6 +323,136 @@ local function _playShotAudio()
   Audio.playPlayerShot(playerVeh)
 end
 
+local function _isVRActive()
+  if render_openxr and render_openxr.isSessionRunning then
+    local ok, running = pcall(render_openxr.isSessionRunning)
+    if ok and running ~= nil then
+      return running and true or false
+    end
+  end
+
+  if OpenXR and OpenXR.getEnable then
+    local ok, enabled = pcall(OpenXR.getEnable)
+    if ok then
+      return enabled and true or false
+    end
+  end
+
+  return false
+end
+
+local function _extractOpenXRPose()
+  if not (OpenXR and OpenXR.getCameraPosRotPredictedXYZXYZW) then
+    return nil
+  end
+
+  local ok, a, b, c, d, e, f, g = pcall(OpenXR.getCameraPosRotPredictedXYZXYZW)
+  if not ok then return nil end
+
+  if type(a) == "table" then
+    local t = a
+    local px = t.px or t.x or (t.pos and (t.pos.x or t.pos[1])) or t[1]
+    local py = t.py or t.y or (t.pos and (t.pos.y or t.pos[2])) or t[2]
+    local pz = t.pz or t.z or (t.pos and (t.pos.z or t.pos[3])) or t[3]
+    local qx = t.qx or (t.rot and (t.rot.x or t.rot[1])) or t[4]
+    local qy = t.qy or (t.rot and (t.rot.y or t.rot[2])) or t[5]
+    local qz = t.qz or (t.rot and (t.rot.z or t.rot[3])) or t[6]
+    local qw = t.qw or t.w  or (t.rot and (t.rot.w or t.rot[4])) or t[7]
+    if px and py and pz and qx and qy and qz and qw then
+      return vec3(px, py, pz), qx, qy, qz, qw
+    end
+    return nil
+  end
+
+  if a and b and c and d and e and f and g then
+    return vec3(a, b, c), d, e, f, g
+  end
+
+  return nil
+end
+
+local function _quatForward(qx, qy, qz, qw)
+  local fx = 2.0 * (qx * qy - qw * qz)
+  local fy = 1.0 - 2.0 * (qx * qx + qz * qz)
+  local fz = 2.0 * (qy * qz + qw * qx)
+  local dir = vec3(fx, fy, fz)
+  if dir:length() < 0.001 then
+    return nil
+  end
+  return dir:normalized()
+end
+
+local function _logAimMode(mode)
+  if state.lastAimModeLogged == mode then return end
+  state.lastAimModeLogged = mode
+  if log then
+    log("I", "FirstPersonShoot", "aim=" .. tostring(mode))
+  end
+end
+
+local function _getAimRay()
+  if _isVRActive() then
+    local posePos, qx, qy, qz, qw = _extractOpenXRPose()
+    local dir = posePos and _quatForward(qx, qy, qz, qw) or nil
+    if posePos and dir then
+      _logAimMode("VR_HEAD")
+      return { origin = posePos, dir = dir, mode = "VR_HEAD" }
+    end
+  end
+
+  local camPosRaw = getCameraPosition and getCameraPosition() or nil
+  local camPos = _vec3From(camPosRaw)
+  local ray = getCameraMouseRay and getCameraMouseRay() or nil
+  local rayDir = ray and _vec3From(ray.dir) or nil
+  if camPos and rayDir and rayDir:length() >= 0.001 then
+    _logAimMode("FLAT_MOUSE")
+    return { origin = camPos, dir = rayDir:normalized(), mode = "FLAT_MOUSE" }
+  end
+
+  return nil
+end
+
+local function _castAimRay(aimRay)
+  if not (aimRay and aimRay.origin and aimRay.dir and castRay) then
+    return nil, nil
+  end
+
+  local rayStartPos = aimRay.origin
+  local rayEndPos = aimRay.origin + (aimRay.dir * CFG.maxDistance)
+
+  if CFG.rayStartOffset and CFG.rayStartOffset > 0 then
+    rayStartPos = aimRay.origin + (aimRay.dir * CFG.rayStartOffset)
+  end
+
+  local ok, result = pcall(castRay, rayStartPos, rayEndPos)
+  if not ok then
+    return nil, rayStartPos
+  end
+
+  return result, rayStartPos
+end
+
+local function _projectWorldToScreen(pos)
+  if not pos then return nil end
+
+  if worldToScreen then
+    local ok, screen = pcall(worldToScreen, pos)
+    if ok and screen and screen.x and screen.y then return screen end
+  end
+
+  if Engine and Engine.worldToScreen then
+    local ok, screen = pcall(Engine.worldToScreen, pos)
+    if ok and screen and screen.x and screen.y then return screen end
+  end
+
+  if core_camera and core_camera.getScreenPosFromWorld then
+    local ok, x, y = pcall(core_camera.getScreenPosFromWorld, pos)
+    if ok and x and y then return { x = x, y = y } end
+  end
+
+  return nil
+end
+
 local function _fireShot()
   if not state.aimEnabled then return end
 
@@ -344,17 +475,16 @@ local function _fireShot()
     return
   end
 
-  local camPosRaw = getCameraPosition and getCameraPosition() or nil
-  local camPos = _vec3From(camPosRaw)
-  local ray = getCameraMouseRay and getCameraMouseRay() or nil
-  if not camPos or not ray or not ray.dir then
+  local aimRay = _getAimRay()
+  if not (aimRay and aimRay.origin and aimRay.dir) then
     if callbacks.onShot then
       callbacks.onShot(false, "ray_unavailable", nil)
     end
     return
   end
 
-  local rayDir = _vec3From(ray.dir)
+  local camPos = aimRay.origin
+  local rayDir = _vec3From(aimRay.dir)
   if not rayDir or rayDir:length() < 0.001 then
     if callbacks.onShot then
       callbacks.onShot(false, "ray_invalid", nil)
@@ -370,20 +500,9 @@ local function _fireShot()
   _playShotAudio()
   _applyRecoilKick()
 
-  local rayStartPos = camPos
-  local rayEndPos = camPos + (rayDir * CFG.maxDistance)
-  local hit = nil
-
-  if castRay and CFG.rayStartOffset and CFG.rayStartOffset > 0 then
-    local offsetStartPos = camPos + (rayDir * CFG.rayStartOffset)
-    local ok, result = pcall(castRay, offsetStartPos, rayEndPos)
-    if ok and type(result) == "table" then
-      hit = result
-      rayStartPos = offsetStartPos
-    end
-  end
-
-  if not hit then
+  local hit, rayStartPos = _castAimRay(aimRay)
+  rayStartPos = rayStartPos or camPos
+  if (not hit) and aimRay.mode == "FLAT_MOUSE" then
     hit = cameraMouseRayCast and cameraMouseRayCast(true) or nil
     rayStartPos = camPos
   end
@@ -440,7 +559,30 @@ local function _drawCrosshair(imgui)
   local drawList = viewport and imgui.GetForegroundDrawList2(viewport) or nil
   if not drawList then return end
 
-  local pos = imgui.GetMousePos and imgui.GetMousePos() or nil
+  local pos = nil
+  local aimRay = _getAimRay()
+  if aimRay and aimRay.mode == "VR_HEAD" then
+    local hit, rayStartPos = _castAimRay(aimRay)
+    local _, hitPos, hitDist = _extractHitInfo(hit)
+    if not hitPos and hitDist and rayStartPos then
+      hitPos = rayStartPos + (aimRay.dir * hitDist)
+    end
+    if not hitPos then
+      hitPos = aimRay.origin + (aimRay.dir * 100.0)
+    end
+
+    local screenPos = _projectWorldToScreen(hitPos)
+    if screenPos then
+      pos = screenPos
+    elseif viewport and viewport.Pos and viewport.Size then
+      pos = {
+        x = viewport.Pos.x + (viewport.Size.x * 0.5),
+        y = viewport.Pos.y + (viewport.Size.y * 0.5),
+      }
+    end
+  else
+    pos = imgui.GetMousePos and imgui.GetMousePos() or nil
+  end
   if not pos then return end
 
   local size = CFG.crosshairSize
