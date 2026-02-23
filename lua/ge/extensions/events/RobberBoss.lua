@@ -324,7 +324,7 @@ local function _getPlayerVeh()
 end
 
 local function _resolveAudioVeh(v)
-  return _getPlayerVeh() or v
+  return v or _getPlayerVeh()
 end
 
 function Audio.ensureSources(v, sources)
@@ -372,6 +372,12 @@ function Audio.playId(v, name, vol, pitch, fileFallback)
     local id = _G.__robber1FKB200Audio.ids[%q]
     if not id then return end
 
+    if obj.setSFXSourceLooping then pcall(function() obj:setSFXSourceLooping(id, false) end) end
+    if obj.setSFXSourceLoop then pcall(function() obj:setSFXSourceLoop(id, false) end) end
+    if obj.stopSFX then pcall(function() obj:stopSFX(id) end) end
+    if obj.stopSFXSource then pcall(function() obj:stopSFXSource(id) end) end
+    if obj.stop then pcall(function() obj:stop(id) end) end
+
     if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 1.0) end) end
     if obj.setSFXVolume then      pcall(function() obj:setSFXVolume(id, 1.0) end) end
     if obj.setVolume then         pcall(function() obj:setVolume(id, 1.0) end) end
@@ -414,6 +420,9 @@ function Audio.stopId(v, name)
     end
     if obj.stopSFXSource then
       pcall(function() obj:stopSFXSource(id) end)
+    end
+    if obj.stop then
+      pcall(function() obj:stop(id) end)
     end
     if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 0) end) end
   ]], name)
@@ -1129,6 +1138,8 @@ function M.endEvent(opts)
   local pv = getPlayerVeh()
   if pv then
     Audio.stopId(pv, AUDIO.chase2Name)
+    Audio.stopId(pv, AUDIO.footstepsName)
+    Audio.stopId(pv, AUDIO.eventStartName)
   end
 
   -- Cancel EMP if still active/was fired (ensures brakes/ignition/planets restored)
@@ -1272,6 +1283,8 @@ function M.update(dtSim)
     local pv = getPlayerVeh()
     if pv then
       Audio.stopId(pv, AUDIO.chase2Name)
+      Audio.stopId(pv, AUDIO.footstepsName)
+      Audio.stopId(pv, AUDIO.eventStartName)
     end
 
     R.active = false

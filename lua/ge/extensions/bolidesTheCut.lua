@@ -2106,6 +2106,46 @@ function M.stopEvent(name)
   return false
 end
 
+
+local function stopAllEventAudio()
+  local pv = getPlayerVeh and getPlayerVeh() or nil
+  if pv and Audio and Audio.stopId then
+    Audio.stopId(pv, CFG.sfxBolidesIntroName)
+  end
+  if RobberEMP and RobberEMP.endEvent then
+    pcall(function() RobberEMP.endEvent() end)
+  end
+  if RobberShotgun and RobberShotgun.endEvent then
+    pcall(function() RobberShotgun.endEvent("lifecycle_cleanup") end)
+  end
+  if RobberBoss and RobberBoss.endEvent then
+    pcall(function() RobberBoss.endEvent() end)
+  end
+  if FireAttack and FireAttack.endEvent then
+    pcall(function() FireAttack.endEvent() end)
+  end
+end
+
+function M.onVehicleSwitched(oldId, newId)
+  stopAllEventAudio()
+end
+
+function M.onClientEndMission(missionId)
+  stopAllEventAudio()
+end
+
+function M.onSerialize()
+  stopAllEventAudio()
+end
+
+function M.onDeserialized(data)
+  stopAllEventAudio()
+end
+
+function M.onExtensionUnloaded()
+  stopAllEventAudio()
+end
+
 -- Draw-only: safe gating + pcall (Codex working pattern)
 function M.onDrawDebug()
   handleEquippedEmpInput()
