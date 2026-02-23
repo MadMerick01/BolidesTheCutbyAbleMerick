@@ -149,6 +149,33 @@
       gap: 6px;
     }
 
+
+    .bolide-hud-trial__purchase {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .bolide-hud-trial__purchase-button {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 7px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.55px;
+      color: #ffffff;
+      background: rgba(22, 36, 54, 0.9);
+      cursor: pointer;
+      line-height: 1.2;
+    }
+
+    .bolide-hud-trial__purchase-button:hover {
+      background: rgba(32, 54, 82, 0.95);
+    }
+
     .bolide-hud-trial__actions {
       margin-top: 10px;
       display: grid;
@@ -401,6 +428,24 @@
           {{hudTrial.equippedWeapon === weapon.id ? 'Unequip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol') : 'Equip ' + (weapon.id === 'emp' ? 'EMP' : 'Pistol')}}
         </button>
       </div>
+    </div>
+
+
+    <div class="bolide-hud-trial__purchase">
+      <button
+        class="bolide-hud-trial__purchase-button"
+        ng-click="buyHudWeapon('pistol')"
+        type="button"
+      >
+        Buy +6 Pistol Ammo ($5000)
+      </button>
+      <button
+        class="bolide-hud-trial__purchase-button"
+        ng-click="buyHudWeapon('emp')"
+        type="button"
+      >
+        Buy +5 EMP Charges ($3500)
+      </button>
     </div>
 
     <div class="bolide-hud-trial__actions">
