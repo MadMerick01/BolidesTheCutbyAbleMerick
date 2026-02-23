@@ -167,6 +167,15 @@
             }
           };
 
+          scope.buyHudWeapon = function (weaponId) {
+            if (!weaponId) {
+              return;
+            }
+            if (window.bngApi && bngApi.engineLua) {
+              bngApi.engineLua("extensions.bolidesTheCut.purchaseHudWeapon('" + weaponId + "')");
+            }
+          };
+
           scope.setEquipButtonHover = function (weaponId, isHovering) {
             scope.weaponButtonHover.id = weaponId || null;
             scope.weaponButtonHover.active = !!isHovering;

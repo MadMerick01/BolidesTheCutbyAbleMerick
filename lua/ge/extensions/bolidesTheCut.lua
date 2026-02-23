@@ -1352,6 +1352,74 @@ local function consumeHudAmmo(id, amount)
   return true
 end
 
+
+local HUD_PURCHASES = {
+  pistol = { cost = 5000, amount = 6 },
+  emp = { cost = 3500, amount = 5 },
+}
+
+local function spendHudMoney(amount)
+  local spend = math.max(0, tonumber(amount) or 0)
+  if spend <= 0 then
+    return true
+  end
+  local wallet = math.floor(tonumber(S.hudWallet) or 0)
+  if wallet < spend then
+    return false
+  end
+
+  local success = true
+  if getCareerMoney() ~= nil and CareerMoney and CareerMoney.add then
+    success = CareerMoney.add(-spend) == true
+  end
+  if not success then
+    return false
+  end
+
+  S.hudWallet = wallet - spend
+  return true
+end
+
+function M.purchaseHudWeapon(id)
+  ensureHudState()
+  local weaponId = tostring(id or "")
+  local spec = HUD_PURCHASES[weaponId]
+  if not spec then
+    return false
+  end
+
+  local weapon = getHudWeaponById(weaponId)
+  if not weapon then
+    return false
+  end
+
+  local maxAmmo = HUD_WEAPON_AMMO_LIMITS[weaponId]
+  local ammoNow = math.max(0, tonumber(weapon.ammo) or 0)
+  if maxAmmo and ammoNow >= maxAmmo then
+    M.setGuiStatusMessage(string.format("%s already full.", weaponId == "emp" and "EMP" or "Pistol"))
+    return false
+  end
+
+  if not spendHudMoney(spec.cost) then
+    M.setGuiStatusMessage("Not enough money.")
+    markHudTrialDirty()
+    sendHudTrialPayload(true)
+    return false
+  end
+
+  local ammoAfter = ammoNow + spec.amount
+  if maxAmmo then
+    ammoAfter = math.min(ammoAfter, maxAmmo)
+  end
+  weapon.ammo = ammoAfter
+  saveInventory()
+
+  M.setGuiStatusMessage(string.format("Purchased %s.", weaponId == "emp" and "EMP charges" or "pistol ammo"))
+  markHudTrialDirty()
+  sendHudTrialPayload(true)
+  return true
+end
+
 local function triggerEmpOnNearestVehicle()
   local playerVeh = getPlayerVeh()
   local targetVeh, targetDist, targetErr = findNearestVehicleToPlayer()
