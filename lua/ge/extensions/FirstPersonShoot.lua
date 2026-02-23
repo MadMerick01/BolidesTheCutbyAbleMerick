@@ -168,10 +168,24 @@ local function _vec3From(v)
   return vec3(v)
 end
 
+local VEHICLE_CACHE_TTL = 0.5
+local vehicleCache = {
+  at = -math.huge,
+  list = {},
+}
+
 local function _listVehicles()
+  local now = _now()
+  if (now - (vehicleCache.at or -math.huge)) < VEHICLE_CACHE_TTL then
+    return vehicleCache.list or {}
+  end
+
   if not scenetree or not scenetree.findClassObjects or not scenetree.findObject then
+    vehicleCache.at = now
+    vehicleCache.list = {}
     return {}
   end
+
   local vehicles = {}
   local refs = scenetree.findClassObjects("BeamNGVehicle") or {}
   for i = 1, #refs do
@@ -180,7 +194,9 @@ local function _listVehicles()
       vehicles[#vehicles + 1] = obj
     end
   end
-  return vehicles
+  vehicleCache.at = now
+  vehicleCache.list = vehicles
+  return vehicleCache.list
 end
 
 local function _findSnapTargetNearPoint(point, playerVeh)
@@ -189,6 +205,8 @@ local function _findSnapTargetNearPoint(point, playerVeh)
   local bestVeh = nil
   local bestDist = nil
   local maxDist = CFG.targetSnapRadius or 0
+  local cullDist = (CFG.maxDistance or 0) + maxDist + 20.0
+  local useCull = cullDist > 0
   if maxDist <= 0 then return nil end
   local vehicles = _listVehicles()
   for i = 1, #vehicles do
@@ -196,6 +214,9 @@ local function _findSnapTargetNearPoint(point, playerVeh)
     if veh and (not playerId or veh:getID() ~= playerId) then
       local pos = veh:getPosition()
       if pos then
+        if useCull and (pos - point):length() > cullDist then
+          goto continue
+        end
         local dist = (pos - point):length()
         if dist <= maxDist and (not bestDist or dist < bestDist) then
           bestVeh = veh
@@ -203,6 +224,7 @@ local function _findSnapTargetNearPoint(point, playerVeh)
         end
       end
     end
+    ::continue::
   end
   return bestVeh
 end
@@ -211,6 +233,8 @@ local function _findSnapTargetAlongRay(rayStart, rayDir, maxDistance, playerVeh)
   if not rayStart or not rayDir then return nil end
   local playerId = playerVeh and playerVeh.getID and playerVeh:getID() or nil
   local maxDist = CFG.targetSnapRadius or 0
+  local cullDist = (CFG.maxDistance or 0) + maxDist + 20.0
+  local useCull = cullDist > 0
   if maxDist <= 0 then return nil end
   local bestVeh = nil
   local bestRayDist = nil
@@ -221,6 +245,9 @@ local function _findSnapTargetAlongRay(rayStart, rayDir, maxDistance, playerVeh)
     if veh and (not playerId or veh:getID() ~= playerId) then
       local pos = veh:getPosition()
       if pos then
+        if useCull and (pos - rayStart):length() > cullDist then
+          goto continue
+        end
         local toPos = pos - rayStart
         local along = toPos:dot(rayDir)
         if along >= 0 and (not maxDistance or along <= maxDistance) then
@@ -234,6 +261,7 @@ local function _findSnapTargetAlongRay(rayStart, rayDir, maxDistance, playerVeh)
         end
       end
     end
+    ::continue::
   end
   if bestVeh and bestAlong then
     return bestVeh, rayStart + (rayDir * bestAlong)
@@ -241,55 +269,7 @@ local function _findSnapTargetAlongRay(rayStart, rayDir, maxDistance, playerVeh)
   return nil
 end
 
-local function _getAimBlockReason()
-  -- In VR we intentionally skip camera-mode gating and allow pistol aiming/fire
-  -- as long as ammo/input conditions pass.
-  if render_openxr and render_openxr.isSessionRunning then
-    local ok, running = pcall(render_openxr.isSessionRunning)
-    if ok and running then
-      return nil
-    end
-  end
-
-  if OpenXR and OpenXR.getEnable then
-    local ok, enabled = pcall(OpenXR.getEnable)
-    if ok and enabled then
-      return nil
-    end
-  end
-
-  if not core_camera or not core_camera.getActiveCamName then
-    return "camera_unavailable"
-  end
-
-  local camName = core_camera.getActiveCamName(0)
-  local camPos = getCameraPosition and getCameraPosition() or nil
-  local isInside = false
-  if camPos and core_camera.isCameraInside then
-    local ok, inside = pcall(core_camera.isCameraInside, 0, camPos)
-    isInside = ok and inside or false
-  end
-
-  if isInside then
-    return nil
-  end
-
-  if camName then
-    local name = string.lower(tostring(camName))
-    if string.find(name, "onboard", 1, true) or string.find(name, "driver", 1, true)
-      or string.find(name, "rider", 1, true) or string.find(name, "first", 1, true) then
-      return nil
-    end
-  end
-
-  return "not_first_person"
-end
-
 local function _canAim()
-  local reason = _getAimBlockReason()
-  if reason then
-    return false, reason
-  end
   if callbacks.getAmmo then
     local ammo = callbacks.getAmmo()
     if ammo and ammo <= 0 then
@@ -592,13 +572,14 @@ local function _drawCrosshair(imgui)
   if not drawList then return end
 
   local pos = nil
-  local aimRay = _getAimRay()
-  if aimRay and aimRay.mode == "VR_HEAD" and viewport and viewport.Pos and viewport.Size then
+  if _isVRActive() and viewport and viewport.Pos and viewport.Size then
+    _logAimMode("VR_HEAD")
     pos = {
       x = viewport.Pos.x + (viewport.Size.x * 0.5),
       y = viewport.Pos.y + (viewport.Size.y * 0.5),
     }
   else
+    _logAimMode("FLAT_MOUSE")
     pos = imgui.GetMousePos and imgui.GetMousePos() or nil
   end
   if not pos then return end
