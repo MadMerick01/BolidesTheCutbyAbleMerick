@@ -12,6 +12,7 @@ local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
 local RobberEMP = require("lua/ge/extensions/events/RobberEMP")
 local RobberShotgun = require("lua/ge/extensions/events/RobberShotgun")
 local RobberBoss = require("lua/ge/extensions/events/RobberBoss")
+local RobberFleeSupervisor = require("lua/ge/extensions/events/RobberFleeSupervisor")
 local BoldiePacing = require("lua/ge/extensions/events/BoldiePacing")
 local FireAttack = require("lua/ge/extensions/events/fireAttack")
 local EMP = require("lua/ge/extensions/events/emp")
@@ -1914,6 +1915,8 @@ function M.onExtensionLoaded()
   Breadcrumbs.init(CFG, S)
   Breadcrumbs.reset()
 
+  EVENT_HOST.RobberFleeSupervisor = RobberFleeSupervisor
+
   -- init events
   if RobberEMP and RobberEMP.init then
     RobberEMP.init(CFG, EVENT_HOST)
@@ -1923,6 +1926,10 @@ function M.onExtensionLoaded()
   end
   if RobberBoss and RobberBoss.init then
     RobberBoss.init(CFG, EVENT_HOST)
+  end
+  if RobberFleeSupervisor and RobberFleeSupervisor.init then
+    RobberFleeSupervisor.init(CFG.robberFleeSupervisor)
+    RobberFleeSupervisor.setHudEmitter(M.setNewHudState)
   end
   if FireAttack and FireAttack.init then
     FireAttack.init(CFG, EVENT_HOST)
@@ -2053,6 +2060,9 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   end
   if RobberBoss and RobberBoss.update then
     RobberBoss.update(dtSim)
+  end
+  if RobberFleeSupervisor and RobberFleeSupervisor.update then
+    RobberFleeSupervisor.update(dtSim)
   end
   if FireAttack and FireAttack.update then
     FireAttack.update(dtSim)

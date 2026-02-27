@@ -68,6 +68,45 @@ local function log(msg)
   end
 end
 
+local function getFleeSupervisor()
+  return Host and Host.RobberFleeSupervisor or nil
+end
+
+local function supervisorRegisterOrUpdate(phase, targetId)
+  if type(R.spawnedId) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup then return end
+  pcall(function()
+    sup.registerRobber({
+      vehId = R.spawnedId,
+      eventName = "RobberShotgun",
+      phase = phase or R.phase,
+      targetId = targetId,
+    })
+  end)
+end
+
+local function supervisorSetPhase(phase)
+  if type(R.spawnedId) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup or not sup.setPhase then return end
+  pcall(function() sup.setPhase(R.spawnedId, phase) end)
+end
+
+local function supervisorSetTarget(targetId)
+  if type(R.spawnedId) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup or not sup.setTargetId then return end
+  pcall(function() sup.setTargetId(R.spawnedId, targetId) end)
+end
+
+local function supervisorUnregister(id)
+  if type(id) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup or not sup.unregisterRobber then return end
+  pcall(function() sup.unregisterRobber(id) end)
+end
+
 local function addCareerMoney(amount)
   if not amount or amount == 0 then return false end
   if not career_modules_payment then return false end
@@ -557,6 +596,9 @@ startFollowAI = function(robberId)
 
   queueAI_FollowLegal(veh, targetId)
   R.phase = "follow"
+  supervisorRegisterOrUpdate("follow", targetId)
+  supervisorSetTarget(targetId)
+  supervisorSetPhase("follow")
   R.nextShotAt = nil
   log("RobberShotgun AI: FOLLOW (legal, lane changes, avoid cars/crash). targetId=" .. tostring(targetId))
   return true
@@ -577,6 +619,9 @@ local function switchToFleeAI(robberId)
 
   R.phase = "flee"
   queueAI_Flee(veh, targetId)
+  supervisorRegisterOrUpdate("flee", targetId)
+  supervisorSetTarget(targetId)
+  supervisorSetPhase("flee")
   log("RobberShotgun AI: switched to FLEE")
 end
 
@@ -663,6 +708,7 @@ local function beginActiveRun(id)
 
   R.startupStage = "postSpawn"
   R.startupTicks = STARTUP_DELAY_POST_SPAWN_TICKS
+  supervisorRegisterOrUpdate("idle")
   setHud(
     "event",
     "A vehicle is tailing you",
@@ -882,6 +928,7 @@ function M.endEvent(reason)
   )
 
   local id = R.spawnedId
+  supervisorUnregister(id)
   resetRuntime()
 
   if type(id) == "number" then
@@ -951,6 +998,7 @@ function M.update(dtSim)
         nil
       )
     end
+    supervisorUnregister(R.spawnedId)
     resetRuntime()
     log("Ended (robber missing).")
     return
