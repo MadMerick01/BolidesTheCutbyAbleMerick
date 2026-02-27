@@ -1,7 +1,7 @@
--- lua/ge/extensions/events/RobberCongestionSupervisor.lua
--- Supervisory robber driving risk manager for congestion + terrain/corner hazards.
+-- lua/ge/extensions/events/RobberFleeSupervisor.lua
+-- Supervisory robber flee-phase driving risk manager for congestion + terrain/corner hazards.
 --
--- Design ref: docs/RobberCongestionSupervisor.md
+-- Design ref: docs/RobberFleeSupervisor.md
 -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt (getObjectByID, gameplay_traffic.getTrafficList/getTrafficData, bolidesTheCut.setNewHudState)
 
 local M = {}
@@ -424,11 +424,15 @@ local function evaluateRobber(r, dt, trafficList, trafficData)
     end
   end
 
-  local profile = profileForState(r.state)
-  local profileKey = string.format("%s_%s_%s_%s", r.state, tostring(profile.maxSpeedKph), tostring(profile.aggression), profile.driveInLane)
-  if profileKey ~= r.profileKey then
-    queueProfile(veh, r.targetId, { state = r.state })
-    r.profileKey = profileKey
+  if r.phase == "flee" then
+    local profile = profileForState(r.state)
+    local profileKey = string.format("%s_%s_%s_%s", r.state, tostring(profile.maxSpeedKph), tostring(profile.aggression), profile.driveInLane)
+    if profileKey ~= r.profileKey then
+      queueProfile(veh, r.targetId, { state = r.state })
+      r.profileKey = profileKey
+    end
+  else
+    r.profileKey = nil
   end
 
   r.rerouteSuggested = shouldReroute(r)

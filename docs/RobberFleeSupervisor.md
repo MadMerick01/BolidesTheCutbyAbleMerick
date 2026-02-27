@@ -1,7 +1,7 @@
-# RobberCongestionSupervisor (Design Draft)
+# RobberFleeSupervisor (Design Draft)
 
 ## Purpose
-This document defines the **plain-English design** for a future `RobberCongestionSupervisor.lua` module.
+This document defines the **plain-English design** for a future `RobberFleeSupervisor.lua` module.
 
 The supervisor’s job is to make robber vehicles:
 - much safer around normal traffic,

@@ -88,6 +88,45 @@ local function log(msg)
   end
 end
 
+local function getFleeSupervisor()
+  return Host and Host.RobberFleeSupervisor or nil
+end
+
+local function supervisorRegisterOrUpdate(phase, targetId)
+  if type(R.spawnedId) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup then return end
+  pcall(function()
+    sup.registerRobber({
+      vehId = R.spawnedId,
+      eventName = "RobberBoss",
+      phase = phase or R.phase,
+      targetId = targetId,
+    })
+  end)
+end
+
+local function supervisorSetPhase(phase)
+  if type(R.spawnedId) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup or not sup.setPhase then return end
+  pcall(function() sup.setPhase(R.spawnedId, phase) end)
+end
+
+local function supervisorSetTarget(targetId)
+  if type(R.spawnedId) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup or not sup.setTargetId then return end
+  pcall(function() sup.setTargetId(R.spawnedId, targetId) end)
+end
+
+local function supervisorUnregister(id)
+  if type(id) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup or not sup.unregisterRobber then return end
+  pcall(function() sup.unregisterRobber(id) end)
+end
+
 local function chooseFkbPos(spacing, maxAgeSec, allowCached)
   maxAgeSec = maxAgeSec or 10.0
   allowCached = allowCached == true
@@ -532,6 +571,8 @@ local function beginActiveRun(id)
   R.startupTicks = STARTUP_DELAY_POST_SPAWN_TICKS
   resetPendingStart()
 
+  supervisorRegisterOrUpdate("idle")
+
   updateHudState({
     threat = "event",
     status = mergeStatusInstruction(
@@ -967,6 +1008,9 @@ startFollowAI = function(robberId)
 
   queueAI_ChaseConservative(veh, targetId)
   R.phase = "chase"
+  supervisorRegisterOrUpdate("chase", targetId)
+  supervisorSetTarget(targetId)
+  supervisorSetPhase("chase")
   R.waitForFlee = false
   R.waitTimer = 0
   log("Robber AI: FOLLOW (limit, max20, aggr0.1, stop@10m). targetId=" .. tostring(targetId))
@@ -992,6 +1036,9 @@ local function switchToFleeAI(robberId)
   R.lastNotDownhillAt = 0
   R.downhillActive = false
   applyFleeProfile(veh, targetId, "normal")
+  supervisorRegisterOrUpdate("flee", targetId)
+  supervisorSetTarget(targetId)
+  supervisorSetPhase("flee")
   log("Robber AI: switched to FLEE (post-EMP)")
 end
 
@@ -1148,6 +1195,7 @@ function M.endEvent(opts)
   end
 
   local id = R.spawnedId
+  supervisorUnregister(id)
   R.active = false
   R.spawnedId = nil
   R.spawnPos = nil
@@ -1287,6 +1335,7 @@ function M.update(dtSim)
       Audio.stopId(pv, AUDIO.eventStartName)
     end
 
+    supervisorUnregister(R.spawnedId)
     R.active = false
     R.spawnedId = nil
     R.spawnPos = nil

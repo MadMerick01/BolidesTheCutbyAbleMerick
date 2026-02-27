@@ -50,10 +50,6 @@ local R = {
   empBrakeEnd = nil,
   empPreStopTriggered = false,
   empPreStopEnd = nil,
-  fleeProfile = nil,
-  downhillHold = 0,
-  lastNotDownhillAt = 0,
-  downhillActive = false,
   robberyProcessed = false,
   robbedAmount = 0,
   cashFound = nil,
@@ -86,6 +82,45 @@ local function log(msg)
   else
     print("[RobberEMP] " .. tostring(R.status))
   end
+end
+
+local function getFleeSupervisor()
+  return Host and Host.RobberFleeSupervisor or nil
+end
+
+local function supervisorRegisterOrUpdate(phase, targetId)
+  if type(R.spawnedId) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup then return end
+  pcall(function()
+    sup.registerRobber({
+      vehId = R.spawnedId,
+      eventName = "RobberEMP",
+      phase = phase or R.phase,
+      targetId = targetId,
+    })
+  end)
+end
+
+local function supervisorSetPhase(phase)
+  if type(R.spawnedId) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup or not sup.setPhase then return end
+  pcall(function() sup.setPhase(R.spawnedId, phase) end)
+end
+
+local function supervisorSetTarget(targetId)
+  if type(R.spawnedId) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup or not sup.setTargetId then return end
+  pcall(function() sup.setTargetId(R.spawnedId, targetId) end)
+end
+
+local function supervisorUnregister(id)
+  if type(id) ~= "number" then return end
+  local sup = getFleeSupervisor()
+  if not sup or not sup.unregisterRobber then return end
+  pcall(function() sup.unregisterRobber(id) end)
 end
 
 local function chooseFkbPos(spacing, maxAgeSec, allowCached)
@@ -517,10 +552,6 @@ local function beginActiveRun(id)
   R.empBrakeEnd = nil
   R.empPreStopTriggered = false
   R.empPreStopEnd = nil
-  R.fleeProfile = nil
-  R.downhillHold = 0
-  R.lastNotDownhillAt = 0
-  R.downhillActive = false
   R.robberyProcessed = false
   R.robbedAmount = 0
   R.cashFound = nil
@@ -531,6 +562,8 @@ local function beginActiveRun(id)
   R.startupStage = "postSpawn"
   R.startupTicks = STARTUP_DELAY_POST_SPAWN_TICKS
   resetPendingStart()
+
+  supervisorRegisterOrUpdate("idle")
 
   updateHudState({
     threat = "event",
@@ -842,116 +875,6 @@ local function queueAI_Flee(veh, targetId)
   ]]):format(targetId))
 end
 
-local function queueAI_FleeProfile(veh, targetId, profile)
-  veh:queueLuaCommand(([[
-    local function try(desc, fn)
-      local ok, err = pcall(fn)
-      if not ok then print("[Robber1FKB200 AI] FAIL: "..desc.." :: "..tostring(err)) end
-      return ok
-    end
-
-    local tid = %d
-    local profile = %q
-    if not ai then print("[Robber1FKB200 AI] ai missing"); return end
-
-    try('ai.setMode("flee")', function() ai.setMode("flee") end)
-    try("ai.setTargetObjectID(tid)", function()
-      if ai.setTargetObjectID then ai.setTargetObjectID(tid) end
-    end)
-
-    try('ai.setSpeedMode("legal")', function()
-      if ai.setSpeedMode then ai.setSpeedMode("legal") end
-    end)
-
-    try("ai.setAvoidCars(true)", function()
-      if ai.setAvoidCars then ai.setAvoidCars(true) end
-    end)
-    try("ai.setAvoidCrash(true)", function()
-      if ai.setAvoidCrash then ai.setAvoidCrash(true) end
-    end)
-    try("ai.setRecoverOnCrash(false)", function()
-      if ai.setRecoverOnCrash then ai.setRecoverOnCrash(false) end
-    end)
-
-    if profile == "downhill" then
-      try("ai.setMaxSpeedKph(45)", function()
-        if ai.setMaxSpeedKph then ai.setMaxSpeedKph(45) end
-      end)
-      try("ai.setAggression(0.12)", function()
-        if ai.setAggression then ai.setAggression(0.12) end
-      end)
-      try("ai.setAllowLaneChanges(false)", function()
-        if ai.setAllowLaneChanges then ai.setAllowLaneChanges(false) end
-      end)
-      try('ai.driveInLane("on")', function()
-        if ai.driveInLane then ai.driveInLane("on") end
-      end)
-    else
-      try("ai.setMaxSpeedKph(75)", function()
-        if ai.setMaxSpeedKph then ai.setMaxSpeedKph(75) end
-      end)
-      try("ai.setAggression(0.28)", function()
-        if ai.setAggression then ai.setAggression(0.28) end
-      end)
-      try("ai.setAllowLaneChanges(true)", function()
-        if ai.setAllowLaneChanges then ai.setAllowLaneChanges(true) end
-      end)
-      try('ai.driveInLane("off")', function()
-        if ai.driveInLane then ai.driveInLane("off") end
-      end)
-    end
-
-    print("[Robber1FKB200 AI] FLEE profile="..tostring(profile).." targetId="..tostring(tid))
-  ]]):format(targetId, profile or "normal"))
-end
-
-local function updateDownhillState(dtSim, robberVeh)
-  if not robberVeh or not robberVeh.getDirectionVector then
-    return R.downhillActive
-  end
-
-  local fwd = robberVeh:getDirectionVector()
-  if not fwd then
-    return R.downhillActive
-  end
-
-  local clampedZ = math.max(-1, math.min(1, fwd.z or 0))
-  local pitchDeg = math.deg(math.asin(clampedZ))
-
-  if pitchDeg <= -6 then
-    R.downhillActive = true
-    R.downhillHold = 0
-    R.lastNotDownhillAt = 0
-    return true
-  end
-
-  if R.downhillActive then
-    if pitchDeg >= -3 then
-      if not R.lastNotDownhillAt or R.lastNotDownhillAt == 0 then
-        R.lastNotDownhillAt = os.clock()
-      end
-      R.downhillHold = R.downhillHold + (dtSim or 0)
-      if R.downhillHold >= 1.0 then
-        R.downhillActive = false
-        R.downhillHold = 0
-        R.lastNotDownhillAt = 0
-      end
-    else
-      R.downhillHold = 0
-      R.lastNotDownhillAt = 0
-    end
-  end
-
-  return R.downhillActive
-end
-
-local function applyFleeProfile(robberVeh, targetId, profile)
-  if not robberVeh or not targetId then return end
-  if R.fleeProfile == profile then return end
-  queueAI_FleeProfile(robberVeh, targetId, profile)
-  R.fleeProfile = profile
-end
-
 startFollowAI = function(robberId)
   local veh = getObjById(robberId)
   if not veh then
@@ -967,6 +890,9 @@ startFollowAI = function(robberId)
 
   queueAI_ChaseConservative(veh, targetId)
   R.phase = "chase"
+  supervisorRegisterOrUpdate("chase", targetId)
+  supervisorSetTarget(targetId)
+  supervisorSetPhase("chase")
   R.waitForFlee = false
   R.waitTimer = 0
   log("Robber AI: FOLLOW (limit, max20, aggr0.1, stop@10m). targetId=" .. tostring(targetId))
@@ -987,11 +913,10 @@ local function switchToFleeAI(robberId)
   end
 
   R.phase = "flee"
-  R.fleeProfile = nil
-  R.downhillHold = 0
-  R.lastNotDownhillAt = 0
-  R.downhillActive = false
-  applyFleeProfile(veh, targetId, "normal")
+  queueAI_Flee(veh, targetId)
+  supervisorRegisterOrUpdate("flee", targetId)
+  supervisorSetTarget(targetId)
+  supervisorSetPhase("flee")
   log("Robber AI: switched to FLEE (post-EMP)")
 end
 
@@ -1148,6 +1073,7 @@ function M.endEvent(opts)
   end
 
   local id = R.spawnedId
+  supervisorUnregister(id)
   R.active = false
   R.spawnedId = nil
   R.spawnPos = nil
@@ -1178,10 +1104,6 @@ function M.endEvent(opts)
   R.empBrakeEnd = nil
   R.empPreStopTriggered = false
   R.empPreStopEnd = nil
-  R.fleeProfile = nil
-  R.downhillHold = 0
-  R.lastNotDownhillAt = 0
-  R.downhillActive = false
   R.robberyProcessed = false
   R.robbedAmount = 0
   R.cashFound = nil
@@ -1287,16 +1209,13 @@ function M.update(dtSim)
       Audio.stopId(pv, AUDIO.eventStartName)
     end
 
+    supervisorUnregister(R.spawnedId)
     R.active = false
     R.spawnedId = nil
     R.spawnPos = nil
     R.spawnMode = nil
     R.spawnMethod = nil
     R.phase = "idle"
-    R.fleeProfile = nil
-    R.downhillHold = 0
-    R.lastNotDownhillAt = 0
-    R.downhillActive = false
     R.hideDistance = false
     R.postSuccessMessageAt = nil
     R.robberStationaryTimer = 0
@@ -1530,14 +1449,6 @@ function M.update(dtSim)
   end
 
   if R.empFleeTriggered and (not R.successTriggered) then
-    if R.phase == "flee" then
-      local targetId = (be and be.getPlayerVehicleID) and be:getPlayerVehicleID(0) or nil
-      if targetId and targetId > 0 then
-        local downhill = updateDownhillState(dtSim, robber)
-        applyFleeProfile(robber, targetId, downhill and "downhill" or "normal")
-      end
-    end
-
     if d <= 7.0 then
       R.closeTimer = R.closeTimer + (dtSim or 0)
     else
