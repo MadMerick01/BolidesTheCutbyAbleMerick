@@ -349,6 +349,81 @@
       cursor: not-allowed;
     }
 
+
+    .bolide-hud-trial__supervisor {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .bolide-hud-trial__supervisor-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.72);
+      margin-bottom: 6px;
+    }
+
+    .bolide-hud-trial__supervisor-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .bolide-hud-trial__supervisor-card {
+      border-radius: 4px;
+      padding: 7px 8px;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-left-width: 3px;
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .bolide-hud-trial__supervisor-card.state-FreeFlow {
+      border-left-color: rgba(92, 215, 138, 0.95);
+    }
+
+    .bolide-hud-trial__supervisor-card.state-ModerateRisk {
+      border-left-color: rgba(233, 177, 74, 0.95);
+    }
+
+    .bolide-hud-trial__supervisor-card.state-HeavyRisk {
+      border-left-color: rgba(243, 126, 53, 0.95);
+    }
+
+    .bolide-hud-trial__supervisor-card.state-EmergencyAvoid {
+      border-left-color: rgba(255, 92, 92, 0.95);
+    }
+
+    .bolide-hud-trial__supervisor-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .bolide-hud-trial__supervisor-name {
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .bolide-hud-trial__supervisor-state {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .bolide-hud-trial__supervisor-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 3px 8px;
+      color: rgba(255, 255, 255, 0.86);
+    }
+
     @keyframes bolideHudAmmoWiggle {
       0% {
         transform: rotate(0deg);
@@ -467,6 +542,32 @@
       >
         About
       </button>
+    </div>
+
+
+
+    <div class="bolide-hud-trial__supervisor" ng-if="hudTrial.robberTelemetryCards.length">
+      <div class="bolide-hud-trial__supervisor-title">Robber Flee Supervisor</div>
+      <div class="bolide-hud-trial__supervisor-list">
+        <div
+          class="bolide-hud-trial__supervisor-card state-{{card.state || 'FreeFlow'}}"
+          ng-repeat="card in hudTrial.robberTelemetryCards track by ($index + '-' + (card.robberId || 'x'))"
+        >
+          <div class="bolide-hud-trial__supervisor-head">
+            <span class="bolide-hud-trial__supervisor-name">{{card.eventName || 'Robber'}} #{{card.robberId || '?'}}</span>
+            <span class="bolide-hud-trial__supervisor-state">{{card.state || '—'}}</span>
+          </div>
+          <div class="bolide-hud-trial__supervisor-metrics">
+            <span>Risk {{((card.risk || 0) * 100) | number:0}}%</span>
+            <span>Queue {{card.queueCount || 0}}</span>
+            <span ng-if="card.leadDistance || card.leadDistance === 0">Lead {{card.leadDistance | number:0}}m</span>
+            <span ng-if="!(card.leadDistance || card.leadDistance === 0)">Lead —</span>
+            <span ng-if="card.relativeSpeedKph || card.relativeSpeedKph === 0">Closing {{card.relativeSpeedKph | number:0}}kph</span>
+            <span ng-if="!(card.relativeSpeedKph || card.relativeSpeedKph === 0)">Closing —</span>
+            <span>Reroute {{card.rerouteSuggested ? 'YES' : 'NO'}}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="bolide-hud-trial__bandit-switch">

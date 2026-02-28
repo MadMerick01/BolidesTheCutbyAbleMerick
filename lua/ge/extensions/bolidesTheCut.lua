@@ -107,6 +107,7 @@ local S = {
   hudWeaponButtonHover = false,
   hudPauseState = nil,
   hudPauseActive = false,
+  hudRobberTelemetryCards = {},
   towingBlocked = false,
   recoveryPromptWasActive = nil,
 
@@ -1085,6 +1086,28 @@ local function hudTrialPayloadKey(payload)
     }, ":")
   end
 
+  local telemetryKey = ""
+  if type(payload.robberTelemetryCards) == "table" then
+    local cards = {}
+    for i, card in ipairs(payload.robberTelemetryCards) do
+      if type(card) == "table" then
+        cards[#cards + 1] = table.concat({
+          tostring(card.robberId or ""),
+          tostring(card.eventName or ""),
+          tostring(card.phase or ""),
+          tostring(card.state or ""),
+          string.format("%.3f", tonumber(card.risk or 0) or 0),
+          tostring(card.queueCount or ""),
+          tostring(card.leadDistance or ""),
+          tostring(card.relativeSpeedKph or ""),
+          tostring(card.rerouteSuggested == true),
+          tostring(i),
+        }, ":")
+      end
+    end
+    telemetryKey = table.concat(cards, ",")
+  end
+
   return table.concat({
     tostring(payload.title or ""),
     tostring(payload.tagline or ""),
@@ -1099,6 +1122,7 @@ local function hudTrialPayloadKey(payload)
     tostring(payload.pacingMode or ""),
     tostring(payload.pendingPacingMode or ""),
     preloadKey,
+    telemetryKey,
     weaponsKey,
   }, "|")
 end
@@ -1192,6 +1216,24 @@ local function buildHudTrialPayload()
     },
     pacingMode = BoldiePacing and BoldiePacing.getMode and BoldiePacing.getMode() or (CFG.pacingModeDefault or "real"),
     pendingPacingMode = BoldiePacing and BoldiePacing.getPendingMode and BoldiePacing.getPendingMode() or nil,
+    robberTelemetryCards = S.hudRobberTelemetryCards or {},
+  }
+end
+
+local function sanitizeTelemetryCard(card)
+  if type(card) ~= "table" then return nil end
+  return {
+    robberId = tonumber(card.robberId),
+    eventName = card.eventName and tostring(card.eventName) or "Robber",
+    phase = card.phase and tostring(card.phase) or "",
+    state = card.state and tostring(card.state) or "",
+    risk = tonumber(card.risk or 0) or 0,
+    congestion = tonumber(card.congestion or 0) or 0,
+    terrain = tonumber(card.terrain or 0) or 0,
+    leadDistance = tonumber(card.leadDistance),
+    relativeSpeedKph = tonumber(card.relativeSpeedKph),
+    queueCount = tonumber(card.queueCount),
+    rerouteSuggested = card.rerouteSuggested == true,
   }
 end
 
@@ -1608,6 +1650,21 @@ function M.setNewHudState(payload)
 
   if payload.inventoryDelta then
     applyHudInventoryDelta(payload.inventoryDelta)
+  end
+
+  if payload.robberTelemetryCards ~= nil then
+    if type(payload.robberTelemetryCards) == "table" then
+      local cards = {}
+      for _, card in ipairs(payload.robberTelemetryCards) do
+        local sanitized = sanitizeTelemetryCard(card)
+        if sanitized then
+          cards[#cards + 1] = sanitized
+        end
+      end
+      S.hudRobberTelemetryCards = cards
+    else
+      S.hudRobberTelemetryCards = {}
+    end
   end
 
   markHudTrialDirty()
