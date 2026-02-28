@@ -45,7 +45,8 @@
             },
             pacingMode: 'real',
             pendingPacingMode: null,
-            isHarassing: false
+            isHarassing: false,
+            robberTelemetryCards: []
           };
 
           var weaponLimits = {
@@ -133,6 +134,7 @@
             scope.hudTrial.pacingMode = payload.pacingMode || defaults.pacingMode;
             scope.hudTrial.pendingPacingMode = payload.pendingPacingMode || null;
             scope.hudTrial.isHarassing = scope.hudTrial.pacingMode === 'harassing';
+            scope.hudTrial.robberTelemetryCards = Array.isArray(payload.robberTelemetryCards) ? payload.robberTelemetryCards : [];
             updateWeaponButtonHoverState();
             scope.hudTrial.weapons.forEach(function (weapon) {
               if (!weapon.animate) {
