@@ -39,6 +39,7 @@ local robbers = {}
 local nowClock = 0
 local nextHudAt = 0
 local hostHudEmitter = nil
+local escapePlanner = nil
 
 local function shallowCopy(t)
   local out = {}
@@ -436,6 +437,12 @@ local function evaluateRobber(r, dt, trafficList, trafficData)
   end
 
   r.rerouteSuggested = shouldReroute(r)
+
+  if escapePlanner and escapePlanner.onSupervisorFrame then
+    local card = buildTelemetryCard(r)
+    pcall(function() escapePlanner.onSupervisorFrame(r.vehId, card, veh, trafficList, trafficData) end)
+  end
+
   r.lastEvalAt = nowClock
   r.nextEvalAt = nowClock + (1 / math.max(1, cfg.evalHz))
 end
@@ -447,6 +454,10 @@ end
 
 function M.setHudEmitter(fn)
   hostHudEmitter = type(fn) == "function" and fn or nil
+end
+
+function M.setEscapePlanner(planner)
+  escapePlanner = planner
 end
 
 function M.registerRobber(opts)

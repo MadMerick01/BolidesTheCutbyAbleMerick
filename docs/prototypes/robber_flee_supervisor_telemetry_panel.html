@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RobberFleeSupervisor Telemetry Panel</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a30;
+      --card: #17213d;
+      --text: #eaf0ff;
+      --muted: #9fb0d8;
+      --good: #3ddc97;
+      --warn: #ffcf5c;
+      --risk: #ff6b6b;
+      --accent: #7aa2ff;
+      --border: #26355f;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top, #19274e, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 1fr auto;
+    }
+
+    .scene-placeholder {
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      padding: 2rem;
+      letter-spacing: 0.2px;
+    }
+
+    .hud {
+      position: sticky;
+      bottom: 0;
+      width: min(1100px, 96vw);
+      margin: 0 auto 1rem;
+      padding: 0.5rem;
+      background: color-mix(in srgb, var(--panel) 88%, transparent);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      backdrop-filter: blur(4px);
+    }
+
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      padding: 0.25rem 0.4rem;
+    }
+
+    .hud-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .hud-meta {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .cards {
+      display: grid;
+      gap: 0.45rem;
+      max-height: 42vh;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .telemetry-card {
+      display: grid;
+      grid-template-columns: 1.5fr repeat(5, minmax(90px, 1fr));
+      gap: 0.45rem;
+      align-items: stretch;
+      background: linear-gradient(180deg, #1a2749, var(--card));
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.55rem;
+    }
+
+    .cell {
+      background: #0f1932;
+      border: 1px solid #243660;
+      border-radius: 8px;
+      padding: 0.4rem 0.5rem;
+      min-height: 52px;
+      display: grid;
+      align-content: center;
+      gap: 0.1rem;
+    }
+
+    .label {
+      font-size: 0.69rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .value {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .state-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 0.4rem;
+      vertical-align: middle;
+      box-shadow: 0 0 9px currentColor;
+    }
+
+    .freeflow { color: var(--good); }
+    .moderaterisk { color: var(--warn); }
+    .heavyrisk,
+    .emergencyavoid { color: var(--risk); }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.6rem;
+    }
+
+    button {
+      border: 1px solid #355193;
+      background: #193065;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.42rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    button:hover { background: #214186; }
+
+    @media (max-width: 900px) {
+      .telemetry-card {
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene-placeholder">
+    <div>
+      <h1>Chase Scene Placeholder</h1>
+      <p>Telemetry cards stack at the bottom as robbers become active.</p>
+    </div>
+  </main>
+
+  <section class="hud" aria-label="Robber flee supervisor telemetry HUD">
+    <div class="hud-header">
+      <div class="hud-title">RobberFleeSupervisor Telemetry</div>
+      <div class="hud-meta"><span id="activeCount">0</span> active robber(s)</div>
+    </div>
+
+    <div id="cards" class="cards"></div>
+
+    <div class="controls">
+      <button id="addRobber">+ Activate robber</button>
+      <button id="deactivateRobber">- Deactivate last robber</button>
+      <button id="tick">Simulate telemetry tick</button>
+    </div>
+  </section>
+
+  <script>
+    const STATE_ORDER = ["FreeFlow", "ModerateRisk", "HeavyRisk", "EmergencyAvoid"];
+
+    const robbers = [];
+    const cardsEl = document.getElementById("cards");
+    const activeCountEl = document.getElementById("activeCount");
+
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+    const rand = (min, max) => Math.random() * (max - min) + min;
+
+    function getStateClass(state) {
+      return state.toLowerCase();
+    }
+
+    function chooseState(congestion, terrainRisk, leadDistance, relSpeed) {
+      const combined = congestion * 0.55 + terrainRisk * 0.45;
+      if (leadDistance < 12 || relSpeed > 14 || combined > 82) return "EmergencyAvoid";
+      if (leadDistance < 20 || relSpeed > 9 || combined > 62) return "HeavyRisk";
+      if (leadDistance < 34 || relSpeed > 5 || combined > 38) return "ModerateRisk";
+      return "FreeFlow";
+    }
+
+    function updateReroute(state, congestion, terrainRisk) {
+      if (state === "HeavyRisk" || state === "EmergencyAvoid") {
+        return congestion > 70 || terrainRisk > 68 ? "REROUTE_CANDIDATE" : "HOLD_LANE";
+      }
+      return "NONE";
+    }
+
+    function makeRobber(id) {
+      return {
+        id,
+        state: "FreeFlow",
+        congestion: rand(10, 35),
+        terrainRisk: rand(8, 30),
+        leadDistance: rand(28, 55),
+        relSpeed: rand(-2, 6),
+        reroute: "NONE"
+      };
+    }
+
+    function tickRobber(r) {
+      r.congestion = clamp(r.congestion + rand(-8, 11), 0, 100);
+      r.terrainRisk = clamp(r.terrainRisk + rand(-7, 9), 0, 100);
+      r.leadDistance = clamp(r.leadDistance + rand(-9, 8), 5, 120);
+      r.relSpeed = clamp(r.relSpeed + rand(-4, 4), -15, 22);
+      r.state = chooseState(r.congestion, r.terrainRisk, r.leadDistance, r.relSpeed);
+      r.reroute = updateReroute(r.state, r.congestion, r.terrainRisk);
+    }
+
+    function cardTemplate(r) {
+      const stateClass = getStateClass(r.state);
+      return `
+        <article class="telemetry-card" data-robber-id="${r.id}">
+          <div class="cell">
+            <div class="label">Robber</div>
+            <div class="value">#${r.id}</div>
+          </div>
+          <div class="cell">
+            <div class="label">State</div>
+            <div class="value ${stateClass}"><span class="state-dot"></span>${r.state}</div>
+          </div>
+          <div class="cell">
+            <div class="label">Congestion</div>
+            <div class="value">${r.congestion.toFixed(0)}</div>
+          </div>
+          <div class="cell">
+            <div class="label">Terrain Risk</div>
+            <div class="value">${r.terrainRisk.toFixed(0)}</div>
+          </div>
+          <div class="cell">
+            <div class="label">Lead Dist (m)</div>
+            <div class="value">${r.leadDistance.toFixed(1)}</div>
+          </div>
+          <div class="cell">
+            <div class="label">Rel Speed (m/s)</div>
+            <div class="value">${r.relSpeed >= 0 ? "+" : ""}${r.relSpeed.toFixed(1)}</div>
+          </div>
+          <div class="cell">
+            <div class="label">Reroute</div>
+            <div class="value">${r.reroute}</div>
+          </div>
+        </article>
+      `;
+    }
+
+    function render() {
+      cardsEl.innerHTML = robbers.map(cardTemplate).join("");
+      activeCountEl.textContent = robbers.length;
+    }
+
+    function addRobber() {
+      const id = robbers.length ? robbers[robbers.length - 1].id + 1 : 1;
+      const robber = makeRobber(id);
+      robbers.push(robber);
+      tickRobber(robber);
+      render();
+    }
+
+    function deactivateLast() {
+      robbers.pop();
+      render();
+    }
+
+    function tickAll() {
+      robbers.forEach(tickRobber);
+      render();
+    }
+
+    document.getElementById("addRobber").addEventListener("click", addRobber);
+    document.getElementById("deactivateRobber").addEventListener("click", deactivateLast);
+    document.getElementById("tick").addEventListener("click", tickAll);
+
+    addRobber();
+    addRobber();
+  </script>
+</body>
+</html>
