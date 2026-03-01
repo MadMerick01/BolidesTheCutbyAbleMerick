@@ -40,6 +40,10 @@ local nowClock = 0
 local nextHudAt = 0
 local hostHudEmitter = nil
 local escapePlanner = nil
+local trafficReduction = {
+  baselineAmount = nil,
+  applied = false,
+}
 
 local function shallowCopy(t)
   local out = {}
@@ -138,6 +142,66 @@ local function resolveTrafficSnapshot()
   end
 
   return trafficList, trafficData
+end
+
+local function getActiveRobberCount()
+  local count = 0
+  for _, r in pairs(robbers) do
+    if r and r.active then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+local function getTrafficAmountSafe()
+  if not gameplay_traffic then return nil end
+
+  if gameplay_traffic.getTrafficAmount then
+    local v = safeCall(gameplay_traffic.getTrafficAmount)
+    if type(v) == "number" then return v end
+  end
+
+  if gameplay_traffic.getNumOfTraffic then
+    local v = safeCall(gameplay_traffic.getNumOfTraffic)
+    if type(v) == "number" then return v end
+  end
+
+  return nil
+end
+
+local function setActiveTrafficAmountSafe(amount)
+  if not gameplay_traffic or not gameplay_traffic.setActiveAmount then return false end
+  if type(amount) ~= "number" then return false end
+  local whole = math.max(0, math.floor(amount + 0.5))
+  local ok = safeCall(gameplay_traffic.setActiveAmount, whole)
+  return ok ~= nil
+end
+
+local function applyTrafficReductionIfNeeded()
+  if trafficReduction.applied then return end
+
+  local baseline = getTrafficAmountSafe()
+  if type(baseline) ~= "number" then return end
+
+  local baselineWhole = math.max(0, math.floor(baseline + 0.5))
+  local reduced = math.max(0, math.ceil(baselineWhole * 0.5))
+  if setActiveTrafficAmountSafe(reduced) then
+    trafficReduction.baselineAmount = baselineWhole
+    trafficReduction.applied = true
+  end
+end
+
+local function restoreTrafficIfNeeded()
+  if not trafficReduction.applied then return end
+  if getActiveRobberCount() > 0 then return end
+
+  if type(trafficReduction.baselineAmount) == "number" then
+    setActiveTrafficAmountSafe(trafficReduction.baselineAmount)
+  end
+
+  trafficReduction.baselineAmount = nil
+  trafficReduction.applied = false
 end
 
 local function getTrafficVehicleState(id, trafficData)
@@ -488,12 +552,15 @@ function M.registerRobber(opts)
   r.rerouteSuggested = false
   r.prevDir = nil
 
+  applyTrafficReductionIfNeeded()
+
   return true
 end
 
 function M.unregisterRobber(vehId)
   if type(vehId) ~= "number" then return false end
   robbers[vehId] = nil
+  restoreTrafficIfNeeded()
   return true
 end
 
@@ -528,6 +595,12 @@ function M.getTelemetryCards()
 end
 
 function M.reset()
+  if trafficReduction.applied and type(trafficReduction.baselineAmount) == "number" then
+    setActiveTrafficAmountSafe(trafficReduction.baselineAmount)
+  end
+  trafficReduction.baselineAmount = nil
+  trafficReduction.applied = false
+
   robbers = {}
   nowClock = 0
   nextHudAt = 0
