@@ -39,6 +39,14 @@ function M.get()
   return tonumber(value) or 0
 end
 
+function M.getOrNil()
+  local value = getMoneySafe()
+  if value == nil then
+    return nil
+  end
+  return tonumber(value)
+end
+
 function M.set(amount)
   amount = tonumber(amount) or 0
   if setMoneySafe(amount) then
