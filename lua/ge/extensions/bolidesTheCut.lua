@@ -967,8 +967,10 @@ local HUD_TRIAL = {
   timeSinceEmit = math.huge,
   emitInterval = 0.25,
   forceEmitInterval = 1.0,
+  walletSyncInterval = 2.0,
   timeSinceEnsureVisible = math.huge,
   ensureVisibleInterval = 2.0,
+  walletSyncTimer = 0,
   lastPayloadKey = nil,
 }
 
@@ -2069,8 +2071,13 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   HUD_TRIAL.timeSinceEnsureVisible = (HUD_TRIAL.timeSinceEnsureVisible or 0) + dt
   POPUP.timeSinceEmit = (POPUP.timeSinceEmit or 0) + dt
 
-  if HUD_TRIAL.dirty or HUD_TRIAL.timeSinceEmit >= HUD_TRIAL.emitInterval then
+  HUD_TRIAL.walletSyncTimer = (HUD_TRIAL.walletSyncTimer or 0) + dt
+  if HUD_TRIAL.walletSyncTimer >= HUD_TRIAL.walletSyncInterval then
+    HUD_TRIAL.walletSyncTimer = 0
     local currentMoney = getCareerMoney()
+    if currentMoney == nil and CareerMoney and CareerMoney.getOrNil then
+      currentMoney = CareerMoney.getOrNil()
+    end
     if currentMoney ~= nil then
       local prevMoney = tonumber(S.hudWallet) or 0
       if math.floor(prevMoney) ~= math.floor(currentMoney) then
