@@ -78,6 +78,14 @@
             bngApi.engineLua("extensions.bolidesTheCut.setHudWeaponButtonHover(" + (shouldBlock ? "true" : "false") + ")");
           }
 
+          function updateHudUiInteractionState() {
+            if (!(window.bngApi && bngApi.engineLua)) {
+              return;
+            }
+            var interactiveHudFocus = !!scope.popup.active || !!scope.weaponButtonHover.active;
+            bngApi.engineLua("extensions.bolidesTheCut.setHudUiInteractionActive(" + (interactiveHudFocus ? "true" : "false") + ")");
+          }
+
           function weaponImage(id, ammo, hasWeapon) {
             var safeId = id === 'emp' ? 'emp' : 'pistol';
             var safeAmmo = Math.max(0, Number(ammo || 0));
@@ -136,6 +144,7 @@
             scope.hudTrial.isHarassing = scope.hudTrial.pacingMode === 'harassing';
             scope.hudTrial.robberTelemetryCards = Array.isArray(payload.robberTelemetryCards) ? payload.robberTelemetryCards : [];
             updateWeaponButtonHoverState();
+            updateHudUiInteractionState();
             scope.hudTrial.weapons.forEach(function (weapon) {
               if (!weapon.animate) {
                 return;
@@ -158,6 +167,7 @@
             scope.popup.continueLabel = payload.continueLabel || 'Continue';
             scope.popup.canContinue = payload.canContinue !== false;
             scope.popup.statusLine = payload.statusLine || '';
+            updateHudUiInteractionState();
           });
 
           scope.toggleEquip = function (weaponId) {
@@ -182,6 +192,7 @@
             scope.weaponButtonHover.id = weaponId || null;
             scope.weaponButtonHover.active = !!isHovering;
             updateWeaponButtonHoverState();
+            updateHudUiInteractionState();
           };
 
           scope.popupContinue = function () {

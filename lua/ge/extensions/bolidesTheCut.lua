@@ -105,6 +105,9 @@ local S = {
   hudShotgunHitPoint = "Raycast hit: --",
   hudEquippedWeapon = nil,
   hudWeaponButtonHover = false,
+  hudUiInteractionActive = false,
+  hudEmpClickArmed = false,
+  hudEmpMouseWasDown = false,
   hudPauseState = nil,
   hudPauseActive = false,
   hudRobberTelemetryCards = {},
@@ -1513,11 +1516,15 @@ local function setHudEquippedWeapon(id)
       FirstPersonShoot.setAimEnabled(false)
     end
     S.hudEquippedWeapon = "emp"
+    S.hudEmpClickArmed = false
+    S.hudEmpMouseWasDown = false
   else
     if FirstPersonShoot and FirstPersonShoot.setAimEnabled then
       FirstPersonShoot.setAimEnabled(false)
     end
     S.hudEquippedWeapon = nil
+    S.hudEmpClickArmed = false
+    S.hudEmpMouseWasDown = false
   end
 
   markHudTrialDirty()
@@ -1540,6 +1547,52 @@ end
 
 local function setHudWeaponButtonHover(isHovering)
   S.hudWeaponButtonHover = isHovering and true or false
+end
+
+local function setHudUiInteractionActive(isActive)
+  S.hudUiInteractionActive = isActive and true or false
+end
+
+local function isGarageMenuActive()
+  if not (gameplay_garageMode and gameplay_garageMode.getGarageMenuState) then
+    return false
+  end
+  local ok, state = pcall(gameplay_garageMode.getGarageMenuState)
+  if not ok then return false end
+  if state == nil or state == false then return false end
+  if type(state) == "string" then
+    local lowered = string.lower(state)
+    return lowered ~= "none" and lowered ~= "closed" and lowered ~= "inactive"
+  end
+  return true
+end
+
+local function isDeliveryScreenOpen()
+  if not (career_modules_delivery_cargoScreen and career_modules_delivery_cargoScreen.isCargoScreenOpen) then
+    return false
+  end
+  local ok, open = pcall(career_modules_delivery_cargoScreen.isCargoScreenOpen)
+  return ok and open == true
+end
+
+local function isHudWeaponInputBlocked()
+  if S.hudWeaponButtonHover then return true end
+  if S.hudUiInteractionActive then return true end
+  if S.popupActive then return true end
+  if M and M._missionMsg and M._missionMsg.open then return true end
+  if S.hudPauseActive then return true end
+  if isGarageMenuActive() then return true end
+  if isDeliveryScreenOpen() then return true end
+
+  local imgui = ui_imgui
+  if imgui and imgui.GetIO then
+    local io = imgui.GetIO()
+    if io and (io.WantCaptureMouse or io.WantCaptureKeyboard) then
+      return true
+    end
+  end
+
+  return false
 end
 
 local function triggerHudEmp()
@@ -1567,16 +1620,24 @@ local function handleEquippedEmpInput()
     return
   end
 
-  local io = imgui.GetIO and imgui.GetIO() or nil
-  if io and io.WantCaptureMouse then
+  local mouseDown = (imgui.IsMouseDown and imgui.IsMouseDown(0)) and true or false
+
+  if isHudWeaponInputBlocked() then
+    S.hudEmpClickArmed = false
+    S.hudEmpMouseWasDown = mouseDown
     return
   end
 
-  if S.hudWeaponButtonHover then
-    return
+  if mouseDown then
+    S.hudEmpMouseWasDown = true
+  end
+  if (not mouseDown) and S.hudEmpMouseWasDown then
+    S.hudEmpMouseWasDown = false
+    S.hudEmpClickArmed = true
   end
 
-  if imgui.IsMouseClicked and imgui.IsMouseClicked(0) then
+  if S.hudEmpClickArmed and imgui.IsMouseClicked and imgui.IsMouseClicked(0) then
+    S.hudEmpClickArmed = false
     local ok, reason = triggerHudEmp()
     if ok then
       log("I", "BolidesTheCut", "EMP deployed on nearest vehicle (HUD).")
@@ -2020,7 +2081,7 @@ function M.onExtensionLoaded()
       end,
       getPlayerVeh = getPlayerVeh,
       isInputBlocked = function()
-        return S.hudWeaponButtonHover
+        return isHudWeaponInputBlocked()
       end,
       onShot = function(ok, info, hitPos)
         S.hudShotgunHitPoint = formatHitPoint(hitPos)
@@ -2244,6 +2305,7 @@ end
 M.Audio = Audio
 M.toggleHudWeapon = toggleHudWeapon
 M.setHudWeaponButtonHover = setHudWeaponButtonHover
+M.setHudUiInteractionActive = setHudUiInteractionActive
 M.setHudPacingMode = M.setHudPacingMode
 
 return M
