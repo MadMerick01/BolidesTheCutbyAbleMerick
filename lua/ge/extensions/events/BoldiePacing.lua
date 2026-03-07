@@ -10,7 +10,8 @@ local STATE = {
   intervalSec = 30,
   countdown = 30,
   activeEventName = nil,
-  nextIndex = 1,
+  dueEventName = nil,
+  lastCompletedEventName = nil,
   retryDelay = 0.5,
   retryTimer = 0,
 }
@@ -24,7 +25,7 @@ local EVENT_ORDER = {
 
 local HARASSING_INTERVAL_SEC = 30
 local REAL_MIN_INTERVAL_SEC = 180
-local REAL_MAX_INTERVAL_SEC = 600
+local REAL_MAX_INTERVAL_SEC = 400
 local rngSeeded = false
 
 local function normalizeMode(mode)
@@ -67,17 +68,33 @@ local function applyPendingModeIfNeeded()
   STATE.pendingMode = nil
 end
 
-local function setNextIndexFromName(name)
-  for i, eventName in ipairs(EVENT_ORDER) do
-    if eventName == name then
-      STATE.nextIndex = (i % #EVENT_ORDER) + 1
-      return
-    end
-  end
-end
-
 local function getEventModule(name)
   return Events and Events[name]
+end
+
+local function pickRandomDueEventName()
+  ensureRngSeeded()
+
+  local candidates = {}
+  for _, eventName in ipairs(EVENT_ORDER) do
+    if eventName ~= STATE.lastCompletedEventName then
+      candidates[#candidates + 1] = eventName
+    end
+  end
+
+  if #candidates == 0 then
+    candidates = EVENT_ORDER
+  end
+
+  local index = math.random(1, #candidates)
+  return candidates[index]
+end
+
+local function ensureDueEventName()
+  if not STATE.dueEventName then
+    STATE.dueEventName = pickRandomDueEventName()
+  end
+  return STATE.dueEventName
 end
 
 local function isEventActive(name)
@@ -124,7 +141,8 @@ function M.init(hostCfg, hostApi, eventModules)
   STATE.pendingMode = nil
   STATE.activeEventName = nil
   STATE.retryTimer = 0
-  STATE.nextIndex = 1
+  STATE.dueEventName = nil
+  STATE.lastCompletedEventName = nil
 end
 
 function M.getCountdown()
@@ -132,7 +150,7 @@ function M.getCountdown()
 end
 
 function M.getNextEventName()
-  return EVENT_ORDER[STATE.nextIndex]
+  return ensureDueEventName()
 end
 
 function M.getMode()
@@ -173,9 +191,10 @@ function M.update(dtSim)
   local activeName = STATE.activeEventName or detectActiveEvent()
   if activeName then
     STATE.activeEventName = activeName
-    setNextIndexFromName(activeName)
     if not isEventActive(activeName) then
+      STATE.lastCompletedEventName = activeName
       STATE.activeEventName = nil
+      STATE.dueEventName = nil
       applyPendingModeIfNeeded()
       beginCountdownForMode(STATE.activeMode)
       STATE.retryTimer = 0
@@ -193,7 +212,7 @@ function M.update(dtSim)
     return
   end
 
-  local nextName = M.getNextEventName()
+  local nextName = ensureDueEventName()
   if nextName then
     if isEventPendingStart(nextName) then
       STATE.retryTimer = STATE.retryDelay
@@ -205,7 +224,6 @@ function M.update(dtSim)
     if ok then
       STATE.activeEventName = nextName
       STATE.retryTimer = 0
-      STATE.nextIndex = (STATE.nextIndex % #EVENT_ORDER) + 1
     else
       STATE.retryTimer = STATE.retryDelay
       STATE.countdown = 0
