@@ -48,8 +48,8 @@ local R = {
   pendingStartAttempts = 0,
 }
 
-local ROBBER_MODEL = "roamer"
-local ROBBER_CONFIG = "robber_light.pc"
+local ROBBER_MODEL = "md_series"
+local ROBBER_CONFIG = "BolideMoneyVan.pc"
 local ROBBER_SHOT_FORCE_MULTIPLIER = 0.35
 local ROBBER_SHOT_EXPLOSION_FORCE = 30.0
 local ROBBER_SHOT_EXPLOSION_RADIUS = 1.0
