@@ -19,6 +19,7 @@ local EVENT_ORDER = {
   "RobberEMP",
   "RobberBoss",
   "RobberShotgun",
+  "BankVan",
 }
 
 local HARASSING_INTERVAL_SEC = 30

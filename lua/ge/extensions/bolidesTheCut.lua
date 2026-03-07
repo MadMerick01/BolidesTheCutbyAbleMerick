@@ -11,6 +11,7 @@ local M = {}
 local Breadcrumbs = require("lua/ge/extensions/breadcrumbs")
 local RobberEMP = require("lua/ge/extensions/events/RobberEMP")
 local RobberShotgun = require("lua/ge/extensions/events/RobberShotgun")
+local BankVan = require("lua/ge/extensions/events/BankVan")
 local RobberBoss = require("lua/ge/extensions/events/RobberBoss")
 local RobberFleeSupervisor = require("lua/ge/extensions/events/RobberFleeSupervisor")
 local RobberEscapePlanner = require("lua/ge/extensions/events/RobberEscapePlanner")
@@ -557,6 +558,7 @@ local function getThreatState()
 
   checkEvent(RobberEMP, CFG.threatDistanceRobber)
   checkEvent(RobberShotgun, CFG.threatDistanceRobber)
+  checkEvent(BankVan, CFG.threatDistanceRobber)
   checkEvent(RobberBoss, CFG.threatDistanceRobber)
   checkEvent(FireAttack, CFG.threatDistanceFireAttack)
 
@@ -1087,6 +1089,9 @@ local function hudTrialPayloadKey(payload)
       tostring(pd.shotgunPending or ""),
       tostring(pd.shotgunPendingAttempts or ""),
       tostring(pd.shotgunPendingEta or ""),
+      tostring(pd.bankVanPending or ""),
+      tostring(pd.bankVanPendingAttempts or ""),
+      tostring(pd.bankVanPendingEta or ""),
       tostring(pd.coldSpawnAllowed or ""),
     }, ":")
   end
@@ -1136,6 +1141,7 @@ end
 local function getPacingEventModule(name)
   if name == "RobberEMP" then return RobberEMP end
   if name == "RobberShotgun" then return RobberShotgun end
+  if name == "BankVan" then return BankVan end
   if name == "RobberBoss" then return RobberBoss end
   return nil
 end
@@ -1178,6 +1184,7 @@ local function buildHudTrialPayload()
   local walletAmount = tonumber(S.hudWallet) or 0
   local empPending = RobberEMP and RobberEMP.getPendingStartState and RobberEMP.getPendingStartState() or nil
   local shotgunPending = RobberShotgun and RobberShotgun.getPendingStartState and RobberShotgun.getPendingStartState() or nil
+  local bankVanPending = BankVan and BankVan.getPendingStartState and BankVan.getPendingStartState() or nil
   local nextDueReady, nextDueEventName, nextDueReason = getNextDueEventReadiness()
 
   local function secondsUntil(ts)
@@ -1217,6 +1224,9 @@ local function buildHudTrialPayload()
       shotgunPending = shotgunPending and shotgunPending.pending or false,
       shotgunPendingAttempts = shotgunPending and shotgunPending.attempts or 0,
       shotgunPendingEta = secondsUntil(shotgunPending and shotgunPending.deadline or nil),
+      bankVanPending = bankVanPending and bankVanPending.pending or false,
+      bankVanPendingAttempts = bankVanPending and bankVanPending.attempts or 0,
+      bankVanPendingEta = secondsUntil(bankVanPending and bankVanPending.deadline or nil),
       coldSpawnAllowed = true,
     },
     pacingMode = BoldiePacing and BoldiePacing.getMode and BoldiePacing.getMode() or (CFG.pacingModeDefault or "real"),
@@ -2046,6 +2056,9 @@ function M.onExtensionLoaded()
   if RobberShotgun and RobberShotgun.init then
     RobberShotgun.init(CFG, EVENT_HOST)
   end
+  if BankVan and BankVan.init then
+    BankVan.init(CFG, EVENT_HOST)
+  end
   if RobberBoss and RobberBoss.init then
     RobberBoss.init(CFG, EVENT_HOST)
   end
@@ -2066,6 +2079,7 @@ function M.onExtensionLoaded()
     BoldiePacing.init(CFG, EVENT_HOST, {
       RobberEMP = RobberEMP,
       RobberShotgun = RobberShotgun,
+      BankVan = BankVan,
       RobberBoss = RobberBoss,
     }, nil)
   end
@@ -2195,6 +2209,9 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   if RobberShotgun and RobberShotgun.update then
     RobberShotgun.update(dtSim)
   end
+  if BankVan and BankVan.update then
+    BankVan.update(dtSim)
+  end
   if RobberBoss and RobberBoss.update then
     RobberBoss.update(dtSim)
   end
@@ -2227,6 +2244,9 @@ function M.startEvent(name, cfg)
   if name == "RobberShotgun" then
     return RobberShotgun.triggerManual()
   end
+  if name == "BankVan" then
+    return BankVan.triggerManual()
+  end
   if name == "RobberBoss" then
     return RobberBoss.triggerManual()
   end
@@ -2243,6 +2263,10 @@ function M.stopEvent(name)
   end
   if name == "RobberShotgun" then
     RobberShotgun.endEvent()
+    return true
+  end
+  if name == "BankVan" then
+    BankVan.endEvent()
     return true
   end
   if name == "RobberBoss" then
@@ -2271,6 +2295,9 @@ local function stopAllEventAudio()
   end
   if RobberShotgun and RobberShotgun.endEvent then
     pcall(function() RobberShotgun.endEvent("lifecycle_cleanup") end)
+  end
+  if BankVan and BankVan.endEvent then
+    pcall(function() BankVan.endEvent("lifecycle_cleanup") end)
   end
   if RobberBoss and RobberBoss.endEvent then
     pcall(function() RobberBoss.endEvent() end)
