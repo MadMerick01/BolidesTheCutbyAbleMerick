@@ -2257,11 +2257,15 @@ function M.stopEvent(name)
 end
 
 
-local function stopAllEventAudio()
+local function stopCurrentPlayerAudio()
   local pv = getPlayerVeh and getPlayerVeh() or nil
   if pv and Audio and Audio.stopId then
     Audio.stopId(pv, CFG.sfxBolidesIntroName)
   end
+end
+
+local function stopAllEventAudio()
+  stopCurrentPlayerAudio()
   if RobberEMP and RobberEMP.endEvent then
     pcall(function() RobberEMP.endEvent() end)
   end
@@ -2277,7 +2281,9 @@ local function stopAllEventAudio()
 end
 
 function M.onVehicleSwitched(oldId, newId)
-  stopAllEventAudio()
+  -- Vehicle switches also fire when the player exits to walk on-foot.
+  -- Do not terminate active events in that case; only stop local intro audio.
+  stopCurrentPlayerAudio()
 end
 
 function M.onClientEndMission(missionId)
