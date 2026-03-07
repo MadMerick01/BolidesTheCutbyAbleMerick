@@ -967,7 +967,7 @@ local HUD_TRIAL = {
   timeSinceEmit = math.huge,
   emitInterval = 0.25,
   forceEmitInterval = 1.0,
-  walletSyncInterval = 2.0,
+  walletSyncInterval = 0.25,
   timeSinceEnsureVisible = math.huge,
   ensureVisibleInterval = 2.0,
   walletSyncTimer = 0,
@@ -2067,11 +2067,15 @@ function M.onUpdate(dtReal, dtSim, dtRaw)
   Breadcrumbs.update(dtSim)
 
   local dt = tonumber(dtSim) or 0
+  local dtRealSafe = tonumber(dtReal)
+  if dtRealSafe == nil then
+    dtRealSafe = dt
+  end
   HUD_TRIAL.timeSinceEmit = (HUD_TRIAL.timeSinceEmit or 0) + dt
   HUD_TRIAL.timeSinceEnsureVisible = (HUD_TRIAL.timeSinceEnsureVisible or 0) + dt
   POPUP.timeSinceEmit = (POPUP.timeSinceEmit or 0) + dt
 
-  HUD_TRIAL.walletSyncTimer = (HUD_TRIAL.walletSyncTimer or 0) + dt
+  HUD_TRIAL.walletSyncTimer = (HUD_TRIAL.walletSyncTimer or 0) + dtRealSafe
   if HUD_TRIAL.walletSyncTimer >= HUD_TRIAL.walletSyncInterval then
     HUD_TRIAL.walletSyncTimer = 0
     local currentMoney = getCareerMoney()
