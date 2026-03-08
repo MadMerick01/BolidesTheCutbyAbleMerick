@@ -34,6 +34,7 @@ local R = {
   hudStatusBase = nil,
   successTriggered = false,
   successDespawnAt = nil,
+  rewardAmount = nil,
   closeTimer = 0,
   robberSlowTimer = 0,
   robberStationaryTimer = 0,
@@ -58,6 +59,9 @@ local STARTUP_DELAY_POST_SPAWN_TICKS = 1
 local STARTUP_DELAY_AUDIO_ENSURE_TICKS = 1
 local STARTUP_DELAY_AI_START_TICKS = 1
 local STARTUP_DELAY_AUDIO_PLAY_TICKS = 2
+
+local MONEY_REWARD_MIN = 10000
+local MONEY_REWARD_MAX = 20000
 
 local function log(msg)
   R.status = msg or ""
@@ -121,6 +125,15 @@ local function addCareerMoney(amount)
   return false
 end
 
+local function getRandomRewardAmount()
+  return math.random(MONEY_REWARD_MIN, MONEY_REWARD_MAX)
+end
+
+local function getCaughtStatusText(amount)
+  local payout = amount or MONEY_REWARD_MIN
+  return string.format("You stopped the Bolide money van. +$%d", payout)
+end
+
 local function formatStatusWithDistance(status, distance)
   if not status or status == "" then return status end
   if type(distance) ~= "number" or distance < 0 or distance ~= distance then
@@ -182,6 +195,7 @@ local function resetRuntime()
   R.hudStatusBase = nil
   R.successTriggered = false
   R.successDespawnAt = nil
+  R.rewardAmount = nil
   R.closeTimer = 0
   R.robberSlowTimer = 0
   R.robberStationaryTimer = 0
@@ -892,7 +906,7 @@ function M.endEvent(reason)
   if reason == "escape" then
     status = "The Bolides have successfully moved their profits out of the area"
   elseif reason == "caught" then
-    status = "You stopped the Bolide money van. +$10000"
+    status = getCaughtStatusText(R.rewardAmount)
   elseif reason == "garage" then
     status = "Threat cleared after towing to garage."
   end
@@ -1071,8 +1085,9 @@ function M.update(dtSim)
       R.successDespawnAt = now + 12.0
       R.nextShotAt = nil
       R.shotsStarted = false
-      addCareerMoney(10000)
-      local status = "You stopped the Bolide money van. +$10000"
+      R.rewardAmount = getRandomRewardAmount()
+      addCareerMoney(R.rewardAmount)
+      local status = getCaughtStatusText(R.rewardAmount)
       local msgArgs = {
         title = "NOTICE",
         text = status,
@@ -1090,7 +1105,7 @@ function M.update(dtSim)
         threat = "safe",
         status = formatStatusWithDistance(combinedStatus, R.distToPlayer),
         dangerReason = nil,
-        moneyDelta = 10000,
+        moneyDelta = R.rewardAmount,
       })
     end
   end
