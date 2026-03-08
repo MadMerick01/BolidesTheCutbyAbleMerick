@@ -542,6 +542,15 @@
       >
         About
       </button>
+      <button
+        class="bolide-hud-trial__action-button"
+        ng-disabled="!hudTrial.hasPlayerVehicle"
+        ng-click="resetAudio()"
+        title="{{hudTrial.hasPlayerVehicle ? 'Stop all Bolides SFX on the current vehicle' : 'Spawn or purchase a vehicle first'}}"
+        type="button"
+      >
+        Reset Audio
+      </button>
     </div>
 
 

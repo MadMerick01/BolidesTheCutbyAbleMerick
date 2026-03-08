@@ -2288,6 +2288,62 @@ local function stopCurrentPlayerAudio()
   end
 end
 
+local function stopAllBolidesSfxOnVehicle(v)
+  if not v or not v.queueLuaCommand then
+    return
+  end
+
+  local cmd = [[
+    local stores = {
+      "__bolidesAudio",
+      "__empAudio",
+      "__robber1FKB200Audio",
+      "__robberShotgunAudio",
+      "__fireAttackAudio",
+      "__bulletsAudio",
+    }
+
+    local function stopId(id)
+      if id == nil then return end
+      if obj.setSFXSourceLooping then pcall(function() obj:setSFXSourceLooping(id, false) end) end
+      if obj.setSFXSourceLoop then pcall(function() obj:setSFXSourceLoop(id, false) end) end
+      if obj.stopSFX then
+        pcall(function() obj:stopSFX(id) end)
+        pcall(function() obj:stopSFX(id, true) end)
+      end
+      if obj.stopSFXSource then pcall(function() obj:stopSFXSource(id) end) end
+      if obj.stop then pcall(function() obj:stop(id) end) end
+      if obj.setSFXSourceVolume then pcall(function() obj:setSFXSourceVolume(id, 0) end) end
+      if obj.setSFXVolume then pcall(function() obj:setSFXVolume(id, 0) end) end
+      if obj.setVolume then pcall(function() obj:setVolume(id, 0) end) end
+    end
+
+    for _, key in ipairs(stores) do
+      local store = _G[key]
+      local ids = store and store.ids
+      if type(ids) == "table" then
+        for _, id in pairs(ids) do
+          stopId(id)
+        end
+      end
+    end
+  ]]
+
+  v:queueLuaCommand(cmd)
+end
+
+function M.resetHudAudio()
+  local pv = getPlayerVeh and getPlayerVeh() or nil
+  if not pv then
+    M.setGuiStatusMessage("Audio reset unavailable: no player vehicle yet.")
+    return false
+  end
+
+  stopAllBolidesSfxOnVehicle(pv)
+  M.setGuiStatusMessage("Bolides audio reset.")
+  return true
+end
+
 local function stopAllEventAudio()
   stopCurrentPlayerAudio()
   if RobberEMP and RobberEMP.endEvent then
