@@ -7,7 +7,7 @@ Career mode is no longer safe.
 
 Bolides – The Cut is a career expansion for BeamNG.drive that introduces the Bolides — a hostile criminal gang that turns every profitable run into a potential high-stakes encounter.
 
-EMP attacks. Theft of Career Money. Armed combat by pistol. Mechanical bullet damage with real consequences to driveability and repair costs.
+EMP attacks. Theft of Career Money. Armed combat by pistol. Mechanical bullet damage with real consequences to driveability and repair costs. Bolides moving money in armed vans across the map.
 
 Your decisions determine whether you survive, fight back, or turn danger into profit. Ammo is scarce, use it sparingly
 
@@ -68,8 +68,7 @@ As you move value across the map, criminal events may unfold:
 - Intimidation
 - Drive by shooting
 - Pursuit by armed Bolide Vehicle
-- NEXT UPDATE: ability to purchase EMP charges and ammo (in RC 0.9 obtain these from intercepting Bolide vehicles)
-- many more planned hostile encounters with risk/reward mechanics
+- Bolides moving armed Money Vans across the map
 
 The Bolides are a roaming crime gang led by **Bonito Bolide**. Bonito Bolide is the founder of **Bolide Motors** and the unseen head of
 the Bolides crime network. Publicly, he is known as an industrialist with property holdings in Italy and interests in high-performance vehicle manufacturing. Privately, his fortune is reinforced through organised criminal operations targeting high-value transport and emerging career operators.
@@ -97,11 +96,13 @@ Players can:
 - Defend their vehicle and cargo (EMP and pistol)
 - Protect their earnings
 - Turn the tables (take back robbed amounts plus extra money, loot, ammo and EMP charges
+- Try to take down armed Bolide money vans (good luck!)
 
-Weapons and equipment may be obtained from the Bolides themselves, including:
+Loot may be obtained from the Bolides themselves, including:
 - EMP and charges
 - Pistol
 - Ammunition
+- Cash
 
 -----------------------------------------------------
 
