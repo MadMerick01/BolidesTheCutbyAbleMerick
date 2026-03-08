@@ -229,6 +229,15 @@
             }
           };
 
+          scope.resetAudio = function () {
+            if (!scope.hudTrial.hasPlayerVehicle) {
+              return;
+            }
+            if (window.bngApi && bngApi.engineLua) {
+              bngApi.engineLua("extensions.bolidesTheCut.resetHudAudio()");
+            }
+          };
+
           if (window.bngApi && bngApi.engineLua) {
             bngApi.engineLua(
               'if extensions and extensions.load then ' +
