@@ -15,6 +15,10 @@ local CFG = {
   rayStartOffset = 3.0,
   targetSnapRadius = 6.0,
   accuracyRadius = 1.5,
+  worldReticleEnabled = true,
+  worldReticleFallbackDistance = 10.0,
+  worldReticleRadius = 0.15,
+  use2DCrosshairFallback = true,
 }
 
 local AUDIO = {
@@ -444,6 +448,40 @@ local function _castAimRay(aimRay)
   return result, rayStartPos
 end
 
+local function _resolveAimPoint(aimRay)
+  if not (aimRay and aimRay.origin and aimRay.dir) then
+    return nil, false
+  end
+
+  local rayDir = _vec3From(aimRay.dir)
+  if not rayDir or rayDir:length() < 0.001 then
+    return nil, false
+  end
+  rayDir = rayDir:normalized()
+
+  local hit, rayStartPos = _castAimRay(aimRay)
+  rayStartPos = rayStartPos or aimRay.origin
+  if (not hit) and aimRay.mode == "FLAT_MOUSE" then
+    hit = cameraMouseRayCast and cameraMouseRayCast(true) or nil
+    rayStartPos = aimRay.origin
+  end
+
+  local _, hitPos, hitDist = _extractHitInfo(hit)
+  if hitPos then
+    return hitPos, true
+  end
+
+  if hitDist then
+    return rayStartPos + (rayDir * hitDist), true
+  end
+
+  local fallbackDistance = tonumber(CFG.worldReticleFallbackDistance) or 10.0
+  if fallbackDistance < 1.0 then
+    fallbackDistance = 1.0
+  end
+  return aimRay.origin + (rayDir * fallbackDistance), false
+end
+
 local function _projectWorldToScreen(pos)
   if not pos then return nil end
 
@@ -566,19 +604,42 @@ local function _fireShot()
   end
 end
 
-local function _drawCrosshair(imgui)
+local function _drawWorldReticle(aimRay)
+  if not CFG.worldReticleEnabled then return false end
+  if not debugDrawer then return false end
+
+  local aimPos = _resolveAimPoint(aimRay)
+  if not aimPos then return false end
+
+  local radius = tonumber(CFG.worldReticleRadius) or 0.15
+  if radius <= 0 then
+    radius = 0.15
+  end
+  debugDrawer:drawSphere(aimPos, radius, ColorF(0.1, 0.55, 1.0, 0.95))
+  return true
+end
+
+local function _drawCrosshair(imgui, aimRay)
   local viewport = imgui.GetMainViewport and imgui.GetMainViewport() or nil
   local drawList = viewport and imgui.GetForegroundDrawList2(viewport) or nil
   if not drawList then return end
 
   local pos = nil
-  if _isVRActive() and viewport and viewport.Pos and viewport.Size then
+  if aimRay and CFG.worldReticleEnabled then
+    local aimPos = _resolveAimPoint(aimRay)
+    local projected = _projectWorldToScreen(aimPos)
+    if projected then
+      pos = projected
+    end
+  end
+
+  if not pos and _isVRActive() and viewport and viewport.Pos and viewport.Size then
     _logAimMode("VR_HEAD")
     pos = {
       x = viewport.Pos.x + (viewport.Size.x * 0.5),
       y = viewport.Pos.y + (viewport.Size.y * 0.5),
     }
-  else
+  elseif not pos then
     _logAimMode("FLAT_MOUSE")
     pos = imgui.GetMousePos and imgui.GetMousePos() or nil
   end
@@ -666,7 +727,12 @@ function M.onDraw()
     imgui.SetMouseCursor(imgui.MouseCursor_None)
   end
 
-  _drawCrosshair(imgui)
+  local aimRay = _getAimRay()
+  local drewWorldReticle = _drawWorldReticle(aimRay)
+
+  if CFG.use2DCrosshairFallback and not drewWorldReticle then
+    _drawCrosshair(imgui, aimRay)
+  end
 
   local io = imgui.GetIO and imgui.GetIO() or nil
   if io and io.WantCaptureMouse then
