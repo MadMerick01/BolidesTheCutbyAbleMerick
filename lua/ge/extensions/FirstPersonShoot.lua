@@ -16,9 +16,11 @@ local CFG = {
   targetSnapRadius = 6.0,
   accuracyRadius = 1.5,
   worldReticleEnabled = true,
+  worldReticleEnabledInVR = false,
   worldReticleFallbackDistance = 10.0,
   worldReticleRadius = 0.15,
   use2DCrosshairFallback = true,
+  force2DCrosshairInVR = true,
 }
 
 local AUDIO = {
@@ -606,6 +608,7 @@ end
 
 local function _drawWorldReticle(aimRay)
   if not CFG.worldReticleEnabled then return false end
+  if _isVRActive() and not CFG.worldReticleEnabledInVR then return false end
   if not debugDrawer then return false end
 
   local aimPos = _resolveAimPoint(aimRay)
@@ -728,9 +731,15 @@ function M.onDraw()
   end
 
   local aimRay = _getAimRay()
+  local isVR = _isVRActive()
   local drewWorldReticle = _drawWorldReticle(aimRay)
 
-  if CFG.use2DCrosshairFallback and not drewWorldReticle then
+  local shouldDraw2DCrosshair = CFG.use2DCrosshairFallback and (not drewWorldReticle)
+  if isVR and CFG.force2DCrosshairInVR then
+    shouldDraw2DCrosshair = true
+  end
+
+  if shouldDraw2DCrosshair then
     _drawCrosshair(imgui, aimRay)
   end
 
