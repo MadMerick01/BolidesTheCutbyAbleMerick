@@ -19,6 +19,9 @@ local CFG = {
   worldReticleEnabledInVR = false,
   worldReticleFallbackDistance = 10.0,
   worldReticleRadius = 0.15,
+  minHitDistanceFromCamera = 2.0,
+  nearHitEpsilon = 0.02,
+  ignoreNearHitsInVehicleOnly = true,
   use2DCrosshairFallback = true,
   force2DCrosshairInVR = true,
 }
@@ -450,6 +453,80 @@ local function _castAimRay(aimRay)
   return result, rayStartPos
 end
 
+local function _getHitDistanceFromCamera(aimRay, rayStartPos, hit)
+  if not (aimRay and aimRay.origin and hit) then return nil end
+
+  local _, hitPos, hitDist = _extractHitInfo(hit)
+  if hitPos then
+    return (hitPos - aimRay.origin):length()
+  end
+
+  if hitDist then
+    local startOffset = rayStartPos and (rayStartPos - aimRay.origin):length() or 0.0
+    return startOffset + hitDist
+  end
+
+  return nil
+end
+
+local function _nearHitFilterActive(playerVeh)
+  local minDist = tonumber(CFG.minHitDistanceFromCamera) or 0.0
+  if minDist <= 0 then
+    return false, minDist
+  end
+  if CFG.ignoreNearHitsInVehicleOnly and not _isValidVeh(playerVeh) then
+    return false, minDist
+  end
+  return true, minDist
+end
+
+local function _castAimRayFiltered(aimRay, playerVeh)
+  if not (aimRay and aimRay.origin and aimRay.dir) then
+    return nil, nil
+  end
+
+  local hit, rayStartPos = _castAimRay(aimRay)
+  rayStartPos = rayStartPos or aimRay.origin
+
+  if (not hit) and aimRay.mode == "FLAT_MOUSE" then
+    hit = cameraMouseRayCast and cameraMouseRayCast(true) or nil
+    rayStartPos = aimRay.origin
+  end
+
+  local active, minDist = _nearHitFilterActive(playerVeh)
+  if not active or not hit or not castRay then
+    return hit, rayStartPos
+  end
+
+  local cameraHitDist = _getHitDistanceFromCamera(aimRay, rayStartPos, hit)
+  if not cameraHitDist or cameraHitDist >= minDist then
+    return hit, rayStartPos
+  end
+
+  local rayDir = _vec3From(aimRay.dir)
+  if not rayDir or rayDir:length() < 0.001 then
+    return nil, rayStartPos
+  end
+  rayDir = rayDir:normalized()
+
+  local epsilon = tonumber(CFG.nearHitEpsilon) or 0.02
+  if epsilon < 0 then epsilon = 0 end
+  local restartDist = minDist + epsilon
+  local maxDist = tonumber(CFG.maxDistance) or 0.0
+  if restartDist >= maxDist then
+    return nil, aimRay.origin + (rayDir * restartDist)
+  end
+
+  local nextStart = aimRay.origin + (rayDir * restartDist)
+  local nextEnd = aimRay.origin + (rayDir * maxDist)
+  local ok, nextHit = pcall(castRay, nextStart, nextEnd)
+  if not ok then
+    return nil, nextStart
+  end
+
+  return nextHit, nextStart
+end
+
 local function _resolveAimPoint(aimRay)
   if not (aimRay and aimRay.origin and aimRay.dir) then
     return nil, false
@@ -461,12 +538,9 @@ local function _resolveAimPoint(aimRay)
   end
   rayDir = rayDir:normalized()
 
-  local hit, rayStartPos = _castAimRay(aimRay)
+  local playerVeh = callbacks.getPlayerVeh and callbacks.getPlayerVeh() or nil
+  local hit, rayStartPos = _castAimRayFiltered(aimRay, playerVeh)
   rayStartPos = rayStartPos or aimRay.origin
-  if (not hit) and aimRay.mode == "FLAT_MOUSE" then
-    hit = cameraMouseRayCast and cameraMouseRayCast(true) or nil
-    rayStartPos = aimRay.origin
-  end
 
   local _, hitPos, hitDist = _extractHitInfo(hit)
   if hitPos then
@@ -552,18 +626,14 @@ local function _fireShot()
   _playShotAudio()
   _applyRecoilKick()
 
-  local hit, rayStartPos = _castAimRay(aimRay)
+  local playerVeh = callbacks.getPlayerVeh and callbacks.getPlayerVeh() or nil
+  local hit, rayStartPos = _castAimRayFiltered(aimRay, playerVeh)
   rayStartPos = rayStartPos or camPos
-  if (not hit) and aimRay.mode == "FLAT_MOUSE" then
-    hit = cameraMouseRayCast and cameraMouseRayCast(true) or nil
-    rayStartPos = camPos
-  end
   local objId, hitPos, hitDist = _extractHitInfo(hit)
   if not hitPos and hitDist then
     hitPos = rayStartPos + (rayDir * hitDist)
   end
 
-  local playerVeh = callbacks.getPlayerVeh and callbacks.getPlayerVeh() or nil
   local targetVeh = objId and be:getObjectByID(objId) or nil
   if not _isValidVeh(targetVeh) then
     targetVeh = _findSnapTargetNearPoint(hitPos, playerVeh)
@@ -611,8 +681,9 @@ local function _drawWorldReticle(aimRay)
   if _isVRActive() and not CFG.worldReticleEnabledInVR then return false end
   if not debugDrawer then return false end
 
-  local aimPos = _resolveAimPoint(aimRay)
+  local aimPos, didHit = _resolveAimPoint(aimRay)
   if not aimPos then return false end
+  if not didHit then return false end
 
   local radius = tonumber(CFG.worldReticleRadius) or 0.15
   if radius <= 0 then
