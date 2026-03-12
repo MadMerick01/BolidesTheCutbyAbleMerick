@@ -975,6 +975,8 @@ local HUD_TRIAL = {
   walletSyncInterval = 0.25,
   timeSinceEnsureVisible = math.huge,
   ensureVisibleInterval = 2.0,
+  containerRetryBackoff = 30.0,
+  containerRetryAt = 0,
   walletSyncTimer = 0,
   lastPayloadKey = nil,
 }
@@ -1263,6 +1265,9 @@ local function isHudTrialAppAvailable(apps)
   end
 
   local ok, available = pcall(apps.getAvailableApps, containerName)
+  if (not ok or type(available) ~= "table") then
+    ok, available = pcall(apps.getAvailableApps)
+  end
   if not ok or type(available) ~= "table" then
     return false
   end
@@ -1293,6 +1298,9 @@ local function isMessagesTasksContainerMounted(apps)
   end
 
   local ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted, containerName)
+  if (not ok or type(mounted) ~= "boolean") then
+    ok, mounted = pcall(apps.getMessagesTasksAppContainerMounted)
+  end
   if ok and type(mounted) == "boolean" then
     return mounted
   end
@@ -1301,6 +1309,11 @@ local function isMessagesTasksContainerMounted(apps)
 end
 
 ensureHudTrialAppVisible = function(force)
+  local now = os.clock()
+  if not force and now < (HUD_TRIAL.containerRetryAt or 0) then
+    return false
+  end
+
   HUD_TRIAL.timeSinceEnsureVisible = force and math.huge or HUD_TRIAL.timeSinceEnsureVisible
   if not force and HUD_TRIAL.timeSinceEnsureVisible < HUD_TRIAL.ensureVisibleInterval then
     return false
@@ -1309,17 +1322,23 @@ ensureHudTrialAppVisible = function(force)
   local apps = ui_messagesTasksAppContainers
   if not apps then return false end
   if not isMessagesTasksContainerMounted(apps) then
+    HUD_TRIAL.containerRetryAt = now + (HUD_TRIAL.containerRetryBackoff or 30.0)
     return false
   end
   if not isHudTrialAppAvailable(apps) then
+    HUD_TRIAL.containerRetryAt = now + (HUD_TRIAL.containerRetryBackoff or 30.0)
     return false
   end
+  HUD_TRIAL.containerRetryAt = 0
 
   local visible = nil
   if type(apps.getAppVisibility) == "function" then
     local ok, res
     if HUD_TRIAL.containerName ~= nil and HUD_TRIAL.containerName ~= "" then
       ok, res = pcall(apps.getAppVisibility, HUD_TRIAL.appName, HUD_TRIAL.containerName)
+      if (not ok) or type(res) ~= "boolean" then
+        ok, res = pcall(apps.getAppVisibility, HUD_TRIAL.appName)
+      end
     else
       ok, res = pcall(apps.getAppVisibility, HUD_TRIAL.appName)
     end
@@ -1336,14 +1355,20 @@ ensureHudTrialAppVisible = function(force)
   if type(apps.showApp) == "function" then
     -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
     if HUD_TRIAL.containerName ~= nil and HUD_TRIAL.containerName ~= "" then
-      pcall(apps.showApp, HUD_TRIAL.appName, HUD_TRIAL.containerName)
+      local ok = pcall(apps.showApp, HUD_TRIAL.appName, HUD_TRIAL.containerName)
+      if not ok then
+        pcall(apps.showApp, HUD_TRIAL.appName)
+      end
     else
       pcall(apps.showApp, HUD_TRIAL.appName)
     end
   elseif type(apps.setAppVisibility) == "function" then
     -- API dump ref: docs/beamng-api/raw/api_dump_0.38.txt
     if HUD_TRIAL.containerName ~= nil and HUD_TRIAL.containerName ~= "" then
-      pcall(apps.setAppVisibility, HUD_TRIAL.appName, true, HUD_TRIAL.containerName)
+      local ok = pcall(apps.setAppVisibility, HUD_TRIAL.appName, true, HUD_TRIAL.containerName)
+      if not ok then
+        pcall(apps.setAppVisibility, HUD_TRIAL.appName, true)
+      end
     else
       pcall(apps.setAppVisibility, HUD_TRIAL.appName, true)
     end
